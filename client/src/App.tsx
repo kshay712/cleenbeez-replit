@@ -5,7 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from "./context/AuthContext";
 
 // Layouts
-import Header from "./components/layout/Header";
+import SimpleHeader from "./components/layout/SimpleHeader";
 import Footer from "./components/layout/Footer";
 
 // Pages
@@ -24,7 +24,7 @@ import NotFound from "@/pages/not-found";
 function Router() {
   return (
     <div className="flex flex-col min-h-screen">
-      <Header />
+      <SimpleHeader />
       <main className="flex-grow pt-16">
         <Switch>
           <Route path="/" component={HomePage} />
