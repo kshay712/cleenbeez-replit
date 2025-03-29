@@ -51,7 +51,7 @@ const DevLoginPage = () => {
       setUser(userData);
       
       // Set it in localStorage as well to bypass Firebase
-      localStorage.setItem('cleanbee_dev_user', JSON.stringify(userData));
+      localStorage.setItem('dev-user', JSON.stringify(userData));
       
       toast({
         title: "Login successful",

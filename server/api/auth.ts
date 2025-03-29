@@ -19,6 +19,22 @@ if (!admin.apps.length) {
 // Middleware to verify Firebase auth token
 export const verifyAuthToken = async (req: Request, res: Response, next: NextFunction) => {
   const authHeader = req.headers.authorization;
+  const devUserId = req.headers['x-dev-user-id'];
+
+  // Check for development user ID header (used for direct login functionality)
+  if (devUserId) {
+    try {
+      const userId = parseInt(devUserId as string);
+      const user = await storage.getUserById(userId);
+      
+      if (user) {
+        req.user = user;
+        return next();
+      }
+    } catch (error) {
+      console.error("Error with dev user auth:", error);
+    }
+  }
   
   // Skip token verification for public routes
   const publicPaths = [
@@ -34,7 +50,7 @@ export const verifyAuthToken = async (req: Request, res: Response, next: NextFun
   
   const isPublicPath = publicPaths.some(path => req.path.startsWith(path));
   
-  if (isPublicPath || req.method === 'GET') {
+  if (isPublicPath && req.method === 'GET') {
     return next();
   }
   

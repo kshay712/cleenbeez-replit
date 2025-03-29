@@ -48,7 +48,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   
   useEffect(() => {
     // First, check if we have a development user in localStorage
-    const devUserJson = localStorage.getItem('cleanbee_dev_user');
+    const devUserJson = localStorage.getItem('dev-user');
     if (devUserJson) {
       try {
         const devUser = JSON.parse(devUserJson);
@@ -58,7 +58,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         return () => {}; // No cleanup needed for localStorage
       } catch (error) {
         console.error("Error parsing dev user from localStorage:", error);
-        localStorage.removeItem('cleanbee_dev_user');
+        localStorage.removeItem('dev-user');
       }
     }
     
@@ -212,9 +212,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       setIsLoading(true);
       
       // Check if we have a development user
-      if (localStorage.getItem('cleanbee_dev_user')) {
+      if (localStorage.getItem('dev-user')) {
         // Clear the development user from localStorage
-        localStorage.removeItem('cleanbee_dev_user');
+        localStorage.removeItem('dev-user');
         setUser(null);
       } else {
         // Sign out from Firebase

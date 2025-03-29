@@ -1,4 +1,5 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
+import { auth } from "./firebase";
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
@@ -17,7 +18,38 @@ export async function apiRequest(
   const config: RequestInit = {
     method,
     credentials: "include",
+    headers: {},
   };
+
+  // Add dev user ID if it exists in localStorage
+  const devUser = localStorage.getItem('dev-user');
+  if (devUser) {
+    try {
+      const userData = JSON.parse(devUser);
+      if (userData && userData.id) {
+        config.headers = {
+          ...config.headers,
+          'X-Dev-User-ID': userData.id.toString()
+        };
+      }
+    } catch (e) {
+      console.error('Failed to parse dev user from localStorage:', e);
+    }
+  }
+  
+  // If Firebase auth is used, add the token to the headers
+  try {
+    const currentUser = auth.currentUser;
+    if (currentUser) {
+      const token = await currentUser.getIdToken();
+      config.headers = {
+        ...config.headers,
+        'Authorization': `Bearer ${token}`
+      };
+    }
+  } catch (e) {
+    console.error('Failed to get Firebase token:', e);
+  }
 
   // Handle the body and headers based on data type
   if (data) {
@@ -25,7 +57,10 @@ export async function apiRequest(
       // FormData - don't set Content-Type (browser will handle it)
       config.body = data as FormData;
     } else {
-      config.headers = { "Content-Type": "application/json" };
+      config.headers = {
+        ...config.headers,
+        "Content-Type": "application/json"
+      };
       config.body = JSON.stringify(data);
     }
   }
@@ -42,9 +77,42 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
-    const res = await fetch(queryKey[0] as string, {
+    const config: RequestInit = {
       credentials: "include",
-    });
+      headers: {},
+    };
+
+    // Add dev user ID if it exists in localStorage
+    const devUser = localStorage.getItem('dev-user');
+    if (devUser) {
+      try {
+        const userData = JSON.parse(devUser);
+        if (userData && userData.id) {
+          config.headers = {
+            ...config.headers,
+            'X-Dev-User-ID': userData.id.toString()
+          };
+        }
+      } catch (e) {
+        console.error('Failed to parse dev user from localStorage:', e);
+      }
+    }
+
+    // If Firebase auth is used, add the token to the headers
+    try {
+      const currentUser = auth.currentUser;
+      if (currentUser) {
+        const token = await currentUser.getIdToken();
+        config.headers = {
+          ...config.headers,
+          'Authorization': `Bearer ${token}`
+        };
+      }
+    } catch (e) {
+      console.error('Failed to get Firebase token:', e);
+    }
+
+    const res = await fetch(queryKey[0] as string, config);
 
     if (unauthorizedBehavior === "returnNull" && res.status === 401) {
       return null;
