@@ -1,8 +1,30 @@
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
-import { ShieldCheck, Leaf, Heart } from "lucide-react";
+import { ShieldCheck, Leaf, Heart, ArrowRight } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { Skeleton } from "@/components/ui/skeleton";
+
+interface Product {
+  id: number;
+  name: string;
+  description: string;
+  price: number;
+  category: {
+    id: number;
+    name: string;
+    slug: string;
+  };
+  image: string;
+  organic: boolean;
+  bpaFree: boolean;
+}
 
 const Hero = () => {
+  const { data: featuredProducts, isLoading } = useQuery<Product[]>({
+    queryKey: ["/api/products/featured"],
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  });
+
   return (
     <section className="bg-gradient-to-b from-amber-50 via-primary-50 to-white overflow-hidden relative pt-8">
       {/* Decorative hexagons */}
@@ -49,38 +71,74 @@ const Hero = () => {
               </div>
             </div>
             
-            <div className="mt-8 flex flex-col sm:flex-row sm:gap-4">
+            <div className="mt-8">
               <Button asChild size="lg" className="w-full sm:w-auto">
                 <Link href="/products">
-                  Browse Products
-                </Link>
-              </Button>
-              <Button asChild variant="outline" size="lg" className="mt-4 sm:mt-0 w-full sm:w-auto">
-                <Link href="/blog">
-                  Read Our Blog
+                  Discover More
                 </Link>
               </Button>
             </div>
           </div>
           
-          <div className="mt-10 lg:mt-0 flex justify-center">
-            <div className="relative">
-              {/* Circular background */}
-              <div className="absolute -inset-4 bg-primary-100 rounded-full opacity-70"></div>
+          <div className="mt-10 lg:mt-0 lg:pl-8">
+            <h3 className="text-xl font-bold text-primary-700 mb-4">Popular Products</h3>
+            <div className="grid grid-cols-1 gap-4">
+              {isLoading ? (
+                // Loading skeleton
+                [...Array(3)].map((_, i) => (
+                  <div key={i} className="bg-white rounded-lg shadow-sm p-4 flex items-center space-x-4">
+                    <Skeleton className="h-16 w-16 rounded-md" />
+                    <div className="flex-1">
+                      <Skeleton className="h-5 w-2/3 mb-2" />
+                      <Skeleton className="h-4 w-1/2" />
+                    </div>
+                  </div>
+                ))
+              ) : featuredProducts && featuredProducts.length > 0 ? (
+                // Display featured products
+                featuredProducts.slice(0, 3).map((product) => (
+                  <Link key={product.id} href={`/products/${product.id}`}>
+                    <div className="bg-white rounded-lg shadow-sm p-4 flex items-center space-x-4 hover:shadow-md transition-shadow cursor-pointer">
+                      <div className="h-16 w-16 bg-neutral-100 rounded-md overflow-hidden">
+                        {product.image ? (
+                          <img 
+                            src={product.image} 
+                            alt={product.name} 
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          <div className="h-full w-full flex items-center justify-center">
+                            <ShieldCheck className="h-8 w-8 text-primary-600" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="font-semibold text-neutral-900">{product.name}</h4>
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-neutral-600">{product.category.name}</span>
+                          <span className="text-sm font-medium text-primary-700">${product.price.toFixed(2)}</span>
+                        </div>
+                      </div>
+                      <ArrowRight className="h-4 w-4 text-neutral-400" />
+                    </div>
+                  </Link>
+                ))
+              ) : (
+                // No products found
+                <div className="bg-white rounded-lg shadow-sm p-4 flex items-center space-x-4">
+                  <div className="h-16 w-16 bg-neutral-100 rounded-md overflow-hidden flex items-center justify-center">
+                    <ShieldCheck className="h-8 w-8 text-primary-600" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-neutral-900">No products found</h4>
+                    <p className="text-sm text-neutral-600">Check back soon for new products</p>
+                  </div>
+                </div>
+              )}
               
-              <img 
-                className="h-auto w-full max-w-md rounded-lg shadow-xl relative z-10" 
-                src="https://images.unsplash.com/photo-1591377943654-c659795c523b?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" 
-                alt="Natural wellness products" 
-              />
-              
-              {/* Decorative elements */}
-              <div className="absolute -top-6 -right-6 h-16 w-16 bg-primary-200 rounded-full flex items-center justify-center shadow-lg z-20">
-                <Leaf className="h-8 w-8 text-primary-700" />
-              </div>
-              <div className="absolute -bottom-4 -left-4 h-12 w-12 bg-green-100 rounded-full flex items-center justify-center shadow-lg z-20">
-                <ShieldCheck className="h-6 w-6 text-green-700" />
-              </div>
+              <Link href="/products" className="flex items-center justify-end text-sm font-medium text-primary-600 hover:text-primary-500 mt-1">
+                See all products <ArrowRight className="ml-1 h-4 w-4" />
+              </Link>
             </div>
           </div>
         </div>
