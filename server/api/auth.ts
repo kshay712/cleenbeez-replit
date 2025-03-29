@@ -19,9 +19,19 @@ try {
   console.error('Firebase admin initialization error:', error);
 }
 
-// Middleware to verify Firebase auth token
+// Middleware to verify authentication (Firebase token OR session)
 export const verifyAuthToken = async (req: Request, res: Response, next: NextFunction) => {
   try {
+    // First check if we have a user in the session
+    if (req.session && req.session.userId) {
+      const user = await storage.getUserById(req.session.userId);
+      if (user) {
+        req.user = user;
+        return next();
+      }
+    }
+    
+    // If no session, check for Firebase token
     const authHeader = req.headers.authorization;
     
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -43,6 +53,12 @@ export const verifyAuthToken = async (req: Request, res: Response, next: NextFun
       
       // Add user to request object
       req.user = user;
+      
+      // Also set in session for future requests
+      if (req.session) {
+        req.session.userId = user.id;
+      }
+      
       next();
     } catch (error) {
       console.error('Token verification error:', error);

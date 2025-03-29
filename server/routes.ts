@@ -17,7 +17,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/admin-util/direct-login', adminUtil.directLogin);
   
   // Middleware to parse and validate auth token
-  app.use('/api', verifyAuthToken);
+  // Apply auth to all /api routes EXCEPT those exempt below
+  app.use('/api', (req, res, next) => {
+    // Paths that don't require authentication
+    const publicPaths = [
+      '/api/admin-util/direct-login',
+      '/api/admin-util/promote',
+      '/api/admin-util/create-test-user',
+      '/api/auth/register',
+      '/api/auth/google',
+      '/api/products',
+      '/api/products/featured',
+      '/api/categories'
+    ];
+    
+    if (publicPaths.includes(req.path)) {
+      return next();
+    }
+    
+    return verifyAuthToken(req, res, next);
+  });
 
   // Register auth routes
   app.post('/api/auth/register', auth.register);
