@@ -1,6 +1,5 @@
-import React from 'react';
+import { ChevronLeft, ChevronRight, MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface PaginationProps {
   currentPage: number;
@@ -8,94 +7,113 @@ interface PaginationProps {
   onPageChange: (page: number) => void;
 }
 
-export const Pagination: React.FC<PaginationProps> = ({ currentPage, totalPages, onPageChange }) => {
-  // Create an array of page numbers to display
-  const getPageNumbers = () => {
+export function Pagination({ currentPage, totalPages, onPageChange }: PaginationProps) {
+  if (totalPages <= 1) return null;
+
+  const renderPageButtons = () => {
     const pages = [];
-    const maxVisiblePages = 5;
-    
-    // Always include first page
-    pages.push(1);
-    
+    const maxDisplayedPages = 5; // Max number of page buttons to show
+
+    // Always show first page
+    pages.push(
+      <Button
+        key={1}
+        variant={currentPage === 1 ? "default" : "outline"}
+        size="sm"
+        onClick={() => onPageChange(1)}
+        className="w-10"
+      >
+        1
+      </Button>
+    );
+
+    // Show ellipsis if there are pages before the current range
+    if (currentPage > 3) {
+      pages.push(
+        <Button key="start-ellipsis" variant="outline" size="sm" disabled className="w-10">
+          <MoreHorizontal className="h-4 w-4" />
+        </Button>
+      );
+    }
+
+    // Calculate range of pages to show around current page
     let startPage = Math.max(2, currentPage - 1);
     let endPage = Math.min(totalPages - 1, currentPage + 1);
-    
-    // Adjust start and end to always show the same number of pages if possible
-    if (endPage - startPage + 1 < Math.min(maxVisiblePages - 2, totalPages - 2)) {
-      if (currentPage < totalPages / 2) {
-        endPage = Math.min(totalPages - 1, startPage + Math.min(maxVisiblePages - 3, totalPages - 3));
-      } else {
-        startPage = Math.max(2, endPage - Math.min(maxVisiblePages - 3, totalPages - 3));
-      }
+
+    // Adjust range if we're near the start or end
+    if (currentPage <= 3) {
+      endPage = Math.min(totalPages - 1, maxDisplayedPages - 1);
+    } else if (currentPage >= totalPages - 2) {
+      startPage = Math.max(2, totalPages - maxDisplayedPages + 2);
     }
-    
-    // Add ellipsis before middle pages if there's a gap
-    if (startPage > 2) {
-      pages.push('...');
+
+    // Add the range of page buttons
+    for (let page = startPage; page <= endPage; page++) {
+      pages.push(
+        <Button
+          key={page}
+          variant={currentPage === page ? "default" : "outline"}
+          size="sm"
+          onClick={() => onPageChange(page)}
+          className="w-10"
+        >
+          {page}
+        </Button>
+      );
     }
-    
-    // Add middle pages
-    for (let i = startPage; i <= endPage; i++) {
-      pages.push(i);
+
+    // Show ellipsis if there are pages after the current range
+    if (currentPage < totalPages - 2 && totalPages > maxDisplayedPages) {
+      pages.push(
+        <Button key="end-ellipsis" variant="outline" size="sm" disabled className="w-10">
+          <MoreHorizontal className="h-4 w-4" />
+        </Button>
+      );
     }
-    
-    // Add ellipsis after middle pages if there's a gap
-    if (endPage < totalPages - 1) {
-      pages.push('...');
-    }
-    
-    // Always include last page if it's not the first page
+
+    // Always show last page if we have more than one page
     if (totalPages > 1) {
-      pages.push(totalPages);
+      pages.push(
+        <Button
+          key={totalPages}
+          variant={currentPage === totalPages ? "default" : "outline"}
+          size="sm"
+          onClick={() => onPageChange(totalPages)}
+          className="w-10"
+        >
+          {totalPages}
+        </Button>
+      );
     }
-    
+
     return pages;
   };
 
-  const pageNumbers = getPageNumbers();
-
   return (
-    <nav className="flex items-center justify-center space-x-1 mt-10">
+    <div className="flex items-center justify-center space-x-2 py-8">
       <Button
         variant="outline"
         size="sm"
-        onClick={() => onPageChange(currentPage - 1)}
+        onClick={() => onPageChange(Math.max(1, currentPage - 1))}
         disabled={currentPage === 1}
-        className="h-8 w-8 p-0"
+        className="w-10 p-0"
       >
-        <span className="sr-only">Previous</span>
         <ChevronLeft className="h-4 w-4" />
       </Button>
       
-      {pageNumbers.map((page, index) => (
-        <React.Fragment key={index}>
-          {page === '...' ? (
-            <span className="px-3 py-1 text-sm text-neutral-500">...</span>
-          ) : (
-            <Button
-              variant={currentPage === page ? "default" : "outline"}
-              size="sm"
-              onClick={() => typeof page === 'number' && onPageChange(page)}
-              className={`h-8 w-8 p-0 ${currentPage === page ? 'bg-primary-500 text-white hover:bg-primary-600' : 'text-neutral-600 hover:bg-neutral-100'}`}
-            >
-              {page}
-            </Button>
-          )}
-        </React.Fragment>
-      ))}
-      
+      <div className="flex items-center space-x-2">
+        {renderPageButtons()}
+      </div>
+
       <Button
         variant="outline"
         size="sm"
-        onClick={() => onPageChange(currentPage + 1)}
+        onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
         disabled={currentPage === totalPages}
-        className="h-8 w-8 p-0"
+        className="w-10 p-0"
       >
-        <span className="sr-only">Next</span>
         <ChevronRight className="h-4 w-4" />
       </Button>
-    </nav>
+    </div>
   );
-};
-
-export default Pagination;
+}

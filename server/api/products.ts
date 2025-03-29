@@ -1,312 +1,298 @@
-import { Request, Response } from "express";
-import { storage } from "../storage";
-import { z } from "zod";
-import { insertProductSchema, insertCategorySchema, insertVendorSchema } from "@shared/schema";
-import { requireAdmin, requireEditor, requireAuth } from "./auth";
+import { Request, Response } from 'express';
+import { storage } from '../storage';
+import { upload, getFileUrl } from '../middleware/multer';
+import { insertProductSchema, insertCategorySchema, insertVendorSchema } from '@shared/schema';
+import { requireEditor } from './auth';
 
-// Validation schemas
-const productQuerySchema = z.object({
-  page: z.coerce.number().optional(),
-  limit: z.coerce.number().optional(),
-  category: z.union([z.string(), z.array(z.string())]).optional().transform(val => {
-    if (typeof val === 'string') {
-      return [val];
-    }
-    return val;
-  }),
-  organic: z.coerce.boolean().optional(),
-  bpaFree: z.coerce.boolean().optional(),
-  minPrice: z.coerce.number().optional(),
-  maxPrice: z.coerce.number().optional(),
-  sortBy: z.string().optional(),
-  search: z.string().optional(),
-});
-
-// Product Controller
 export const products = {
-  // Get all products with filtering
+  // Public endpoints
   getProducts: async (req: Request, res: Response) => {
     try {
-      const params = productQuerySchema.parse(req.query);
+      const { 
+        page = 1, 
+        limit = 12, 
+        category, 
+        organic, 
+        bpaFree, 
+        minPrice, 
+        maxPrice, 
+        sortBy = 'recommended',
+        search 
+      } = req.query;
       
-      const result = await storage.getProducts(params);
+      // Parse category array
+      let categories: string[] = [];
+      if (category) {
+        categories = Array.isArray(category) 
+          ? category as string[] 
+          : [category as string];
+      }
       
-      // Calculate pagination info
-      const page = params.page || 1;
-      const limit = params.limit || 12;
-      const totalPages = Math.ceil(result.total / limit);
+      const options = {
+        page: Number(page),
+        limit: Number(limit),
+        category: categories,
+        organic: organic === 'true',
+        bpaFree: bpaFree === 'true',
+        minPrice: minPrice ? Number(minPrice) : undefined,
+        maxPrice: maxPrice ? Number(maxPrice) : undefined,
+        sortBy: sortBy as string,
+        search: search as string
+      };
       
-      res.status(200).json({
-        products: result.products,
+      const { products, total } = await storage.getProducts(options);
+      
+      // Calculate pagination data
+      const totalPages = Math.ceil(total / Number(limit));
+      const currentPage = Number(page);
+      
+      res.json({
+        products,
         pagination: {
-          currentPage: page,
+          currentPage,
           totalPages,
-          totalItems: result.total,
-          itemsPerPage: limit
+          totalItems: total
         }
       });
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "Invalid query parameters", errors: error.errors });
-      }
-      res.status(500).json({ message: "Failed to fetch products" });
+    } catch (error: any) {
+      console.error('Error fetching products:', error);
+      res.status(500).json({ message: 'Failed to fetch products' });
     }
   },
-  
-  // Get featured products
+
   getFeaturedProducts: async (req: Request, res: Response) => {
     try {
-      const limit = req.query.limit ? parseInt(req.query.limit as string) : 3;
-      const featuredProducts = await storage.getFeaturedProducts(limit);
-      res.status(200).json(featuredProducts);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to fetch featured products" });
+      const limit = req.query.limit ? Number(req.query.limit) : 3;
+      const products = await storage.getFeaturedProducts(limit);
+      res.json(products);
+    } catch (error: any) {
+      console.error('Error fetching featured products:', error);
+      res.status(500).json({ message: 'Failed to fetch featured products' });
     }
   },
-  
-  // Get single product by ID
+
   getProductById: async (req: Request, res: Response) => {
     try {
-      const id = parseInt(req.params.id);
-      const product = await storage.getProductById(id);
+      const { id } = req.params;
+      const product = await storage.getProductById(Number(id));
       
       if (!product) {
-        return res.status(404).json({ message: "Product not found" });
+        return res.status(404).json({ message: 'Product not found' });
       }
       
-      // Get vendors for this product
-      const vendors = await storage.getVendorsByProductId(id);
-      
-      res.status(200).json({
-        ...product,
-        vendors
-      });
-    } catch (error) {
-      res.status(500).json({ message: "Failed to fetch product" });
+      res.json(product);
+    } catch (error: any) {
+      console.error('Error fetching product:', error);
+      res.status(500).json({ message: 'Failed to fetch product' });
     }
   },
-  
-  // Get related products
+
   getRelatedProducts: async (req: Request, res: Response) => {
     try {
-      const id = parseInt(req.params.id);
-      const limit = req.query.limit ? parseInt(req.query.limit as string) : 4;
+      const { id } = req.params;
+      const limit = req.query.limit ? Number(req.query.limit) : 4;
       
-      const relatedProducts = await storage.getRelatedProducts(id, limit);
-      res.status(200).json(relatedProducts);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to fetch related products" });
+      const relatedProducts = await storage.getRelatedProducts(Number(id), limit);
+      res.json(relatedProducts);
+    } catch (error: any) {
+      console.error('Error fetching related products:', error);
+      res.status(500).json({ message: 'Failed to fetch related products' });
     }
   },
-  
-  // Get vendors for a product
+
   getProductVendors: async (req: Request, res: Response) => {
     try {
-      const id = parseInt(req.params.id);
-      const vendors = await storage.getVendorsByProductId(id);
-      res.status(200).json(vendors);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to fetch product vendors" });
+      const { id } = req.params;
+      const vendors = await storage.getVendorsByProductId(Number(id));
+      res.json(vendors);
+    } catch (error: any) {
+      console.error('Error fetching product vendors:', error);
+      res.status(500).json({ message: 'Failed to fetch product vendors' });
     }
   },
-  
-  // Get all products for admin
+
+  // Admin endpoints
   getAdminProducts: [requireEditor, async (req: Request, res: Response) => {
     try {
-      const result = await storage.getProducts({ limit: 100 });
-      res.status(200).json(result.products);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to fetch products for admin" });
+      const { products, total } = await storage.getProducts();
+      res.json({ products, total });
+    } catch (error: any) {
+      console.error('Error fetching admin products:', error);
+      res.status(500).json({ message: 'Failed to fetch admin products' });
     }
   }],
-  
-  // Create a new product
-  createProduct: [requireEditor, async (req: Request, res: Response) => {
+
+  createProduct: [requireEditor, upload.single('image'), async (req: Request, res: Response) => {
     try {
-      const productData = insertProductSchema.parse(req.body);
+      const image = req.file ? getFileUrl(req.file.filename) : null;
       
-      const newProduct = await storage.createProduct(productData);
-      res.status(201).json(newProduct);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "Invalid product data", errors: error.errors });
+      if (!image) {
+        return res.status(400).json({ message: 'Product image is required' });
       }
-      res.status(500).json({ message: "Failed to create product" });
+      
+      // Parse price and other numeric fields
+      const productData = {
+        ...req.body,
+        price: parseFloat(req.body.price),
+        categoryId: parseInt(req.body.categoryId),
+        organic: req.body.organic === 'true',
+        bpaFree: req.body.bpaFree === 'true',
+        featured: req.body.featured === 'true',
+        image
+      };
+      
+      // Validate product data
+      const validatedData = insertProductSchema.parse(productData);
+      const product = await storage.createProduct(validatedData);
+      
+      res.status(201).json(product);
+    } catch (error: any) {
+      console.error('Error creating product:', error);
+      res.status(400).json({ message: 'Failed to create product', error: error.message });
     }
   }],
-  
-  // Update a product
-  updateProduct: [requireEditor, async (req: Request, res: Response) => {
+
+  updateProduct: [requireEditor, upload.single('image'), async (req: Request, res: Response) => {
     try {
-      const id = parseInt(req.params.id);
-      const productData = insertProductSchema.partial().parse(req.body);
+      const { id } = req.params;
       
-      const updatedProduct = await storage.updateProduct(id, productData);
+      // Build product update data
+      let productData: any = { ...req.body };
       
-      if (!updatedProduct) {
-        return res.status(404).json({ message: "Product not found" });
+      // Handle image upload if provided
+      if (req.file) {
+        productData.image = getFileUrl(req.file.filename);
       }
       
-      res.status(200).json(updatedProduct);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "Invalid product data", errors: error.errors });
+      // Parse numeric and boolean fields if they exist in the request
+      if (productData.price) productData.price = parseFloat(productData.price);
+      if (productData.categoryId) productData.categoryId = parseInt(productData.categoryId);
+      if (productData.organic !== undefined) productData.organic = productData.organic === 'true';
+      if (productData.bpaFree !== undefined) productData.bpaFree = productData.bpaFree === 'true';
+      if (productData.featured !== undefined) productData.featured = productData.featured === 'true';
+      
+      const product = await storage.updateProduct(Number(id), productData);
+      
+      if (!product) {
+        return res.status(404).json({ message: 'Product not found' });
       }
-      res.status(500).json({ message: "Failed to update product" });
+      
+      res.json(product);
+    } catch (error: any) {
+      console.error('Error updating product:', error);
+      res.status(400).json({ message: 'Failed to update product', error: error.message });
     }
   }],
-  
-  // Delete a product
+
   deleteProduct: [requireEditor, async (req: Request, res: Response) => {
     try {
-      const id = parseInt(req.params.id);
-      const result = await storage.deleteProduct(id);
+      const { id } = req.params;
+      const success = await storage.deleteProduct(Number(id));
       
-      if (!result) {
-        return res.status(404).json({ message: "Product not found" });
+      if (!success) {
+        return res.status(404).json({ message: 'Product not found' });
       }
       
-      res.status(200).json({ message: "Product deleted successfully" });
-    } catch (error) {
-      res.status(500).json({ message: "Failed to delete product" });
+      res.status(200).json({ message: 'Product deleted successfully' });
+    } catch (error: any) {
+      console.error('Error deleting product:', error);
+      res.status(500).json({ message: 'Failed to delete product' });
     }
   }],
-  
-  // Get all categories
+
   getCategories: async (req: Request, res: Response) => {
     try {
       const categories = await storage.getCategories();
-      res.status(200).json(categories);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to fetch categories" });
+      res.json(categories);
+    } catch (error: any) {
+      console.error('Error fetching categories:', error);
+      res.status(500).json({ message: 'Failed to fetch categories' });
     }
   },
-  
-  // Create a new category
+
   createCategory: [requireEditor, async (req: Request, res: Response) => {
     try {
-      const categoryData = insertCategorySchema.parse(req.body);
-      
-      // Check if category with same slug already exists
-      const existingCategory = await storage.getCategoryBySlug(categoryData.slug);
-      if (existingCategory) {
-        return res.status(409).json({ message: "Category with this slug already exists" });
-      }
-      
-      const newCategory = await storage.createCategory(categoryData);
-      res.status(201).json(newCategory);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "Invalid category data", errors: error.errors });
-      }
-      res.status(500).json({ message: "Failed to create category" });
+      const validatedData = insertCategorySchema.parse(req.body);
+      const category = await storage.createCategory(validatedData);
+      res.status(201).json(category);
+    } catch (error: any) {
+      console.error('Error creating category:', error);
+      res.status(400).json({ message: 'Failed to create category', error: error.message });
     }
   }],
-  
-  // Update a category
+
   updateCategory: [requireEditor, async (req: Request, res: Response) => {
     try {
-      const id = parseInt(req.params.id);
-      const categoryData = insertCategorySchema.partial().parse(req.body);
+      const { id } = req.params;
+      const category = await storage.updateCategory(Number(id), req.body);
       
-      // If slug is being updated, check if it already exists and isn't this category's slug
-      if (categoryData.slug) {
-        const existingCategory = await storage.getCategoryBySlug(categoryData.slug);
-        if (existingCategory && existingCategory.id !== id) {
-          return res.status(409).json({ message: "Category with this slug already exists" });
-        }
+      if (!category) {
+        return res.status(404).json({ message: 'Category not found' });
       }
       
-      const updatedCategory = await storage.updateCategory(id, categoryData);
-      
-      if (!updatedCategory) {
-        return res.status(404).json({ message: "Category not found" });
-      }
-      
-      res.status(200).json(updatedCategory);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "Invalid category data", errors: error.errors });
-      }
-      res.status(500).json({ message: "Failed to update category" });
+      res.json(category);
+    } catch (error: any) {
+      console.error('Error updating category:', error);
+      res.status(400).json({ message: 'Failed to update category', error: error.message });
     }
   }],
-  
-  // Delete a category
+
   deleteCategory: [requireEditor, async (req: Request, res: Response) => {
     try {
-      const id = parseInt(req.params.id);
+      const { id } = req.params;
+      const success = await storage.deleteCategory(Number(id));
       
-      // Check if there are products using this category before deleting
-      const productsInCategory = await storage.getProductsByCategory(id);
-      if (productsInCategory && productsInCategory.length > 0) {
-        return res.status(409).json({ 
-          message: "Cannot delete category that has associated products",
-          count: productsInCategory.length
-        });
+      if (!success) {
+        return res.status(404).json({ message: 'Category not found' });
       }
       
-      const result = await storage.deleteCategory(id);
-      
-      if (!result) {
-        return res.status(404).json({ message: "Category not found" });
-      }
-      
-      res.status(200).json({ message: "Category deleted successfully" });
-    } catch (error) {
-      res.status(500).json({ message: "Failed to delete category" });
+      res.status(200).json({ message: 'Category deleted successfully' });
+    } catch (error: any) {
+      console.error('Error deleting category:', error);
+      res.status(500).json({ message: 'Failed to delete category' });
     }
   }],
-  
-  // Create a new vendor
+
   createVendor: [requireEditor, async (req: Request, res: Response) => {
     try {
-      const vendorData = insertVendorSchema.parse(req.body);
-      
-      const newVendor = await storage.createVendor(vendorData);
-      res.status(201).json(newVendor);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "Invalid vendor data", errors: error.errors });
-      }
-      res.status(500).json({ message: "Failed to create vendor" });
+      const validatedData = insertVendorSchema.parse(req.body);
+      const vendor = await storage.createVendor(validatedData);
+      res.status(201).json(vendor);
+    } catch (error: any) {
+      console.error('Error creating vendor:', error);
+      res.status(400).json({ message: 'Failed to create vendor', error: error.message });
     }
   }],
-  
-  // Update a vendor
+
   updateVendor: [requireEditor, async (req: Request, res: Response) => {
     try {
-      const id = parseInt(req.params.id);
-      const vendorData = insertVendorSchema.partial().parse(req.body);
+      const { id } = req.params;
+      const vendor = await storage.updateVendor(Number(id), req.body);
       
-      const updatedVendor = await storage.updateVendor(id, vendorData);
-      
-      if (!updatedVendor) {
-        return res.status(404).json({ message: "Vendor not found" });
+      if (!vendor) {
+        return res.status(404).json({ message: 'Vendor not found' });
       }
       
-      res.status(200).json(updatedVendor);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "Invalid vendor data", errors: error.errors });
-      }
-      res.status(500).json({ message: "Failed to update vendor" });
+      res.json(vendor);
+    } catch (error: any) {
+      console.error('Error updating vendor:', error);
+      res.status(400).json({ message: 'Failed to update vendor', error: error.message });
     }
   }],
-  
-  // Delete a vendor
+
   deleteVendor: [requireEditor, async (req: Request, res: Response) => {
     try {
-      const id = parseInt(req.params.id);
-      const result = await storage.deleteVendor(id);
+      const { id } = req.params;
+      const success = await storage.deleteVendor(Number(id));
       
-      if (!result) {
-        return res.status(404).json({ message: "Vendor not found" });
+      if (!success) {
+        return res.status(404).json({ message: 'Vendor not found' });
       }
       
-      res.status(200).json({ message: "Vendor deleted successfully" });
-    } catch (error) {
-      res.status(500).json({ message: "Failed to delete vendor" });
+      res.status(200).json({ message: 'Vendor deleted successfully' });
+    } catch (error: any) {
+      console.error('Error deleting vendor:', error);
+      res.status(500).json({ message: 'Failed to delete vendor' });
     }
   }],
 };

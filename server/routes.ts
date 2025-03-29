@@ -27,10 +27,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Product-related routes
   app.get('/api/products', products.getProducts);
   app.get('/api/products/featured', products.getFeaturedProducts);
+  app.get('/api/products/admin', products.getAdminProducts);
   app.get('/api/products/related/:id', products.getRelatedProducts);
   app.get('/api/products/:id', products.getProductById);
   app.get('/api/products/:id/vendors', products.getProductVendors);
-  app.get('/api/products/admin', products.getAdminProducts);
   app.post('/api/products', products.createProduct);
   app.put('/api/products/:id', products.updateProduct);
   app.delete('/api/products/:id', products.deleteProduct);

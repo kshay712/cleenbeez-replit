@@ -42,6 +42,7 @@ export const products = pgTable("products", {
   bpaFree: boolean("bpa_free").default(false),
   whyRecommend: text("why_recommend").notNull(),
   ingredients: json("ingredients").$type<string[]>().notNull(),
+  affiliateLink: text("affiliate_link"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

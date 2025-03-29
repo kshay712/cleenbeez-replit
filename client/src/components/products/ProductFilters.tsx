@@ -1,21 +1,21 @@
-import { useQuery } from "@tanstack/react-query";
-import { CheckIcon, Leaf, ShieldCheck } from "lucide-react";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
-import { Skeleton } from "@/components/ui/skeleton";
+import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Slider } from "@/components/ui/slider";
-import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { useState } from "react";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Separator } from "@/components/ui/separator";
+import { ShoppingBasket, RollerCoaster, CircleDashed } from 'lucide-react';
 
+// Category interface to match server response
 interface Category {
   id: number;
   name: string;
   slug: string;
 }
 
-interface FiltersProps {
+interface ProductFiltersProps {
   filters: {
     categories: string[];
     organic: boolean;
@@ -23,199 +23,217 @@ interface FiltersProps {
     minPrice: number;
     maxPrice: number;
   };
-  onChange: (filters: any) => void;
+  onChange: (filters: ProductFiltersProps['filters']) => void;
 }
 
-const ProductFilters: React.FC<FiltersProps> = ({ filters, onChange }) => {
-  const { data: categoriesData, isLoading } = useQuery({
-    queryKey: ["/api/categories"],
+const ProductFilters = ({ filters, onChange }: ProductFiltersProps) => {
+  // Local state for price range
+  const [priceRange, setPriceRange] = useState<[number, number]>([
+    filters.minPrice,
+    filters.maxPrice
+  ]);
+  
+  // Query to fetch categories
+  const { data: categories } = useQuery<Category[]>({
+    queryKey: ['/api/categories'],
   });
   
-  // Ensure categories is an array of Category objects
-  const categories: Category[] = Array.isArray(categoriesData) ? categoriesData as Category[] : [];
-
-  const [localMinPrice, setLocalMinPrice] = useState(filters.minPrice);
-  const [localMaxPrice, setLocalMaxPrice] = useState(filters.maxPrice);
-
-  const handleCategoryChange = (categoryId: string, checked: boolean) => {
+  // Update parent component with debounced price filters
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      if (priceRange[0] !== filters.minPrice || priceRange[1] !== filters.maxPrice) {
+        onChange({
+          ...filters,
+          minPrice: priceRange[0],
+          maxPrice: priceRange[1]
+        });
+      }
+    }, 500);
+    
+    return () => clearTimeout(timeout);
+  }, [priceRange]);
+  
+  // Handle category checkbox change
+  const handleCategoryChange = (categorySlug: string, checked: boolean) => {
     let newCategories;
+    
     if (checked) {
-      newCategories = [...filters.categories, categoryId];
+      newCategories = [...filters.categories, categorySlug];
     } else {
-      newCategories = filters.categories.filter(id => id !== categoryId);
+      newCategories = filters.categories.filter(c => c !== categorySlug);
     }
     
-    onChange({ ...filters, categories: newCategories });
-  };
-
-  const handleFeatureChange = (feature: 'organic' | 'bpaFree', checked: boolean) => {
-    onChange({ ...filters, [feature]: checked });
-  };
-
-  const handlePriceSliderChange = (value: number[]) => {
-    setLocalMinPrice(value[0]);
-    setLocalMaxPrice(value[1]);
-  };
-
-  const handlePriceInputChange = (type: 'min' | 'max', value: string) => {
-    const numValue = parseInt(value);
-    if (isNaN(numValue)) return;
-    
-    if (type === 'min') {
-      setLocalMinPrice(numValue);
-    } else {
-      setLocalMaxPrice(numValue);
-    }
-  };
-
-  const applyPriceFilter = () => {
-    onChange({ 
-      ...filters, 
-      minPrice: localMinPrice, 
-      maxPrice: localMaxPrice 
+    onChange({
+      ...filters,
+      categories: newCategories
     });
   };
-
-  const getProductCountByCategory = (categoryId: string) => {
-    // This would ideally come from the API but for now we'll return a placeholder
-    return Math.floor(Math.random() * 30) + 1; // Mock count for demo purposes
+  
+  // Handle organic checkbox change
+  const handleOrganicChange = (checked: boolean) => {
+    onChange({
+      ...filters,
+      organic: checked
+    });
   };
-
+  
+  // Handle BPA-free checkbox change
+  const handleBpaFreeChange = (checked: boolean) => {
+    onChange({
+      ...filters,
+      bpaFree: checked
+    });
+  };
+  
+  // Reset all filters
+  const resetFilters = () => {
+    onChange({
+      categories: [],
+      organic: false,
+      bpaFree: false,
+      minPrice: 0,
+      maxPrice: 100
+    });
+    setPriceRange([0, 100]);
+  };
+  
+  // Check if any filter is active
+  const isFilterActive = 
+    filters.categories.length > 0 || 
+    filters.organic || 
+    filters.bpaFree || 
+    filters.minPrice > 0 || 
+    filters.maxPrice < 100;
+  
   return (
-    <div className="filter-panel w-full">
-      <div className="mb-6">
-        <h3 className="text-lg font-medium text-neutral-900 mb-4">Categories</h3>
-        <ScrollArea className="h-60 pr-4">
-          <ul className="space-y-3">
-            {isLoading ? (
-              [...Array(4)].map((_, i) => (
-                <li key={i} className="flex items-center">
-                  <Skeleton className="h-4 w-4 mr-3" />
-                  <Skeleton className="h-4 w-24" />
-                </li>
-              ))
-            ) : categories.length > 0 ? (
-              categories.map((category) => (
-                <li key={category.id} className="flex items-center justify-between group hover:bg-neutral-50 p-1 rounded-md">
-                  <div className="flex items-center">
+    <div className="space-y-6">
+      <div>
+        <h3 className="text-lg font-medium text-neutral-900 flex items-center">
+          <ShoppingBasket className="mr-2 h-5 w-5" />
+          Filters
+        </h3>
+        <p className="text-sm text-neutral-500">
+          Narrow down your results.
+        </p>
+      </div>
+      
+      <Separator />
+      
+      <Accordion type="multiple" defaultValue={["categories", "price", "features"]}>
+        <AccordionItem value="categories">
+          <AccordionTrigger className="font-medium">
+            Categories
+          </AccordionTrigger>
+          <AccordionContent>
+            <div className="space-y-3 pt-1">
+              {categories ? (
+                categories.map(category => (
+                  <div key={category.id} className="flex items-center space-x-2">
                     <Checkbox 
-                      id={`category-${category.id}`}
-                      checked={filters.categories.includes(category.id.toString())}
-                      onCheckedChange={(checked) => handleCategoryChange(category.id.toString(), checked === true)}
-                      className="h-4 w-4 text-primary-500 focus:ring-primary-500 border-neutral-300 rounded"
+                      id={`category-${category.slug}`} 
+                      checked={filters.categories.includes(category.slug)}
+                      onCheckedChange={(checked) => 
+                        handleCategoryChange(category.slug, checked as boolean)
+                      }
                     />
                     <Label 
-                      htmlFor={`category-${category.id}`} 
-                      className="ml-3 text-sm text-neutral-700 cursor-pointer"
+                      htmlFor={`category-${category.slug}`}
+                      className="text-sm cursor-pointer"
                     >
                       {category.name}
                     </Label>
                   </div>
-                  <span className="text-xs text-neutral-500 group-hover:text-neutral-700">
-                    ({getProductCountByCategory(category.id.toString())})
-                  </span>
-                </li>
-              ))
-            ) : (
-              <li>No categories found</li>
-            )}
-          </ul>
-        </ScrollArea>
-      </div>
-      
-      <div className="mb-6 border-t border-neutral-200 pt-6">
-        <h3 className="text-lg font-medium text-neutral-900 mb-4">Features</h3>
-        <div className="space-y-3">
-          <div className="flex items-center justify-between hover:bg-neutral-50 p-2 rounded-md cursor-pointer group">
-            <div className="flex items-center">
-              <Checkbox 
-                id="filter-organic"
-                checked={filters.organic}
-                onCheckedChange={(checked) => handleFeatureChange('organic', checked === true)}
-                className="h-4 w-4 text-secondary-500 focus:ring-secondary-500 border-neutral-300 rounded"
-              />
-              <Label 
-                htmlFor="filter-organic" 
-                className="ml-3 text-sm text-neutral-700 cursor-pointer flex items-center"
-              >
-                <Leaf className="h-4 w-4 text-secondary-500 mr-2" />
-                Organic
-              </Label>
+                ))
+              ) : (
+                <div className="flex flex-col gap-2">
+                  {[1, 2, 3, 4].map(i => (
+                    <div key={i} className="h-5 bg-neutral-100 rounded animate-pulse"></div>
+                  ))}
+                </div>
+              )}
             </div>
-          </div>
-          
-          <div className="flex items-center justify-between hover:bg-neutral-50 p-2 rounded-md cursor-pointer group">
-            <div className="flex items-center">
-              <Checkbox 
-                id="filter-bpa-free"
-                checked={filters.bpaFree}
-                onCheckedChange={(checked) => handleFeatureChange('bpaFree', checked === true)}
-                className="h-4 w-4 text-primary-500 focus:ring-primary-500 border-neutral-300 rounded"
-              />
-              <Label 
-                htmlFor="filter-bpa-free" 
-                className="ml-3 text-sm text-neutral-700 cursor-pointer flex items-center"
-              >
-                <ShieldCheck className="h-4 w-4 text-primary-500 mr-2" />
-                BPA-Free
-              </Label>
-            </div>
-          </div>
-        </div>
-      </div>
-      
-      <div className="border-t border-neutral-200 pt-6">
-        <h3 className="text-lg font-medium text-neutral-900 mb-4">Price Range</h3>
-        <div>
-          <div className="relative mb-6">
-            <Slider 
-              value={[localMinPrice, localMaxPrice]} 
-              max={100} 
-              step={1}
-              onValueChange={handlePriceSliderChange}
-              className="w-full h-2"
-            />
-          </div>
-          
-          <div className="flex items-center gap-4 mb-4">
-            <div className="w-1/2">
-              <Label htmlFor="min-price" className="text-sm text-neutral-700 mb-1 block">
-                Min ($)
-              </Label>
-              <Input 
-                id="min-price"
-                type="number" 
-                value={localMinPrice}
-                onChange={(e) => handlePriceInputChange('min', e.target.value)}
-                className="w-full"
+          </AccordionContent>
+        </AccordionItem>
+        
+        <AccordionItem value="price">
+          <AccordionTrigger className="font-medium">
+            Price Range
+          </AccordionTrigger>
+          <AccordionContent>
+            <div className="space-y-4 pt-2">
+              <Slider
                 min={0}
-                max={localMaxPrice}
-              />
-            </div>
-            <div className="w-1/2">
-              <Label htmlFor="max-price" className="text-sm text-neutral-700 mb-1 block">
-                Max ($)
-              </Label>
-              <Input 
-                id="max-price"
-                type="number" 
-                value={localMaxPrice}
-                onChange={(e) => handlePriceInputChange('max', e.target.value)}
-                className="w-full"
-                min={localMinPrice}
                 max={100}
+                step={1}
+                value={priceRange}
+                onValueChange={(values) => setPriceRange(values as [number, number])}
+                className="mt-4"
               />
+              
+              <div className="flex items-center justify-between">
+                <div className="text-sm">
+                  <span className="text-neutral-500">Min: </span>
+                  <span className="font-medium">${priceRange[0]}</span>
+                </div>
+                <div className="text-sm">
+                  <span className="text-neutral-500">Max: </span>
+                  <span className="font-medium">${priceRange[1]}</span>
+                </div>
+              </div>
             </div>
-          </div>
-          
+          </AccordionContent>
+        </AccordionItem>
+        
+        <AccordionItem value="features">
+          <AccordionTrigger className="font-medium">
+            Features
+          </AccordionTrigger>
+          <AccordionContent>
+            <div className="space-y-3 pt-1">
+              <div className="flex items-center space-x-2">
+                <Checkbox 
+                  id="organic" 
+                  checked={filters.organic}
+                  onCheckedChange={(checked) => handleOrganicChange(checked as boolean)}
+                />
+                <Label 
+                  htmlFor="organic"
+                  className="text-sm cursor-pointer flex items-center"
+                >
+                  <RollerCoaster className="mr-1 h-4 w-4 text-green-600" /> Organic
+                </Label>
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <Checkbox 
+                  id="bpa-free" 
+                  checked={filters.bpaFree}
+                  onCheckedChange={(checked) => handleBpaFreeChange(checked as boolean)}
+                />
+                <Label 
+                  htmlFor="bpa-free"
+                  className="text-sm cursor-pointer flex items-center"
+                >
+                  <CircleDashed className="mr-1 h-4 w-4 text-blue-600" /> BPA-Free
+                </Label>
+              </div>
+            </div>
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
+      
+      {isFilterActive && (
+        <div className="pt-2">
           <Button 
-            onClick={applyPriceFilter}
-            className="w-full"
+            variant="outline" 
+            size="sm" 
+            onClick={resetFilters}
+            className="w-full text-sm"
           >
-            Apply Filter
+            Clear All Filters
           </Button>
         </div>
-      </div>
+      )}
     </div>
   );
 };

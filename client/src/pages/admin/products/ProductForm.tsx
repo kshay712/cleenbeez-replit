@@ -119,7 +119,8 @@ const ProductForm = ({ productId }: ProductFormProps) => {
         setIngredientsList(product.ingredients);
       }
       
-      form.reset({
+      // Build the form data
+      const formData = {
         name: product.name,
         description: product.description,
         price: product.price,
@@ -130,7 +131,9 @@ const ProductForm = ({ productId }: ProductFormProps) => {
         ingredients: product.ingredients || [],
         affiliateLink: product.affiliateLink || '',
         image: undefined,
-      });
+      };
+      
+      form.reset(formData);
       
       if (product.image) {
         setImagePreview(product.image);
