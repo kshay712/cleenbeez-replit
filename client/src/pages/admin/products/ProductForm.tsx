@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, X, ImagePlus } from 'lucide-react';
+import { Loader2, X, ImagePlus, Plus, Trash2 } from 'lucide-react';
 import { useLocation } from 'wouter';
 import { apiRequest } from '@/lib/queryClient';
 
@@ -30,16 +30,20 @@ import {
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { CardContent, Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 
 // Define schema for product form
 const productSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   description: z.string().min(10, 'Description must be at least 10 characters'),
   price: z.coerce.number().positive('Price must be a positive number'),
-  categoryId: z.string().min(1, 'Category is required'),
+  categoryId: z.coerce.number().positive('Category is required'),
   organic: z.boolean().default(false),
   bpaFree: z.boolean().default(false),
+  whyRecommend: z.string().min(1, 'Why we recommend this product is required'),
+  ingredients: z.array(z.string()).min(1, 'At least one ingredient is required'),
   affiliateLink: z.string().url('Must be a valid URL').optional().or(z.literal('')),
+  image: z.any().optional(),
 });
 
 type ProductFormValues = z.infer<typeof productSchema>;
@@ -56,6 +60,10 @@ const ProductForm = ({ productId }: ProductFormProps) => {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   
+  // State for ingredients
+  const [ingredientsList, setIngredientsList] = useState<string[]>([]);
+  const [newIngredient, setNewIngredient] = useState<string>('');
+
   // Create form
   const form = useForm<ProductFormValues>({
     resolver: zodResolver(productSchema),
@@ -63,12 +71,32 @@ const ProductForm = ({ productId }: ProductFormProps) => {
       name: '',
       description: '',
       price: 0,
-      categoryId: '',
+      categoryId: 0,
       organic: false,
       bpaFree: false,
+      whyRecommend: '',
+      ingredients: [],
       affiliateLink: '',
+      image: undefined,
     },
   });
+
+  // Handle adding an ingredient
+  const addIngredient = () => {
+    if (newIngredient.trim().length > 0) {
+      setIngredientsList(prev => [...prev, newIngredient.trim()]);
+      form.setValue('ingredients', [...ingredientsList, newIngredient.trim()]);
+      setNewIngredient('');
+    }
+  };
+
+  // Handle removing an ingredient
+  const removeIngredient = (index: number) => {
+    const updatedIngredients = [...ingredientsList];
+    updatedIngredients.splice(index, 1);
+    setIngredientsList(updatedIngredients);
+    form.setValue('ingredients', updatedIngredients);
+  };
 
   // Fetch categories for dropdown
   const { data: categoriesData, isLoading: isCategoriesLoading } = useQuery<any[]>({
@@ -86,14 +114,22 @@ const ProductForm = ({ productId }: ProductFormProps) => {
     if (isEditMode && productData) {
       const product = productData.product;
       
+      // Extract ingredients if available
+      if (product.ingredients && Array.isArray(product.ingredients)) {
+        setIngredientsList(product.ingredients);
+      }
+      
       form.reset({
         name: product.name,
         description: product.description,
         price: product.price,
-        categoryId: product.category?.id.toString() || '',
-        organic: product.organic,
-        bpaFree: product.bpaFree,
+        categoryId: Number(product.categoryId),
+        organic: Boolean(product.organic),
+        bpaFree: Boolean(product.bpaFree),
+        whyRecommend: product.whyRecommend || '',
+        ingredients: product.ingredients || [],
         affiliateLink: product.affiliateLink || '',
+        image: undefined,
       });
       
       if (product.image) {
@@ -109,14 +145,16 @@ const ProductForm = ({ productId }: ProductFormProps) => {
       
       // Add all form values
       Object.entries(values).forEach(([key, value]) => {
-        if (key !== 'image' && value !== undefined && value !== null) {
+        if (key === 'ingredients' && Array.isArray(value)) {
+          formData.append('ingredients', JSON.stringify(value));
+        } else if (key !== 'image' && value !== undefined && value !== null) {
           formData.append(key, value.toString());
         }
       });
       
       // Add image if provided
-      if (values.image) {
-        formData.append('image', values.image);
+      if (imageFile) {
+        formData.append('image', imageFile);
       }
       
       if (isEditMode) {
@@ -139,6 +177,7 @@ const ProductForm = ({ productId }: ProductFormProps) => {
       navigate('/admin/products');
     },
     onError: (error: any) => {
+      console.error("Form submission error:", error);
       toast({
         variant: 'destructive',
         title: 'Error',
@@ -170,12 +209,18 @@ const ProductForm = ({ productId }: ProductFormProps) => {
 
   // Submit form
   const onSubmit = (values: ProductFormValues) => {
+    // Make sure ingredients are correctly set
+    const submitData = { 
+      ...values,
+      ingredients: ingredientsList
+    };
+    
     // Add image to values if provided
-    const submitData = { ...values };
     if (imageFile) {
       (submitData as any).image = imageFile;
     }
     
+    console.log("Submitting product:", submitData);
     saveProductMutation.mutate(submitData as any);
   };
   
@@ -277,12 +322,75 @@ const ProductForm = ({ productId }: ProductFormProps) => {
                       />
                     </FormControl>
                     <FormDescription>
-                      Provide a detailed description of the product including benefits, ingredients, and usage.
+                      Provide a detailed description of the product including benefits and usage.
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
               />
+
+              {/* Why We Recommend */}
+              <FormField
+                control={form.control}
+                name="whyRecommend"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Why We Recommend</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="Why is this product recommended by Clean Bee?"
+                        className="min-h-20"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Explain why you're recommending this product to your audience.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Ingredients */}
+              <div className="space-y-2">
+                <FormLabel>Ingredients</FormLabel>
+                <div className="flex gap-2">
+                  <Input 
+                    placeholder="Add ingredient"
+                    value={newIngredient}
+                    onChange={(e) => setNewIngredient(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        addIngredient();
+                      }
+                    }}
+                  />
+                  <Button type="button" onClick={addIngredient} size="sm">
+                    <Plus className="h-4 w-4 mr-1" />
+                    Add
+                  </Button>
+                </div>
+                {ingredientsList.length === 0 && (
+                  <p className="text-sm text-destructive mt-1">At least one ingredient is required</p>
+                )}
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {ingredientsList.map((ingredient, i) => (
+                    <Badge key={i} variant="secondary" className="flex gap-1 items-center">
+                      {ingredient}
+                      <Button 
+                        type="button" 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-4 w-4 p-0 ml-1"
+                        onClick={() => removeIngredient(i)}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </Badge>
+                  ))}
+                </div>
+              </div>
 
               {/* Price */}
               <FormField
@@ -307,9 +415,8 @@ const ProductForm = ({ productId }: ProductFormProps) => {
                   <FormItem>
                     <FormLabel>Category</FormLabel>
                     <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                      value={field.value}
+                      onValueChange={(value) => field.onChange(Number(value))}
+                      value={field.value.toString()}
                     >
                       <FormControl>
                         <SelectTrigger>
