@@ -47,14 +47,13 @@ const Header = () => {
             </Link>
           </div>
           
-          {/* Desktop navigation + menu icon */}
-          <div className="hidden md:flex md:items-center space-x-6">
-            {/* Right-side navigation links */}
+          {/* Navigation Links (Desktop) */}
+          <div className="hidden md:flex md:items-center md:space-x-8">
             <Link 
               href="/products" 
-              className={`px-3 py-2 rounded-md text-sm font-medium ${
+              className={`text-sm font-medium ${
                 isActive('/products') 
-                  ? 'text-amber-600 border-b-2 border-amber-500' 
+                  ? 'text-amber-600' 
                   : 'text-neutral-600 hover:text-amber-600'
               }`}
             >
@@ -62,9 +61,9 @@ const Header = () => {
             </Link>
             <Link 
               href="/blog" 
-              className={`px-3 py-2 rounded-md text-sm font-medium ${
+              className={`text-sm font-medium ${
                 isActive('/blog') 
-                  ? 'text-amber-600 border-b-2 border-amber-500' 
+                  ? 'text-amber-600' 
                   : 'text-neutral-600 hover:text-amber-600'
               }`}
             >
@@ -72,22 +71,25 @@ const Header = () => {
             </Link>
             <Link 
               href="/learn" 
-              className={`px-3 py-2 rounded-md text-sm font-medium ${
+              className={`text-sm font-medium ${
                 isActive('/learn') 
-                  ? 'text-amber-600 border-b-2 border-amber-500' 
+                  ? 'text-amber-600' 
                   : 'text-neutral-600 hover:text-amber-600'
               }`}
             >
               Learn
             </Link>
-            
+          </div>
+
+          {/* Right side: Admin Menu */}
+          <div className="flex items-center">
             {/* Admin dropdown menu */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button 
                   variant="ghost" 
                   size="icon" 
-                  className="ml-2 text-neutral-700"
+                  className="text-neutral-700"
                 >
                   <Menu className="h-5 w-5" />
                 </Button>
@@ -146,19 +148,6 @@ const Header = () => {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-          </div>
-          
-          {/* Mobile menu button */}
-          <div className="md:hidden">
-            <Button 
-              variant="ghost" 
-              size="icon"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              aria-label="Open menu"
-              className="text-neutral-700"
-            >
-              <Menu className="h-6 w-6" />
-            </Button>
           </div>
         </div>
       </div>
