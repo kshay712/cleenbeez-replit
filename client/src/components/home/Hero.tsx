@@ -1,11 +1,10 @@
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
-import BeeIcon from "@/components/icons/BeeIcon";
 import { ShieldCheck, Leaf, Heart } from "lucide-react";
 
 const Hero = () => {
   return (
-    <section className="bg-gradient-to-b from-amber-50 via-primary-50 to-white overflow-hidden relative">
+    <section className="bg-gradient-to-b from-amber-50 via-primary-50 to-white overflow-hidden relative pt-8">
       {/* Decorative hexagons */}
       <div className="absolute inset-0 opacity-10 pointer-events-none">
         {[...Array(6)].map((_, i) => (
@@ -23,16 +22,9 @@ const Hero = () => {
         ))}
       </div>
       
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24 relative z-10">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16 relative z-10">
         <div className="lg:grid lg:grid-cols-2 lg:gap-8 items-center">
           <div>
-            <div className="flex items-center mb-6">
-              <div className="h-12 w-12 bg-primary-500 rounded-full flex items-center justify-center">
-                <BeeIcon className="h-7 w-7 text-white" />
-              </div>
-              <span className="ml-3 text-xl font-semibold text-primary-700">Clean Bee</span>
-            </div>
-            
             <h1 className="text-4xl font-extrabold tracking-tight text-neutral-900 sm:text-5xl md:text-6xl">
               <span className="block">Discover products</span>
               <span className="block text-primary-600">that are good for you</span>
@@ -57,7 +49,7 @@ const Hero = () => {
               </div>
             </div>
             
-            <div className="mt-8 sm:mt-10 flex flex-col sm:flex-row sm:gap-4">
+            <div className="mt-8 flex flex-col sm:flex-row sm:gap-4">
               <Button asChild size="lg" className="w-full sm:w-auto">
                 <Link href="/products">
                   Browse Products
@@ -71,7 +63,7 @@ const Hero = () => {
             </div>
           </div>
           
-          <div className="mt-12 lg:mt-0 flex justify-center">
+          <div className="mt-10 lg:mt-0 flex justify-center">
             <div className="relative">
               {/* Circular background */}
               <div className="absolute -inset-4 bg-primary-100 rounded-full opacity-70"></div>
