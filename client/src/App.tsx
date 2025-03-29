@@ -22,6 +22,7 @@ import AdminUtilPage from "./pages/auth/AdminUtilPage";
 import AdminProductsPage from "./pages/admin/products/AdminProductsPage";
 import NewProductPage from "./pages/admin/products/NewProductPage";
 import EditProductPage from "./pages/admin/products/EditProductPage";
+import AdminCategoriesPage from "./pages/admin/categories/AdminCategoriesPage";
 import AdminBlogPage from "./pages/admin/AdminBlogPage";
 import AdminUsersPage from "./pages/admin/AdminUsersPage";
 import NotFound from "@/pages/not-found";
@@ -45,6 +46,7 @@ function Router() {
           <Route path="/admin/products" component={AdminProductsPage} />
           <Route path="/admin/products/new" component={NewProductPage} />
           <Route path="/admin/products/edit/:id" component={EditProductPage} />
+          <Route path="/admin/categories" component={AdminCategoriesPage} />
           <Route path="/admin/blog" component={AdminBlogPage} />
           <Route path="/admin/users" component={AdminUsersPage} />
           <Route component={NotFound} />

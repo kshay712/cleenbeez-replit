@@ -113,9 +113,17 @@ const AdminProductsPage = () => {
     <div className="container mx-auto py-10">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Manage Products</h1>
-        <Button onClick={handleCreateProduct}>
-          <Plus className="mr-2 h-4 w-4" /> Add Product
-        </Button>
+        <div className="flex space-x-3">
+          <Button 
+            variant="outline" 
+            onClick={() => navigate('/admin/categories')}
+          >
+            Manage Categories
+          </Button>
+          <Button onClick={handleCreateProduct}>
+            <Plus className="mr-2 h-4 w-4" /> Add Product
+          </Button>
+        </div>
       </div>
 
       {isLoading ? (

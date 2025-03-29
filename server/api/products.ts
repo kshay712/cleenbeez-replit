@@ -203,6 +203,61 @@ export const products = {
     }
   }],
   
+  // Update a category
+  updateCategory: [requireEditor, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const categoryData = insertCategorySchema.partial().parse(req.body);
+      
+      // If slug is being updated, check if it already exists and isn't this category's slug
+      if (categoryData.slug) {
+        const existingCategory = await storage.getCategoryBySlug(categoryData.slug);
+        if (existingCategory && existingCategory.id !== id) {
+          return res.status(409).json({ message: "Category with this slug already exists" });
+        }
+      }
+      
+      const updatedCategory = await storage.updateCategory(id, categoryData);
+      
+      if (!updatedCategory) {
+        return res.status(404).json({ message: "Category not found" });
+      }
+      
+      res.status(200).json(updatedCategory);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid category data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to update category" });
+    }
+  }],
+  
+  // Delete a category
+  deleteCategory: [requireEditor, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      
+      // Check if there are products using this category before deleting
+      const productsInCategory = await storage.getProductsByCategory(id);
+      if (productsInCategory && productsInCategory.length > 0) {
+        return res.status(409).json({ 
+          message: "Cannot delete category that has associated products",
+          count: productsInCategory.length
+        });
+      }
+      
+      const result = await storage.deleteCategory(id);
+      
+      if (!result) {
+        return res.status(404).json({ message: "Category not found" });
+      }
+      
+      res.status(200).json({ message: "Category deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete category" });
+    }
+  }],
+  
   // Create a new vendor
   createVendor: [requireEditor, async (req: Request, res: Response) => {
     try {
