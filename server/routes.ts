@@ -21,16 +21,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api', (req, res, next) => {
     // Paths that don't require authentication
     const publicPaths = [
-      '/api/admin-util/direct-login',
-      '/api/admin-util/promote',
-      '/api/admin-util/create-test-user',
-      '/api/auth/register',
-      '/api/auth/google',
-      '/api/products',
-      '/api/products/featured',
-      '/api/products/*',
-      '/api/blog/posts',
-      '/api/blog/featured',
+      '/admin-util/direct-login',
+      '/admin-util/promote',
+      '/admin-util/create-test-user',
+      '/auth/register',
+      '/auth/google',
+      '/products',
+      '/products/featured',
+      '/products/*',
+      '/blog/posts',
+      '/blog/featured',
       // Individual paths requiring pattern matching are handled separately below
       // Only GET requests to categories should be public
       // POST/PUT/DELETE operations need authentication and proper role
@@ -45,12 +45,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // Special handling for GET requests - allow them to be public
     if (
       // Product & category public paths
-      (req.path === '/api/categories' && req.method === 'GET') || 
-      (req.path.startsWith('/api/categories/') && req.method === 'GET') ||
+      (req.path === '/categories' && req.method === 'GET') || 
+      (req.path.startsWith('/categories/') && req.method === 'GET') ||
       // Blog public paths
-      (req.path === '/api/blog/categories' && req.method === 'GET') ||
-      (req.path.startsWith('/api/blog/posts/') && req.method === 'GET') ||
-      (req.path.startsWith('/api/blog/related/') && req.method === 'GET')
+      (req.path === '/blog/categories' && req.method === 'GET') ||
+      (req.path.startsWith('/blog/posts/') && req.method === 'GET') ||
+      (req.path.startsWith('/blog/related/') && req.method === 'GET')
     ) {
       return next();
     }
