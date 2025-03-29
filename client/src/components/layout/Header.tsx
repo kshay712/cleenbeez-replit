@@ -5,10 +5,10 @@ import BeeIcon from "@/components/icons/BeeIcon";
 import { 
   Menu, 
   Search, 
-  ShoppingBag,
   LogOut, 
   ClipboardList,
   FileText,
+  BookOpen,
   Users,
   Settings,
   User
@@ -22,7 +22,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 
 const Header = () => {
   const [location] = useLocation();
@@ -41,19 +40,32 @@ const Header = () => {
     <header className="bg-white border-b border-neutral-100 fixed w-full top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
-          {/* Logo and Navigation */}
-          <div className="flex items-center">
-            {/* Logo */}
-            <div className="flex-shrink-0 flex items-center">
-              <Link href="/" className="flex items-center">
-                <div className="h-10 w-10 bg-primary-500 rounded-full flex items-center justify-center shadow-sm">
-                  <BeeIcon className="h-6 w-6 text-white" />
-                </div>
-              </Link>
+          {/* Logo and Site Name - Left Justified */}
+          <div className="flex-shrink-0 flex items-center">
+            <Link href="/" className="flex items-center">
+              <div className="h-10 w-10 bg-primary-500 rounded-full flex items-center justify-center shadow-sm">
+                <BeeIcon className="h-6 w-6 text-white" />
+              </div>
+              <span className="ml-3 text-lg font-heading font-bold text-neutral-800">Clean Bee</span>
+            </Link>
+          </div>
+            
+          {/* Main Navigation - Right Justified */}
+          <div className="flex items-center space-x-6">
+            {/* Search */}
+            <div className="relative hidden md:block">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Search className="h-4 w-4 text-neutral-400" />
+              </div>
+              <Input 
+                type="text" 
+                className="w-64 pl-10 pr-3 py-2 border-neutral-200 rounded-full focus:ring-primary-500" 
+                placeholder="Search products..." 
+              />
             </div>
             
-            {/* Main Navigation - Desktop */}
-            <nav className="ml-10 flex items-center space-x-8">
+            {/* Navigation Links */}
+            <nav className="hidden md:flex md:items-center md:space-x-8">
               <Link href="/products" className={`inline-flex items-center px-3 h-16 border-b-2 font-medium ${
                 isActive('/products') 
                   ? 'border-primary-500 text-primary-600' 
@@ -76,29 +88,6 @@ const Header = () => {
                 Learn
               </Link>
             </nav>
-          </div>
-          
-          {/* Search, Cart, and User Menu - Desktop */}
-          <div className="flex items-center space-x-6">
-            {/* Search */}
-            <div className="relative hidden md:block">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Search className="h-4 w-4 text-neutral-400" />
-              </div>
-              <Input 
-                type="text" 
-                className="w-64 pl-10 pr-3 py-2 border-neutral-200 rounded-full focus:ring-primary-500" 
-                placeholder="Search products..." 
-              />
-            </div>
-            
-            {/* Cart */}
-            <Link href="/cart" className="text-neutral-600 hover:text-primary-600 relative">
-              <ShoppingBag className="h-5 w-5" />
-              <Badge className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 text-xs bg-primary-500">
-                0
-              </Badge>
-            </Link>
             
             {/* User Menu */}
             <div className="hidden md:block">
@@ -113,27 +102,48 @@ const Header = () => {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
-                  {!user ? (
+                  {/* Login link always visible */}
+                  <DropdownMenuItem asChild>
+                    <Link href="/login" className="flex items-center">
+                      <User className="h-4 w-4 mr-2" />
+                      Login
+                    </Link>
+                  </DropdownMenuItem>
+                  
+                  {/* Admin links - conditionally enabled based on user role */}
+                  <DropdownMenuSeparator />
+                  <div className="px-4 py-1 text-xs font-semibold text-neutral-500">
+                    Admin
+                  </div>
+                  <DropdownMenuItem asChild disabled={!(isAdmin || isEditor)} className={!(isAdmin || isEditor) ? "opacity-50 cursor-not-allowed" : ""}>
+                    <Link href={isAdmin || isEditor ? "/admin/products" : "#"} className="flex items-center">
+                      <ClipboardList className="h-4 w-4 mr-2" />
+                      Manage Products
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild disabled={!(isAdmin || isEditor)} className={!(isAdmin || isEditor) ? "opacity-50 cursor-not-allowed" : ""}>
+                    <Link href={isAdmin || isEditor ? "/admin/blog" : "#"} className="flex items-center">
+                      <FileText className="h-4 w-4 mr-2" />
+                      Manage Blog
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild disabled={!(isAdmin || isEditor)} className={!(isAdmin || isEditor) ? "opacity-50 cursor-not-allowed" : ""}>
+                    <Link href={isAdmin || isEditor ? "/admin/learn" : "#"} className="flex items-center">
+                      <BookOpen className="h-4 w-4 mr-2" />
+                      Manage Learn
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild disabled={!isAdmin} className={!isAdmin ? "opacity-50 cursor-not-allowed" : ""}>
+                    <Link href={isAdmin ? "/admin/users" : "#"} className="flex items-center">
+                      <Users className="h-4 w-4 mr-2" />
+                      Manage Users
+                    </Link>
+                  </DropdownMenuItem>
+                  
+                  {/* Only show these when logged in */}
+                  {user && (
                     <>
-                      <DropdownMenuItem asChild>
-                        <Link href="/login" className="flex items-center">
-                          <User className="h-4 w-4 mr-2" />
-                          Sign in
-                        </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem asChild>
-                        <Link href="/register" className="flex items-center">
-                          <User className="h-4 w-4 mr-2" />
-                          Sign up
-                        </Link>
-                      </DropdownMenuItem>
-                    </>
-                  ) : (
-                    <>
-                      <div className="px-4 py-2 text-sm text-neutral-700 border-b border-neutral-100">
-                        <div className="font-semibold">{user.username || user.email}</div>
-                        <div className="text-xs text-neutral-500 mt-1">{user.email}</div>
-                      </div>
+                      <DropdownMenuSeparator />
                       <DropdownMenuItem asChild>
                         <Link href="/account" className="flex items-center">
                           <User className="h-4 w-4 mr-2" />
@@ -146,38 +156,6 @@ const Header = () => {
                           Settings
                         </Link>
                       </DropdownMenuItem>
-                      
-                      {/* Admin section - only visible for admin/editor roles */}
-                      {(isAdmin || isEditor) && (
-                        <>
-                          <DropdownMenuSeparator />
-                          <div className="px-4 py-1 text-xs font-semibold text-neutral-500">
-                            Admin
-                          </div>
-                          <DropdownMenuItem asChild>
-                            <Link href="/admin/products" className="flex items-center">
-                              <ClipboardList className="h-4 w-4 mr-2" />
-                              Manage Products
-                            </Link>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem asChild>
-                            <Link href="/admin/blog" className="flex items-center">
-                              <FileText className="h-4 w-4 mr-2" />
-                              Manage Blog
-                            </Link>
-                          </DropdownMenuItem>
-                          {isAdmin && (
-                            <DropdownMenuItem asChild>
-                              <Link href="/admin/users" className="flex items-center">
-                                <Users className="h-4 w-4 mr-2" />
-                                Manage Users
-                              </Link>
-                            </DropdownMenuItem>
-                          )}
-                        </>
-                      )}
-                      
-                      <DropdownMenuSeparator />
                       <DropdownMenuItem onClick={handleSignOut} className="text-red-600 focus:text-red-600">
                         <LogOut className="h-4 w-4 mr-2" />
                         Sign out
@@ -256,29 +234,96 @@ const Header = () => {
               </Link>
             </div>
             
-            {/* Mobile authentication */}
+            {/* Mobile admin and login */}
             <div className="py-2">
-              {!user ? (
-                <div className="px-4 py-4 flex flex-col space-y-3">
-                  <Button 
-                    asChild
-                    variant="outline"
-                    className="w-full justify-center"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    <Link href="/login">Sign in</Link>
-                  </Button>
-                  <Button 
-                    asChild
-                    className="w-full justify-center"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    <Link href="/register">Sign up</Link>
-                  </Button>
+              <Link 
+                href="/login" 
+                className="block px-4 py-2 text-base font-medium text-neutral-700 hover:bg-neutral-50 hover:text-primary-600"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <div className="flex items-center">
+                  <User className="h-5 w-5 mr-2" />
+                  Login
                 </div>
-              ) : (
-                <div className="space-y-1">
-                  <div className="px-4 py-2 flex items-center">
+              </Link>
+              
+              {/* Admin section - shows for all but is disabled unless admin/editor */}
+              <div className="px-4 py-2 text-sm font-semibold text-neutral-500 mt-4">
+                Admin
+              </div>
+              <Link 
+                href={isAdmin || isEditor ? "/admin/products" : "#"}
+                className={`block px-4 py-2 pl-6 text-sm font-medium ${
+                  isAdmin || isEditor
+                    ? "text-neutral-700 hover:bg-neutral-50 hover:text-primary-600"
+                    : "text-neutral-400 cursor-not-allowed"
+                }`}
+                onClick={(e) => {
+                  if (!(isAdmin || isEditor)) e.preventDefault();
+                  else setMobileMenuOpen(false);
+                }}
+              >
+                <div className="flex items-center">
+                  <ClipboardList className="h-4 w-4 mr-2" />
+                  Manage Products
+                </div>
+              </Link>
+              <Link 
+                href={isAdmin || isEditor ? "/admin/blog" : "#"}
+                className={`block px-4 py-2 pl-6 text-sm font-medium ${
+                  isAdmin || isEditor
+                    ? "text-neutral-700 hover:bg-neutral-50 hover:text-primary-600"
+                    : "text-neutral-400 cursor-not-allowed"
+                }`}
+                onClick={(e) => {
+                  if (!(isAdmin || isEditor)) e.preventDefault();
+                  else setMobileMenuOpen(false);
+                }}
+              >
+                <div className="flex items-center">
+                  <FileText className="h-4 w-4 mr-2" />
+                  Manage Blog
+                </div>
+              </Link>
+              <Link 
+                href={isAdmin || isEditor ? "/admin/learn" : "#"}
+                className={`block px-4 py-2 pl-6 text-sm font-medium ${
+                  isAdmin || isEditor
+                    ? "text-neutral-700 hover:bg-neutral-50 hover:text-primary-600"
+                    : "text-neutral-400 cursor-not-allowed"
+                }`}
+                onClick={(e) => {
+                  if (!(isAdmin || isEditor)) e.preventDefault();
+                  else setMobileMenuOpen(false);
+                }}
+              >
+                <div className="flex items-center">
+                  <BookOpen className="h-4 w-4 mr-2" />
+                  Manage Learn
+                </div>
+              </Link>
+              <Link 
+                href={isAdmin ? "/admin/users" : "#"}
+                className={`block px-4 py-2 pl-6 text-sm font-medium ${
+                  isAdmin
+                    ? "text-neutral-700 hover:bg-neutral-50 hover:text-primary-600"
+                    : "text-neutral-400 cursor-not-allowed"
+                }`}
+                onClick={(e) => {
+                  if (!isAdmin) e.preventDefault();
+                  else setMobileMenuOpen(false);
+                }}
+              >
+                <div className="flex items-center">
+                  <Users className="h-4 w-4 mr-2" />
+                  Manage Users
+                </div>
+              </Link>
+              
+              {/* User account options - only visible when logged in */}
+              {user && (
+                <>
+                  <div className="mt-4 px-4 py-2 flex items-center">
                     <div className="h-10 w-10 rounded-full bg-primary-100 flex items-center justify-center mr-3">
                       <span className="text-sm font-medium text-primary-800">
                         {user.username ? user.username.substring(0, 1).toUpperCase() : 'U'}
@@ -286,7 +331,7 @@ const Header = () => {
                     </div>
                     <div>
                       <div className="font-medium text-neutral-900">{user.username || user.email}</div>
-                      <div className="text-xs text-neutral-500">{user.email}</div>
+                      <div className="text-xs text-neutral-500 mt-1">{user.email}</div>
                     </div>
                   </div>
                   <Link 
@@ -309,48 +354,6 @@ const Header = () => {
                       Settings
                     </div>
                   </Link>
-                  
-                  {/* Admin section - only visible for admin/editor roles */}
-                  {(isAdmin || isEditor) && (
-                    <>
-                      <div className="px-4 py-2 text-sm font-semibold text-neutral-500">
-                        Admin
-                      </div>
-                      <Link 
-                        href="/admin/products" 
-                        className="block px-4 py-2 pl-6 text-sm font-medium text-neutral-700 hover:bg-neutral-50 hover:text-primary-600"
-                        onClick={() => setMobileMenuOpen(false)}
-                      >
-                        <div className="flex items-center">
-                          <ClipboardList className="h-4 w-4 mr-2" />
-                          Manage Products
-                        </div>
-                      </Link>
-                      <Link 
-                        href="/admin/blog" 
-                        className="block px-4 py-2 pl-6 text-sm font-medium text-neutral-700 hover:bg-neutral-50 hover:text-primary-600"
-                        onClick={() => setMobileMenuOpen(false)}
-                      >
-                        <div className="flex items-center">
-                          <FileText className="h-4 w-4 mr-2" />
-                          Manage Blog
-                        </div>
-                      </Link>
-                      {isAdmin && (
-                        <Link 
-                          href="/admin/users" 
-                          className="block px-4 py-2 pl-6 text-sm font-medium text-neutral-700 hover:bg-neutral-50 hover:text-primary-600"
-                          onClick={() => setMobileMenuOpen(false)}
-                        >
-                          <div className="flex items-center">
-                            <Users className="h-4 w-4 mr-2" />
-                            Manage Users
-                          </div>
-                        </Link>
-                      )}
-                    </>
-                  )}
-                  
                   <button 
                     onClick={() => {
                       handleSignOut();
@@ -363,7 +366,7 @@ const Header = () => {
                       Sign out
                     </div>
                   </button>
-                </div>
+                </>
               )}
             </div>
           </div>
