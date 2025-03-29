@@ -5,9 +5,12 @@ import BeeIcon from "@/components/icons/BeeIcon";
 import { 
   Menu, 
   Search, 
-  User,
+  ShoppingBag,
   ChevronDown,
-  LogOut 
+  LogOut, 
+  Heart,
+  Settings,
+  User
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -18,6 +21,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 
 const Header = () => {
   const [location] = useLocation();
@@ -33,15 +37,15 @@ const Header = () => {
   };
 
   return (
-    <header className="bg-white shadow-sm fixed w-full top-0 z-50">
+    <header className="bg-white border-b border-neutral-100 fixed w-full top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           {/* Logo and main navigation */}
-          <div className="flex">
+          <div className="flex items-center">
             <div className="flex-shrink-0 flex items-center">
               {/* Logo */}
               <Link href="/" className="flex items-center">
-                <div className="h-10 w-10 bg-primary-500 rounded-full flex items-center justify-center mr-2">
+                <div className="h-10 w-10 bg-primary-500 rounded-full flex items-center justify-center mr-2 shadow-sm">
                   <BeeIcon className="h-6 w-6 text-white" />
                 </div>
                 <span className="text-lg font-heading font-bold text-neutral-800">Clean Bee</span>
@@ -49,25 +53,25 @@ const Header = () => {
             </div>
             
             {/* Main Navigation - Desktop */}
-            <nav className="hidden md:ml-8 md:flex md:space-x-8">
-              <Link href="/products" className={`inline-flex items-center px-1 pt-1 border-b-2 ${
+            <nav className="hidden md:ml-10 md:flex md:space-x-8">
+              <Link href="/products" className={`inline-flex items-center px-1 pt-1 border-b-2 font-medium ${
                 isActive('/products') 
-                  ? 'border-primary-500 text-primary-500' 
-                  : 'border-transparent text-neutral-700 hover:text-primary-500 hover:border-primary-500'
+                  ? 'border-primary-500 text-primary-600' 
+                  : 'border-transparent text-neutral-600 hover:text-primary-600 hover:border-primary-300'
               }`}>
                 Products
               </Link>
-              <Link href="/learn" className={`inline-flex items-center px-1 pt-1 border-b-2 ${
+              <Link href="/learn" className={`inline-flex items-center px-1 pt-1 border-b-2 font-medium ${
                 isActive('/learn') 
-                  ? 'border-primary-500 text-primary-500' 
-                  : 'border-transparent text-neutral-700 hover:text-primary-500 hover:border-primary-500'
+                  ? 'border-primary-500 text-primary-600' 
+                  : 'border-transparent text-neutral-600 hover:text-primary-600 hover:border-primary-300'
               }`}>
                 Learn
               </Link>
-              <Link href="/blog" className={`inline-flex items-center px-1 pt-1 border-b-2 ${
+              <Link href="/blog" className={`inline-flex items-center px-1 pt-1 border-b-2 font-medium ${
                 isActive('/blog') 
-                  ? 'border-primary-500 text-primary-500' 
-                  : 'border-transparent text-neutral-700 hover:text-primary-500 hover:border-primary-500'
+                  ? 'border-primary-500 text-primary-600' 
+                  : 'border-transparent text-neutral-600 hover:text-primary-600 hover:border-primary-300'
               }`}>
                 Blog
               </Link>
@@ -75,10 +79,10 @@ const Header = () => {
               {/* Admin section - only visible for admin/editor roles */}
               {(isAdmin || isEditor) && (
                 <DropdownMenu>
-                  <DropdownMenuTrigger className={`inline-flex items-center px-1 pt-1 border-b-2 ${
+                  <DropdownMenuTrigger className={`inline-flex items-center px-1 pt-1 border-b-2 font-medium ${
                     isActive('/admin/products') || isActive('/admin/blog') || isActive('/admin/users')
-                      ? 'border-primary-500 text-primary-500' 
-                      : 'border-transparent text-neutral-700 hover:text-primary-500 hover:border-primary-500'
+                      ? 'border-primary-500 text-primary-600' 
+                      : 'border-transparent text-neutral-600 hover:text-primary-600 hover:border-primary-300'
                   }`}>
                     Admin
                     <ChevronDown className="h-4 w-4 ml-1" />
@@ -102,50 +106,76 @@ const Header = () => {
           </div>
           
           {/* Search and Authentication - Desktop */}
-          <div className="hidden md:flex items-center">
+          <div className="hidden md:flex items-center space-x-6">
             {/* Search */}
-            <div className="relative mx-4">
+            <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Search className="h-4 w-4 text-neutral-500" />
+                <Search className="h-4 w-4 text-neutral-400" />
               </div>
               <Input 
                 type="text" 
-                className="block w-full pl-10 pr-3 py-2" 
+                className="w-64 pl-10 pr-3 py-2 border-neutral-200 rounded-full focus:ring-primary-500" 
                 placeholder="Search products..." 
               />
             </div>
             
+            {/* Favorites */}
+            <Link href="/favorites" className="text-neutral-600 hover:text-primary-600">
+              <Heart className="h-5 w-5" />
+            </Link>
+            
+            {/* Cart */}
+            <Link href="/cart" className="text-neutral-600 hover:text-primary-600 relative">
+              <ShoppingBag className="h-5 w-5" />
+              <Badge className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 text-xs bg-primary-500">
+                0
+              </Badge>
+            </Link>
+            
             {/* Authentication */}
             {!user ? (
-              <div className="flex space-x-4 items-center">
-                <Link href="/login" className="text-sm font-medium text-neutral-700 hover:text-primary-500">
-                  Sign in
-                </Link>
-                <Button asChild>
+              <div className="flex space-x-4 items-center pl-2">
+                <Button asChild variant="ghost" className="text-sm font-medium text-neutral-700 hover:text-primary-600">
+                  <Link href="/login">Sign in</Link>
+                </Button>
+                <Button asChild variant="default">
                   <Link href="/register">Sign up</Link>
                 </Button>
               </div>
             ) : (
               <DropdownMenu>
-                <DropdownMenuTrigger className="flex text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
-                  <div className="h-8 w-8 rounded-full bg-neutral-200 flex items-center justify-center">
-                    <span className="text-sm font-medium text-neutral-800">
-                      {user.email ? user.email.substring(0, 2).toUpperCase() : 'U'}
+                <DropdownMenuTrigger className="flex items-center ml-2 text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+                  <div className="h-8 w-8 rounded-full bg-primary-100 flex items-center justify-center">
+                    <span className="text-sm font-medium text-primary-800">
+                      {user.username ? user.username.substring(0, 1).toUpperCase() : 'U'}
                     </span>
                   </div>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
+                  <div className="px-4 py-2 text-sm text-neutral-700 border-b border-neutral-100">
+                    <div className="font-semibold">{user.username || user.email}</div>
+                    <div className="text-xs text-neutral-500 mt-1">{user.email}</div>
+                  </div>
                   <DropdownMenuItem asChild>
-                    <Link href="/account">Your Account</Link>
+                    <Link href="/account" className="flex items-center">
+                      <User className="h-4 w-4 mr-2" />
+                      Your Account
+                    </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
-                    <Link href="/orders">Order History</Link>
+                    <Link href="/orders" className="flex items-center">
+                      <ShoppingBag className="h-4 w-4 mr-2" />
+                      Order History
+                    </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
-                    <Link href="/settings">Settings</Link>
+                    <Link href="/settings" className="flex items-center">
+                      <Settings className="h-4 w-4 mr-2" />
+                      Settings
+                    </Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleSignOut}>
+                  <DropdownMenuItem onClick={handleSignOut} className="text-red-600 focus:text-red-600">
                     <LogOut className="h-4 w-4 mr-2" />
                     Sign out
                   </DropdownMenuItem>
@@ -154,13 +184,21 @@ const Header = () => {
             )}
           </div>
           
-          {/* Mobile menu button */}
-          <div className="flex items-center md:hidden">
+          {/* Mobile menu button and cart */}
+          <div className="flex items-center md:hidden space-x-4">
+            <Link href="/cart" className="text-neutral-600 hover:text-primary-600 relative">
+              <ShoppingBag className="h-5 w-5" />
+              <Badge className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 text-xs bg-primary-500">
+                0
+              </Badge>
+            </Link>
+            
             <Button 
               variant="ghost" 
               size="icon"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               aria-label="Open menu"
+              className="text-neutral-700"
             >
               <Menu className="h-6 w-6" />
             </Button>
@@ -170,59 +208,89 @@ const Header = () => {
       
       {/* Mobile menu */}
       {mobileMenuOpen && (
-        <div className="md:hidden">
-          <div className="pt-2 pb-3 space-y-1">
-            <Link 
-              href="/products" 
-              className={`block pl-3 pr-4 py-2 border-l-4 ${
-                isActive('/products')
-                  ? 'border-primary-500 text-primary-500 bg-primary-50'
-                  : 'border-transparent text-neutral-700 hover:bg-neutral-50 hover:border-primary-300 hover:text-primary-500'
-              }`}
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Products
-            </Link>
-            <Link 
-              href="/learn" 
-              className={`block pl-3 pr-4 py-2 border-l-4 ${
-                isActive('/learn')
-                  ? 'border-primary-500 text-primary-500 bg-primary-50'
-                  : 'border-transparent text-neutral-700 hover:bg-neutral-50 hover:border-primary-300 hover:text-primary-500'
-              }`}
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Learn
-            </Link>
-            <Link 
-              href="/blog" 
-              className={`block pl-3 pr-4 py-2 border-l-4 ${
-                isActive('/blog')
-                  ? 'border-primary-500 text-primary-500 bg-primary-50'
-                  : 'border-transparent text-neutral-700 hover:bg-neutral-50 hover:border-primary-300 hover:text-primary-500'
-              }`}
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Blog
-            </Link>
+        <div className="md:hidden border-t border-neutral-100 bg-white absolute w-full shadow-lg">
+          {/* Mobile search */}
+          <div className="p-4">
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Search className="h-4 w-4 text-neutral-400" />
+              </div>
+              <Input 
+                type="text" 
+                className="w-full pl-10 pr-3 py-2 border-neutral-200" 
+                placeholder="Search products..." 
+              />
+            </div>
+          </div>
+          
+          <div className="py-2 divide-y divide-neutral-100">
+            <div className="py-2 space-y-1">
+              <Link 
+                href="/products" 
+                className={`block px-4 py-2 text-base font-medium ${
+                  isActive('/products')
+                    ? 'text-primary-600 bg-primary-50'
+                    : 'text-neutral-700 hover:bg-neutral-50 hover:text-primary-600'
+                }`}
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Products
+              </Link>
+              <Link 
+                href="/learn" 
+                className={`block px-4 py-2 text-base font-medium ${
+                  isActive('/learn')
+                    ? 'text-primary-600 bg-primary-50'
+                    : 'text-neutral-700 hover:bg-neutral-50 hover:text-primary-600'
+                }`}
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Learn
+              </Link>
+              <Link 
+                href="/blog" 
+                className={`block px-4 py-2 text-base font-medium ${
+                  isActive('/blog')
+                    ? 'text-primary-600 bg-primary-50'
+                    : 'text-neutral-700 hover:bg-neutral-50 hover:text-primary-600'
+                }`}
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Blog
+              </Link>
+              <Link 
+                href="/favorites" 
+                className={`block px-4 py-2 text-base font-medium ${
+                  isActive('/favorites')
+                    ? 'text-primary-600 bg-primary-50'
+                    : 'text-neutral-700 hover:bg-neutral-50 hover:text-primary-600'
+                }`}
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <div className="flex items-center">
+                  <Heart className="h-5 w-5 mr-2" />
+                  Favorites
+                </div>
+              </Link>
+            </div>
             
             {/* Admin section - only visible for admin/editor roles */}
             {(isAdmin || isEditor) && (
-              <div>
-                <div className="block pl-3 pr-4 py-2 border-l-4 border-transparent text-base font-medium text-neutral-700">
+              <div className="py-2">
+                <div className="px-4 py-2 text-base font-medium text-neutral-500">
                   Admin
                 </div>
-                <div className="pl-6 space-y-1">
+                <div className="space-y-1">
                   <Link 
                     href="/admin/products" 
-                    className="block pl-3 pr-4 py-2 border-l-4 border-transparent text-sm font-medium text-neutral-700 hover:bg-neutral-50 hover:border-primary-300 hover:text-primary-500"
+                    className="block px-4 py-2 pl-6 text-sm font-medium text-neutral-700 hover:bg-neutral-50 hover:text-primary-600"
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     Products
                   </Link>
                   <Link 
                     href="/admin/blog" 
-                    className="block pl-3 pr-4 py-2 border-l-4 border-transparent text-sm font-medium text-neutral-700 hover:bg-neutral-50 hover:border-primary-300 hover:text-primary-500"
+                    className="block px-4 py-2 pl-6 text-sm font-medium text-neutral-700 hover:bg-neutral-50 hover:text-primary-600"
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     Blog Posts
@@ -230,7 +298,7 @@ const Header = () => {
                   {isAdmin && (
                     <Link 
                       href="/admin/users" 
-                      className="block pl-3 pr-4 py-2 border-l-4 border-transparent text-sm font-medium text-neutral-700 hover:bg-neutral-50 hover:border-primary-300 hover:text-primary-500"
+                      className="block px-4 py-2 pl-6 text-sm font-medium text-neutral-700 hover:bg-neutral-50 hover:text-primary-600"
                       onClick={() => setMobileMenuOpen(false)}
                     >
                       Users
@@ -239,60 +307,85 @@ const Header = () => {
                 </div>
               </div>
             )}
-          </div>
-          
-          {/* Mobile authentication */}
-          <div className="pt-4 pb-3 border-t border-neutral-200">
-            {!user ? (
-              <div className="px-4 flex items-center justify-between">
-                <Link 
-                  href="/login" 
-                  className="text-base font-medium text-neutral-700 hover:text-primary-500"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  Sign in
-                </Link>
-                <Button 
-                  asChild
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  <Link href="/register">Sign up</Link>
-                </Button>
-              </div>
-            ) : (
-              <div className="mt-3 space-y-1">
-                <Link 
-                  href="/account" 
-                  className="block px-4 py-2 text-base font-medium text-neutral-700 hover:bg-neutral-50 hover:text-primary-500"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  Your Account
-                </Link>
-                <Link 
-                  href="/orders" 
-                  className="block px-4 py-2 text-base font-medium text-neutral-700 hover:bg-neutral-50 hover:text-primary-500"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  Order History
-                </Link>
-                <Link 
-                  href="/settings" 
-                  className="block px-4 py-2 text-base font-medium text-neutral-700 hover:bg-neutral-50 hover:text-primary-500"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  Settings
-                </Link>
-                <button 
-                  onClick={() => {
-                    handleSignOut();
-                    setMobileMenuOpen(false);
-                  }}
-                  className="block w-full text-left px-4 py-2 text-base font-medium text-neutral-700 hover:bg-neutral-50 hover:text-primary-500"
-                >
-                  Sign out
-                </button>
-              </div>
-            )}
+            
+            {/* Mobile authentication */}
+            <div className="py-2">
+              {!user ? (
+                <div className="px-4 py-4 flex flex-col space-y-3">
+                  <Button 
+                    asChild
+                    variant="outline"
+                    className="w-full justify-center"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <Link href="/login">Sign in</Link>
+                  </Button>
+                  <Button 
+                    asChild
+                    className="w-full justify-center"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <Link href="/register">Sign up</Link>
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  <div className="px-4 py-2 flex items-center">
+                    <div className="h-10 w-10 rounded-full bg-primary-100 flex items-center justify-center mr-3">
+                      <span className="text-sm font-medium text-primary-800">
+                        {user.username ? user.username.substring(0, 1).toUpperCase() : 'U'}
+                      </span>
+                    </div>
+                    <div>
+                      <div className="font-medium text-neutral-900">{user.username || user.email}</div>
+                      <div className="text-xs text-neutral-500">{user.email}</div>
+                    </div>
+                  </div>
+                  <Link 
+                    href="/account" 
+                    className="block px-4 py-2 text-base font-medium text-neutral-700 hover:bg-neutral-50 hover:text-primary-600"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <div className="flex items-center">
+                      <User className="h-5 w-5 mr-2" />
+                      Your Account
+                    </div>
+                  </Link>
+                  <Link 
+                    href="/orders" 
+                    className="block px-4 py-2 text-base font-medium text-neutral-700 hover:bg-neutral-50 hover:text-primary-600"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <div className="flex items-center">
+                      <ShoppingBag className="h-5 w-5 mr-2" />
+                      Order History
+                    </div>
+                  </Link>
+                  <Link 
+                    href="/settings" 
+                    className="block px-4 py-2 text-base font-medium text-neutral-700 hover:bg-neutral-50 hover:text-primary-600"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <div className="flex items-center">
+                      <Settings className="h-5 w-5 mr-2" />
+                      Settings
+                    </div>
+                  </Link>
+                  <button 
+                    onClick={() => {
+                      handleSignOut();
+                      setMobileMenuOpen(false);
+                    }}
+                    className="block w-full text-left px-4 py-2 text-base font-medium text-red-600 hover:bg-neutral-50"
+                  >
+                    <div className="flex items-center">
+                      <LogOut className="h-5 w-5 mr-2" />
+                      Sign out
+                    </div>
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
