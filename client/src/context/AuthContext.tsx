@@ -6,10 +6,13 @@ import {
   signOut, 
   onAuthStateChanged,
   GoogleAuthProvider,
-  signInWithPopup
+  signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult
 } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { apiRequest } from '@/lib/queryClient';
+import { useToast } from "@/hooks/use-toast";
 
 interface User {
   id: number;
@@ -40,6 +43,7 @@ interface AuthProviderProps {
 export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
   
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
@@ -122,35 +126,67 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
   };
   
+  useEffect(() => {
+    // Handle the redirect result on page load
+    const handleRedirectResult = async () => {
+      try {
+        // Check if this page load is the result of a redirect
+        const result = await getRedirectResult(auth);
+        
+        if (result) {
+          // User successfully signed in with redirect
+          const firebaseUser = result.user;
+          
+          // Check if user exists in our database, if not, create them
+          await apiRequest('POST', '/api/auth/google', {
+            email: firebaseUser.email,
+            firebaseUid: firebaseUser.uid,
+            username: firebaseUser.displayName || `user_${firebaseUser.uid.substring(0, 8)}`
+          });
+          
+          toast({
+            title: "Success!",
+            description: "Signed in with Google successfully!",
+          });
+          
+          // The onAuthStateChanged listener will handle setting the user
+        }
+      } catch (error: any) {
+        console.error("Google auth redirect error:", error);
+        toast({
+          variant: "destructive",
+          title: "Authentication Error",
+          description: error.message || "Failed to authenticate with Google",
+        });
+      }
+    };
+    
+    handleRedirectResult();
+  }, [toast]);
+
   const loginWithGoogle = async () => {
     try {
       setIsLoading(true);
       
       const provider = new GoogleAuthProvider();
-      const result = await signInWithPopup(auth, provider);
+      // Add scopes if needed
+      provider.addScope('profile');
+      provider.addScope('email');
       
-      // This gives you a Google Access Token. You can use it to access the Google API.
-      const credential = GoogleAuthProvider.credentialFromResult(result);
+      // Use redirect method instead of popup for better compatibility
+      await signInWithRedirect(auth, provider);
       
-      if (!credential) {
-        throw new Error('Failed to get credentials from Google');
-      }
-      
-      const firebaseUser = result.user;
-      
-      // Check if user exists in our database, if not, create them
-      await apiRequest('POST', '/api/auth/google', {
-        email: firebaseUser.email,
-        firebaseUid: firebaseUser.uid,
-        username: firebaseUser.displayName || `user_${firebaseUser.uid.substring(0, 8)}`
-      });
-      
-      // The onAuthStateChanged listener will handle setting the user
+      // The result will be handled in the useEffect above when the page reloads
+      // No need to set anything here as the page will refresh
     } catch (error: any) {
       console.error('Google login error:', error);
-      throw new Error(error.message || 'Failed to login with Google');
-    } finally {
+      toast({
+        variant: "destructive",
+        title: "Authentication Error",
+        description: error.message || "Failed to start Google login",
+      });
       setIsLoading(false);
+      throw error;
     }
   };
   

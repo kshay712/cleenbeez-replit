@@ -1,7 +1,8 @@
 import { initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
+import { getAuth, setPersistence, browserSessionPersistence } from "firebase/auth";
 import { getStorage } from "firebase/storage";
 
+// Firebase configuration 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: `${import.meta.env.VITE_FIREBASE_PROJECT_ID}.firebaseapp.com`,
@@ -10,13 +11,22 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
-// Initialize Firebase
+// Initialize Firebase app
 const app = initializeApp(firebaseConfig);
 
-// Initialize Firebase Authentication and get a reference to the service
+// Initialize Firebase Authentication
 export const auth = getAuth(app);
 
-// Initialize Firebase Storage and get a reference to the service
+// Use session persistence for better compatibility in Replit environment
+// This helps with issues related to iframes and third-party cookies
+setPersistence(auth, browserSessionPersistence)
+  .catch((error) => {
+    console.error("Firebase persistence error:", error);
+  });
+
+// Initialize Firebase Storage
 export const storage = getStorage(app);
+
+console.log("Firebase initialized successfully with project ID:", import.meta.env.VITE_FIREBASE_PROJECT_ID);
 
 export default app;
