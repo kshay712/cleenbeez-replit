@@ -7,7 +7,12 @@ import { insertUserSchema } from "@shared/schema";
 // Initialize Firebase Admin SDK
 if (!admin.apps.length) {
   admin.initializeApp({
-    credential: admin.credential.applicationDefault(),
+    credential: admin.credential.cert({
+      projectId: process.env.VITE_FIREBASE_PROJECT_ID,
+      clientEmail: process.env.FIREBASE_CLIENT_EMAIL || `firebase-adminsdk-${Math.random().toString(36).substring(2, 8)}@${process.env.VITE_FIREBASE_PROJECT_ID}.iam.gserviceaccount.com`,
+      // The private key needs to be added as a secret
+      privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n') || 'dummy-key',
+    }),
   });
 }
 
