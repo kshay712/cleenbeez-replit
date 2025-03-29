@@ -46,8 +46,9 @@ const Header = () => {
             </Link>
           </div>
           
-          {/* Navigation Links (Always Visible) */}
-          <div className="flex-1 flex justify-center items-center space-x-4 md:space-x-8 mx-2 md:mx-4">
+          {/* Right side: Navigation + Admin Menu */}
+          <div className="flex items-center space-x-4 md:space-x-6">
+            {/* Navigation Links */}
             <Link 
               href="/products" 
               className={`text-sm md:text-base font-medium ${
@@ -78,10 +79,7 @@ const Header = () => {
             >
               Learn
             </Link>
-          </div>
-
-          {/* Right side: Admin Menu */}
-          <div className="flex items-center">
+            
             {/* Admin dropdown menu */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
