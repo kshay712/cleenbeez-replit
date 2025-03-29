@@ -14,6 +14,7 @@ import ProductsPage from "./pages/products/ProductsPage";
 import ProductDetailPage from "./pages/products/ProductDetailPage";
 import BlogPage from "./pages/blog/BlogPage";
 import BlogPostPage from "./pages/blog/BlogPostPage";
+import LearnPage from "./pages/learn/LearnPage";
 import LoginPage from "./pages/auth/LoginPage";
 import RegisterPage from "./pages/auth/RegisterPage";
 import AdminProductsPage from "./pages/admin/AdminProductsPage";
@@ -32,6 +33,7 @@ function Router() {
           <Route path="/products/:id" component={ProductDetailPage} />
           <Route path="/blog" component={BlogPage} />
           <Route path="/blog/:slug" component={BlogPostPage} />
+          <Route path="/learn" component={LearnPage} />
           <Route path="/login" component={LoginPage} />
           <Route path="/register" component={RegisterPage} />
           <Route path="/admin/products" component={AdminProductsPage} />
