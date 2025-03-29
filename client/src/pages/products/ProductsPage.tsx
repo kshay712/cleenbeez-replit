@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import ProductGrid from "@/components/products/ProductGrid";
 import ProductFilters from "@/components/products/ProductFilters";
-import Pagination from "@/components/ui/Pagination";
+import { Pagination } from "@/components/ui/pagination";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Filter, ChevronDown } from "lucide-react";
+import { Filter, ChevronDown, Search, LayoutGrid, List, SlidersHorizontal } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -22,6 +22,36 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { useDebounce } from "@/hooks/use-debounce";
+import { useToast } from "@/hooks/use-toast";
+
+// Product interface to match the data structure
+interface Product {
+  id: number;
+  name: string;
+  description: string;
+  price: number;
+  category: {
+    id: number;
+    name: string;
+    slug: string;
+  };
+  image: string;
+  organic: boolean;
+  bpaFree: boolean;
+}
+
+// Response interface for the products API
+interface ProductsResponse {
+  products: Product[];
+  pagination: {
+    totalPages: number;
+    currentPage: number;
+    totalItems: number;
+  };
+}
 
 const sortOptions = [
   { value: "recommended", label: "Recommended" },
@@ -34,6 +64,11 @@ const ProductsPage = () => {
   const [location] = useLocation();
   const [currentPage, setCurrentPage] = useState(1);
   const [sortBy, setSortBy] = useState("recommended");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const debouncedSearchTerm = useDebounce(searchTerm, 500);
+  const { toast } = useToast();
+  
   const [filters, setFilters] = useState({
     categories: [] as string[],
     organic: false,
@@ -47,14 +82,49 @@ const ProductsPage = () => {
   const categoryFromUrl = searchParams.get('category');
   
   // Set initial category filter if provided in URL
-  useState(() => {
+  useEffect(() => {
     if (categoryFromUrl && !filters.categories.includes(categoryFromUrl)) {
       setFilters({
         ...filters,
         categories: [...filters.categories, categoryFromUrl],
       });
     }
-  });
+  }, []);
+
+  // Add search term to query params when needed
+  useEffect(() => {
+    if (debouncedSearchTerm && debouncedSearchTerm !== searchTerm) {
+      setCurrentPage(1); // Reset to first page on new search
+    }
+  }, [debouncedSearchTerm, searchTerm]);
+
+  // Handle view mode toggle
+  const toggleViewMode = () => {
+    setViewMode(viewMode === 'grid' ? 'list' : 'grid');
+  };
+
+  // Handle search input change
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
+  };
+  
+  // Clear all filters
+  const clearAllFilters = () => {
+    setFilters({
+      categories: [],
+      organic: false,
+      bpaFree: false,
+      minPrice: 0,
+      maxPrice: 100,
+    });
+    setSearchTerm('');
+    setSortBy('recommended');
+    setCurrentPage(1);
+    toast({
+      title: "Filters cleared",
+      description: "All product filters have been reset",
+    });
+  };
 
   // Build query params
   const queryParams = new URLSearchParams();
@@ -67,10 +137,11 @@ const ProductsPage = () => {
   }
   if (filters.minPrice > 0) queryParams.set('minPrice', filters.minPrice.toString());
   if (filters.maxPrice < 100) queryParams.set('maxPrice', filters.maxPrice.toString());
+  if (debouncedSearchTerm) queryParams.set('search', debouncedSearchTerm);
 
   const queryString = queryParams.toString() ? `?${queryParams.toString()}` : '';
   
-  const { data, isLoading } = useQuery({
+  const { data, isLoading } = useQuery<ProductsResponse>({
     queryKey: [`/api/products${queryString}`],
   });
 
@@ -147,21 +218,113 @@ const ProductsPage = () => {
               </div>
             </div>
             
-            {/* Desktop sorting */}
-            <div className="hidden lg:flex lg:items-center lg:justify-end mb-6">
-              <span className="text-sm font-medium text-neutral-700 mr-2">Sort by</span>
-              <Select value={sortBy} onValueChange={handleSortChange}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Sort by" />
-                </SelectTrigger>
-                <SelectContent>
-                  {sortOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
+            {/* Search bar and desktop controls */}
+            <div className="mb-6">
+              <div className="relative flex gap-3 mb-4">
+                <div className="relative flex-grow">
+                  <Input
+                    type="search"
+                    placeholder="Search products..."
+                    value={searchTerm}
+                    onChange={handleSearchChange}
+                    className="w-full pl-10"
+                  />
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-neutral-400" />
+                </div>
+                <div className="hidden lg:flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={toggleViewMode}
+                    className="h-10 w-10"
+                    title={viewMode === 'grid' ? 'Switch to list view' : 'Switch to grid view'}
+                  >
+                    {viewMode === 'grid' ? (
+                      <List className="h-4 w-4" />
+                    ) : (
+                      <LayoutGrid className="h-4 w-4" />
+                    )}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={clearAllFilters}
+                    className="text-sm"
+                  >
+                    Clear filters
+                  </Button>
+                </div>
+              </div>
+              
+              {/* Active filters */}
+              {(filters.categories.length > 0 || filters.organic || filters.bpaFree || filters.minPrice > 0 || filters.maxPrice < 100) && (
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {filters.categories.length > 0 && filters.categories.map(cat => (
+                    <Badge key={cat} variant="secondary" className="bg-primary-50 text-primary-700 hover:bg-primary-100">
+                      Category: {cat}
+                      <button 
+                        className="ml-1 text-primary-500 hover:text-primary-700" 
+                        onClick={() => handleFilterChange({
+                          ...filters, 
+                          categories: filters.categories.filter(c => c !== cat)
+                        })}
+                      >
+                        &times;
+                      </button>
+                    </Badge>
                   ))}
-                </SelectContent>
-              </Select>
+                  {filters.organic && (
+                    <Badge variant="secondary" className="bg-secondary-50 text-secondary-700 hover:bg-secondary-100">
+                      Organic
+                      <button 
+                        className="ml-1 text-secondary-500 hover:text-secondary-700" 
+                        onClick={() => handleFilterChange({...filters, organic: false})}
+                      >
+                        &times;
+                      </button>
+                    </Badge>
+                  )}
+                  {filters.bpaFree && (
+                    <Badge variant="secondary" className="bg-blue-50 text-blue-700 hover:bg-blue-100">
+                      BPA-Free
+                      <button 
+                        className="ml-1 text-blue-500 hover:text-blue-700" 
+                        onClick={() => handleFilterChange({...filters, bpaFree: false})}
+                      >
+                        &times;
+                      </button>
+                    </Badge>
+                  )}
+                  {(filters.minPrice > 0 || filters.maxPrice < 100) && (
+                    <Badge variant="secondary" className="bg-neutral-50 text-neutral-700 hover:bg-neutral-100">
+                      Price: ${filters.minPrice} - ${filters.maxPrice}
+                      <button 
+                        className="ml-1 text-neutral-500 hover:text-neutral-700" 
+                        onClick={() => handleFilterChange({...filters, minPrice: 0, maxPrice: 100})}
+                      >
+                        &times;
+                      </button>
+                    </Badge>
+                  )}
+                </div>
+              )}
+              
+              {/* Desktop sorting */}
+              <div className="hidden lg:flex lg:items-center lg:justify-end">
+                <span className="text-sm font-medium text-neutral-700 mr-2">Sort by</span>
+                <Select value={sortBy} onValueChange={handleSortChange}>
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Sort by" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {sortOptions.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             
             {/* Products */}

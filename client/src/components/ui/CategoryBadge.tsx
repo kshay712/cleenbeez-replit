@@ -1,4 +1,5 @@
 import React from "react";
+import { Badge } from "@/components/ui/badge";
 
 interface CategoryBadgeProps {
   category: string;
@@ -7,9 +8,9 @@ interface CategoryBadgeProps {
 
 const CategoryBadge: React.FC<CategoryBadgeProps> = ({ category, className = "" }) => {
   return (
-    <span className={`text-sm text-neutral-500 ${className}`}>
+    <Badge variant="outline" className={`text-xs font-medium text-neutral-600 bg-neutral-50 hover:bg-neutral-100 ${className}`}>
       {category}
-    </span>
+    </Badge>
   );
 };
 
