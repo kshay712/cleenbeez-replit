@@ -21,7 +21,13 @@ import {
 } from "@shared/schema";
 import { eq, like, or, inArray, and, desc, asc } from "drizzle-orm";
 
+import session from "express-session";
+import MemoryStore from "memorystore";
+
 export interface IStorage {
+  // Session store for express session
+  sessionStore: session.Store;
+
   // User methods
   getUser(id: number): Promise<User | undefined>;
   getUserById(id: number): Promise<User | undefined>;
@@ -30,6 +36,7 @@ export interface IStorage {
   getUserByFirebaseUid(firebaseUid: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   updateUserRole(id: number, role: string): Promise<User | undefined>;
+  updateFirebaseUid(id: number, firebaseUid: string): Promise<User | undefined>;
   getAllUsers(): Promise<User[]>;
   deleteUser(id: number): Promise<boolean>;
 
@@ -92,6 +99,15 @@ export interface IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
+  sessionStore: session.Store;
+  
+  constructor() {
+    // Initialize the session store
+    const MemoryStoreFactory = MemoryStore(session);
+    this.sessionStore = new MemoryStoreFactory({
+      checkPeriod: 86400000 // prune expired entries every 24h
+    });
+  }
   // User methods
   async getUser(id: number): Promise<User | undefined> {
     return this.getUserById(id);
@@ -126,6 +142,15 @@ export class DatabaseStorage implements IStorage {
     const [updatedUser] = await db
       .update(users)
       .set({ role })
+      .where(eq(users.id, id))
+      .returning();
+    return updatedUser;
+  }
+
+  async updateFirebaseUid(id: number, firebaseUid: string): Promise<User | undefined> {
+    const [updatedUser] = await db
+      .update(users)
+      .set({ firebaseUid })
       .where(eq(users.id, id))
       .returning();
     return updatedUser;

@@ -35,12 +35,26 @@ export const verifyAuthToken = async (req: Request, res: Response, next: NextFun
     const authHeader = req.headers.authorization;
     
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      console.log('No authentication token provided for route:', req.path);
       return res.status(401).json({ message: 'No authentication token provided' });
     }
     
     const token = authHeader.split('Bearer ')[1];
     
     try {
+      // For development login, handle a special case test token
+      if (token.startsWith('test-')) {
+        const user = await storage.getUserByFirebaseUid(token);
+        if (user) {
+          req.user = user;
+          if (req.session) {
+            req.session.userId = user.id;
+          }
+          return next();
+        }
+      }
+      
+      // Normal Firebase token authentication
       const decodedToken = await admin.auth().verifyIdToken(token);
       const firebaseUid = decodedToken.uid;
       

@@ -7,7 +7,7 @@ import { insertUserSchema } from '@shared/schema';
  * These endpoints should NOT be exposed in production
  */
 export const adminUtil = {
-  // Direct login without Firebase authentication
+  // Direct login without Firebase authentication (for development only)
   directLogin: async (req: Request, res: Response) => {
     try {
       const { email, password } = req.body;
@@ -22,18 +22,54 @@ export const adminUtil = {
         return res.status(400).json({ message: 'Password is required' });
       }
       
-      const user = await storage.getUserByEmail(email);
+      let user = await storage.getUserByEmail(email);
       
       if (!user) {
         return res.status(404).json({ message: 'User not found with this email' });
       }
       
-      // Set the user in the session for authentication
-      if (req.session) {
-        req.session.userId = user.id;
+      // Make sure we have a test firebaseUid for development login
+      if (!user.firebaseUid || !user.firebaseUid.startsWith('test-')) {
+        // Update the user with a test firebaseUid if it doesn't exist
+        const testUid = `test-${Date.now()}`;
+        try {
+          // This is a simplified update - in a real system you'd use a proper update method
+          const updatedUser = await storage.updateUserRole(user.id, user.role); 
+          // We're reusing updateUserRole as a way to touch the user record
+          if (updatedUser) {
+            // Now add the firebaseUid directly
+            await storage.updateFirebaseUid(user.id, testUid);
+            user = await storage.getUserById(user.id); // Get fresh user data
+          }
+        } catch (err) {
+          console.error('Failed to update test firebaseUid:', err);
+        }
       }
       
-      res.status(200).json(user);
+      // Set the user in the session for authentication
+      if (user && req.session) {
+        req.session.userId = user.id;
+        // Force session save
+        await new Promise<void>((resolve, reject) => {
+          req.session.save((err) => {
+            if (err) reject(err);
+            else resolve();
+          });
+        });
+      }
+      
+      // Add user to request
+      if (user) {
+        req.user = user;
+      }
+      
+      if (user) {
+        console.log('Successfully logged in user:', user.username);
+        res.status(200).json(user);
+      } else {
+        console.error('Failed to log in: user is undefined');
+        res.status(500).json({ message: 'Login failed due to server error' });
+      }
     } catch (error: any) {
       console.error('Direct login error:', error);
       res.status(500).json({ message: 'Failed to login', error: error.message });

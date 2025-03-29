@@ -28,10 +28,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       '/api/auth/google',
       '/api/products',
       '/api/products/featured',
-      '/api/categories'
+      '/api/products/*',
+      '/api/categories',
+      '/api/categories/*'
     ];
     
+    // Check for exact path matches
     if (publicPaths.includes(req.path)) {
+      return next();
+    }
+    
+    // Check for path patterns
+    const isPublicPath = publicPaths.some(pattern => {
+      // If the pattern ends with a wildcard (*), check if the path starts with the pattern without the *
+      if (pattern.endsWith('*')) {
+        const basePattern = pattern.slice(0, -1);
+        return req.path.startsWith(basePattern);
+      }
+      return false;
+    });
+    
+    if (isPublicPath) {
       return next();
     }
     

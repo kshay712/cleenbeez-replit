@@ -3,6 +3,8 @@ import session from "express-session";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import path from "path";
+import connectPgSimple from "connect-pg-simple";
+import { storage } from "./storage";
 
 const app = express();
 app.use(express.json());
@@ -13,6 +15,7 @@ app.use(session({
   secret: 'cleanbee-secret-key',
   resave: false,
   saveUninitialized: false,
+  store: storage.sessionStore,
   cookie: { 
     secure: false, // Set to true in production with HTTPS
     maxAge: 24 * 60 * 60 * 1000 // 24 hours
