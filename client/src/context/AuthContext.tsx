@@ -32,6 +32,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   loginWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
+  setUser: (user: User | null) => void; // Added for direct login
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -219,7 +220,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     register,
     login,
     loginWithGoogle,
-    logout
+    logout,
+    setUser  // Expose setUser for direct login
   };
   
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

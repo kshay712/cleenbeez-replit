@@ -8,6 +8,39 @@ const promoteUserSchema = z.object({
 });
 
 export const adminUtil = {
+  // Direct login endpoint that bypasses Firebase
+  // This should be removed in production
+  directLogin: async (req: Request, res: Response) => {
+    try {
+      const { email, password } = req.body;
+      
+      if (!email || !password) {
+        return res.status(400).json({ message: "Email and password are required" });
+      }
+      
+      // Find the user by email
+      const user = await storage.getUserByEmail(email);
+      
+      if (!user) {
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+      
+      // In a real app, we would hash and check the password
+      // But for this development utility, we'll just compare the plain text
+      if (user.password !== password) {
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+      
+      // Return the user
+      res.status(200).json(user);
+    } catch (error: any) {
+      console.error("Error during direct login:", error);
+      res.status(500).json({ 
+        message: error.message || "Failed to login" 
+      });
+    }
+  },
+  
   // Utility endpoint to promote a user to admin or editor without authentication
   // This should be removed in production
   promoteUser: async (req: Request, res: Response) => {

@@ -17,6 +17,7 @@ import BlogPostPage from "./pages/blog/BlogPostPage";
 import LearnPage from "./pages/learn/LearnPage";
 import LoginPage from "./pages/auth/LoginPage";
 import RegisterPage from "./pages/auth/RegisterPage";
+import DevLoginPage from "./pages/auth/DevLoginPage";
 import AdminUtilPage from "./pages/auth/AdminUtilPage";
 import AdminProductsPage from "./pages/admin/products/AdminProductsPage";
 import NewProductPage from "./pages/admin/products/NewProductPage";
@@ -39,6 +40,7 @@ function Router() {
           <Route path="/learn" component={LearnPage} />
           <Route path="/login" component={LoginPage} />
           <Route path="/register" component={RegisterPage} />
+          <Route path="/dev-login" component={DevLoginPage} />
           <Route path="/admin-util" component={AdminUtilPage} />
           <Route path="/admin/products" component={AdminProductsPage} />
           <Route path="/admin/products/new" component={NewProductPage} />

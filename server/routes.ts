@@ -14,6 +14,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // This should be placed before the auth middleware
   app.post('/api/admin-util/promote', adminUtil.promoteUser);
   app.post('/api/admin-util/create-test-user', adminUtil.createTestUser);
+  app.post('/api/admin-util/direct-login', adminUtil.directLogin);
   
   // Middleware to parse and validate auth token
   app.use('/api', verifyAuthToken);
