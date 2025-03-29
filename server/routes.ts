@@ -29,12 +29,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       '/api/products',
       '/api/products/featured',
       '/api/products/*',
-      '/api/categories',
-      '/api/categories/*'
+      '/api/blog/posts',
+      '/api/blog/featured',
+      // Individual paths requiring pattern matching are handled separately below
+      // Only GET requests to categories should be public
+      // POST/PUT/DELETE operations need authentication and proper role
+      // This is handled by the middleware in the router setup
     ];
     
     // Check for exact path matches
     if (publicPaths.includes(req.path)) {
+      return next();
+    }
+    
+    // Special handling for GET requests - allow them to be public
+    if (
+      // Product & category public paths
+      (req.path === '/api/categories' && req.method === 'GET') || 
+      (req.path.startsWith('/api/categories/') && req.method === 'GET') ||
+      // Blog public paths
+      (req.path === '/api/blog/categories' && req.method === 'GET') ||
+      (req.path.startsWith('/api/blog/posts/') && req.method === 'GET') ||
+      (req.path.startsWith('/api/blog/related/') && req.method === 'GET')
+    ) {
       return next();
     }
     
