@@ -7,19 +7,30 @@ import { insertUserSchema } from '@shared/schema';
  * These endpoints should NOT be exposed in production
  */
 export const adminUtil = {
-  // Direct login without password or Firebase
+  // Direct login without Firebase authentication
   directLogin: async (req: Request, res: Response) => {
     try {
-      const { userId } = req.body;
+      const { email, password } = req.body;
       
-      if (!userId) {
-        return res.status(400).json({ message: 'User ID is required' });
+      if (!email) {
+        return res.status(400).json({ message: 'Email is required' });
       }
       
-      const user = await storage.getUserById(userId);
+      // In development, we're not validating the password for simplicity
+      // But we need to at least have a password field
+      if (!password) {
+        return res.status(400).json({ message: 'Password is required' });
+      }
+      
+      const user = await storage.getUserByEmail(email);
       
       if (!user) {
-        return res.status(404).json({ message: 'User not found' });
+        return res.status(404).json({ message: 'User not found with this email' });
+      }
+      
+      // Set the user in the session for authentication
+      if (req.session) {
+        req.session.userId = user.id;
       }
       
       res.status(200).json(user);
