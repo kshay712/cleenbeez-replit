@@ -5,10 +5,16 @@ import { auth } from "./api/auth";
 import { products } from "./api/products";
 import { blog } from "./api/blog";
 import { users } from "./api/users";
+import { adminUtil } from "./api/adminUtil";
 import { z } from "zod";
 import { verifyAuthToken } from "./api/auth";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Admin utility routes - no auth required (for development only)
+  // This should be placed before the auth middleware
+  app.post('/api/admin-util/promote', adminUtil.promoteUser);
+  app.post('/api/admin-util/create-test-user', adminUtil.createTestUser);
+  
   // Middleware to parse and validate auth token
   app.use('/api', verifyAuthToken);
 
