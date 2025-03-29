@@ -50,7 +50,7 @@ const Header = () => {
             </Link>
           </div>
             
-          {/* Main Navigation - Right Justified */}
+          {/* Navigation and Menu - Right Justified */}
           <div className="flex items-center space-x-6">
             {/* Search */}
             <div className="relative hidden md:block">
@@ -65,31 +65,29 @@ const Header = () => {
             </div>
             
             {/* Navigation Links */}
-            <nav className="hidden md:flex md:items-center md:space-x-8">
-              <Link href="/products" className={`inline-flex items-center px-3 h-16 border-b-2 font-medium ${
-                isActive('/products') 
-                  ? 'border-primary-500 text-primary-600' 
-                  : 'border-transparent text-neutral-600 hover:text-primary-600 hover:border-primary-300'
-              }`}>
-                Products
-              </Link>
-              <Link href="/blog" className={`inline-flex items-center px-3 h-16 border-b-2 font-medium ${
-                isActive('/blog') 
-                  ? 'border-primary-500 text-primary-600' 
-                  : 'border-transparent text-neutral-600 hover:text-primary-600 hover:border-primary-300'
-              }`}>
-                Blog
-              </Link>
-              <Link href="/learn" className={`inline-flex items-center px-3 h-16 border-b-2 font-medium ${
-                isActive('/learn') 
-                  ? 'border-primary-500 text-primary-600' 
-                  : 'border-transparent text-neutral-600 hover:text-primary-600 hover:border-primary-300'
-              }`}>
-                Learn
-              </Link>
-            </nav>
+            <Link href="/products" className={`hidden md:inline-flex items-center px-3 h-16 border-b-2 font-medium ${
+              isActive('/products') 
+                ? 'border-primary-500 text-primary-600' 
+                : 'border-transparent text-neutral-600 hover:text-primary-600 hover:border-primary-300'
+            }`}>
+              Products
+            </Link>
+            <Link href="/blog" className={`hidden md:inline-flex items-center px-3 h-16 border-b-2 font-medium ${
+              isActive('/blog') 
+                ? 'border-primary-500 text-primary-600' 
+                : 'border-transparent text-neutral-600 hover:text-primary-600 hover:border-primary-300'
+            }`}>
+              Blog
+            </Link>
+            <Link href="/learn" className={`hidden md:inline-flex items-center px-3 h-16 border-b-2 font-medium ${
+              isActive('/learn') 
+                ? 'border-primary-500 text-primary-600' 
+                : 'border-transparent text-neutral-600 hover:text-primary-600 hover:border-primary-300'
+            }`}>
+              Learn
+            </Link>
             
-            {/* User Menu */}
+            {/* Admin Menu */}
             <div className="hidden md:block">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -102,16 +100,7 @@ const Header = () => {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
-                  {/* Login link always visible */}
-                  <DropdownMenuItem asChild>
-                    <Link href="/login" className="flex items-center">
-                      <User className="h-4 w-4 mr-2" />
-                      Login
-                    </Link>
-                  </DropdownMenuItem>
-                  
                   {/* Admin links - conditionally enabled based on user role */}
-                  <DropdownMenuSeparator />
                   <div className="px-4 py-1 text-xs font-semibold text-neutral-500">
                     Admin
                   </div>
@@ -140,10 +129,17 @@ const Header = () => {
                     </Link>
                   </DropdownMenuItem>
                   
-                  {/* Only show these when logged in */}
-                  {user && (
+                  {/* Login/logout section */}
+                  <DropdownMenuSeparator />
+                  {!user ? (
+                    <DropdownMenuItem asChild>
+                      <Link href="/login" className="flex items-center">
+                        <User className="h-4 w-4 mr-2" />
+                        Login
+                      </Link>
+                    </DropdownMenuItem>
+                  ) : (
                     <>
-                      <DropdownMenuSeparator />
                       <DropdownMenuItem asChild>
                         <Link href="/account" className="flex items-center">
                           <User className="h-4 w-4 mr-2" />
@@ -236,16 +232,64 @@ const Header = () => {
             
             {/* Mobile admin and login */}
             <div className="py-2">
-              <Link 
-                href="/login" 
-                className="block px-4 py-2 text-base font-medium text-neutral-700 hover:bg-neutral-50 hover:text-primary-600"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                <div className="flex items-center">
-                  <User className="h-5 w-5 mr-2" />
-                  Login
-                </div>
-              </Link>
+              {!user ? (
+                <Link 
+                  href="/login" 
+                  className="block px-4 py-2 text-base font-medium text-neutral-700 hover:bg-neutral-50 hover:text-primary-600"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <div className="flex items-center">
+                    <User className="h-5 w-5 mr-2" />
+                    Login
+                  </div>
+                </Link>
+              ) : (
+                <>
+                  <div className="px-4 py-2 flex items-center">
+                    <div className="h-10 w-10 rounded-full bg-primary-100 flex items-center justify-center mr-3">
+                      <span className="text-sm font-medium text-primary-800">
+                        {user.username ? user.username.substring(0, 1).toUpperCase() : 'U'}
+                      </span>
+                    </div>
+                    <div>
+                      <div className="font-medium text-neutral-900">{user.username || user.email}</div>
+                      <div className="text-xs text-neutral-500 mt-1">{user.email}</div>
+                    </div>
+                  </div>
+                  <Link 
+                    href="/account" 
+                    className="block px-4 py-2 text-base font-medium text-neutral-700 hover:bg-neutral-50 hover:text-primary-600"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <div className="flex items-center">
+                      <User className="h-5 w-5 mr-2" />
+                      Your Account
+                    </div>
+                  </Link>
+                  <Link 
+                    href="/settings" 
+                    className="block px-4 py-2 text-base font-medium text-neutral-700 hover:bg-neutral-50 hover:text-primary-600"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <div className="flex items-center">
+                      <Settings className="h-5 w-5 mr-2" />
+                      Settings
+                    </div>
+                  </Link>
+                  <button 
+                    onClick={() => {
+                      handleSignOut();
+                      setMobileMenuOpen(false);
+                    }}
+                    className="block w-full text-left px-4 py-2 text-base font-medium text-red-600 hover:bg-neutral-50"
+                  >
+                    <div className="flex items-center">
+                      <LogOut className="h-5 w-5 mr-2" />
+                      Sign out
+                    </div>
+                  </button>
+                </>
+              )}
               
               {/* Admin section - shows for all but is disabled unless admin/editor */}
               <div className="px-4 py-2 text-sm font-semibold text-neutral-500 mt-4">
@@ -319,55 +363,6 @@ const Header = () => {
                   Manage Users
                 </div>
               </Link>
-              
-              {/* User account options - only visible when logged in */}
-              {user && (
-                <>
-                  <div className="mt-4 px-4 py-2 flex items-center">
-                    <div className="h-10 w-10 rounded-full bg-primary-100 flex items-center justify-center mr-3">
-                      <span className="text-sm font-medium text-primary-800">
-                        {user.username ? user.username.substring(0, 1).toUpperCase() : 'U'}
-                      </span>
-                    </div>
-                    <div>
-                      <div className="font-medium text-neutral-900">{user.username || user.email}</div>
-                      <div className="text-xs text-neutral-500 mt-1">{user.email}</div>
-                    </div>
-                  </div>
-                  <Link 
-                    href="/account" 
-                    className="block px-4 py-2 text-base font-medium text-neutral-700 hover:bg-neutral-50 hover:text-primary-600"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    <div className="flex items-center">
-                      <User className="h-5 w-5 mr-2" />
-                      Your Account
-                    </div>
-                  </Link>
-                  <Link 
-                    href="/settings" 
-                    className="block px-4 py-2 text-base font-medium text-neutral-700 hover:bg-neutral-50 hover:text-primary-600"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    <div className="flex items-center">
-                      <Settings className="h-5 w-5 mr-2" />
-                      Settings
-                    </div>
-                  </Link>
-                  <button 
-                    onClick={() => {
-                      handleSignOut();
-                      setMobileMenuOpen(false);
-                    }}
-                    className="block w-full text-left px-4 py-2 text-base font-medium text-red-600 hover:bg-neutral-50"
-                  >
-                    <div className="flex items-center">
-                      <LogOut className="h-5 w-5 mr-2" />
-                      Sign out
-                    </div>
-                  </button>
-                </>
-              )}
             </div>
           </div>
         </div>
