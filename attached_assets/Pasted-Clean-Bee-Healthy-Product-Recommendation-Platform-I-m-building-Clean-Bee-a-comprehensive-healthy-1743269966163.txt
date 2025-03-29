@@ -1,0 +1,132 @@
+Clean Bee - Healthy Product Recommendation Platform
+
+I'm building Clean Bee, a comprehensive healthy product recommendation platform with affiliate monetization features. The platform helps users discover and purchase health-conscious products with detailed product information and blog content.
+
+Technical Stack
+
+Frontend:
+
+React + TypeScript + Vite
+TailwindCSS + Radix UI components
+TanStack Query (React Query) for data fetching
+TanStack Router for type-safe routing
+TanStack Virtual for efficient list rendering
+Zod for validation
+React Hook Form for forms
+Jotai for lightweight state management
+Firebase Auth
+Lucide React for icons
+Backend:
+
+Express.js with TypeScript
+tRPC for end-to-end type safety
+Prisma ORM + PostgreSQL (via Neon)
+Firebase Admin SDK
+Firebase Storage for images
+Required Pages & Features
+
+Home Page (/):
+Hero section with value proposition
+"Why Choose Clean Bee" section with 3 key benefits
+Direct links to Products and Blog sections
+Clean, minimal aesthetic with Bee icon branding
+Navigation:
+Products, Learn, Blog main navigation items
+User authentication menu
+Admin/Editor role-based navigation items
+Mobile-responsive design
+Product Pages: a. Product Listing (/products):
+Grid layout of product cards
+Category filtering sidebar
+Search functionality
+Filter toggles (organic, BPA-free)
+Sorting options
+Pagination support
+b. Product Card Component:
+Product image
+Name and price
+Category tag
+Quick view features
+Link to detailed view
+c. Product Detail (/products/[id]):
+Large product image
+Detailed description
+Price display
+Why we recommend section
+Ingredients list
+Multiple vendor support (Amazon, Thrive Market, Grove)
+Affiliate links handling
+Related products
+Blog System: a. Blog Listing (/blog):
+Grid of blog posts
+Featured images
+Title and excerpt
+Category filtering
+Publication date
+Pagination
+b. Blog Post (/blog/[slug]):
+Full post content
+Featured image
+Author info
+Category tags
+Publication date
+Related posts
+Admin Interface: a. User Management (/admin/users):
+List all users
+Role management (Admin/Editor)
+User status controls
+b. Product Management (/admin/products):
+Create/Edit/Delete products
+Image upload
+Category assignment
+Price and details management
+Multi-vendor link management
+c. Blog Management (/admin/blog):
+Post listing with status
+Create/Edit/Delete posts
+Rich text editor
+Featured image upload
+Category management
+Draft/Publish toggle
+Data Models
+
+Product Schema:
+model Product {
+  id             String   @id @default(cuid())
+  name           String
+  description    String
+  price          Decimal  @db.Decimal(10, 2)
+  category       Category @relation(fields: [categoryId], references: [id])
+  categoryId     String
+  image          String
+  organic        Boolean  @default(false)
+  bpaFree        Boolean  @default(false)
+  whyRecommend   String
+  ingredients    String[]
+  vendors        Vendor[]
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+Blog Schema:
+model BlogPost {
+  id           String     @id @default(cuid())
+  title        String
+  slug         String     @unique
+  content      String
+  excerpt      String
+  featuredImage String
+  author       User       @relation(fields: [authorId], references: [id])
+  authorId     String
+  categories   Category[]
+  published    Boolean    @default(false)
+  publishedAt  DateTime?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+}
+Authentication & Authorization
+
+Firebase-based authentication
+Role-based access control (Admin/Editor/User)
+Protected routes and API endpoints
+Secure image upload handling
+Please help implement this comprehensively, keeping in mind I'm new to coding and need clear guidance on file structure and code placement.
