@@ -70,14 +70,6 @@ const Hero = () => {
                 <span>Health-focused</span>
               </div>
             </div>
-            
-            <div className="mt-8">
-              <Button asChild size="lg" className="w-full sm:w-auto">
-                <Link href="/products">
-                  Discover More
-                </Link>
-              </Button>
-            </div>
           </div>
           
           <div className="mt-10 lg:mt-0 lg:pl-8">
