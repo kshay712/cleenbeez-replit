@@ -1,4 +1,4 @@
-import { Search, Shield, Leaf, CheckCircle, Droplets, ThumbsUp } from "lucide-react";
+import { Search, Shield, Leaf } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const Benefits = () => {
@@ -23,10 +23,13 @@ const Benefits = () => {
     }
   ];
   
-  const additionalBenefits = [
-    { icon: <CheckCircle className="h-5 w-5 mr-2" />, text: "Free from harmful chemicals" },
-    { icon: <Droplets className="h-5 w-5 mr-2" />, text: "Non-toxic alternatives" },
-    { icon: <ThumbsUp className="h-5 w-5 mr-2" />, text: "Transparent labeling" }
+  const testimonials = [
+    {
+      quote: "Clean Bee has transformed how I shop for home products. I can trust that everything they recommend is safe for my family and the environment.",
+      name: "Jane Doe",
+      title: "Happy Customer",
+      initials: "JD"
+    }
   ];
 
   return (
@@ -64,35 +67,27 @@ const Benefits = () => {
           <div className="md:flex md:items-center md:justify-between">
             <div className="md:w-1/2">
               <h3 className="text-2xl font-bold text-neutral-900">
-                Our Products Are Always:
+                User Testimonials
               </h3>
-              <div className="mt-6 space-y-4">
-                {additionalBenefits.map((item, index) => (
-                  <div key={index} className="flex items-center text-neutral-700">
-                    <div className="flex-shrink-0 text-primary-600">
-                      {item.icon}
-                    </div>
-                    <span>{item.text}</span>
-                  </div>
-                ))}
-              </div>
             </div>
             
             <div className="mt-8 md:mt-0 md:w-1/2">
-              <div className="relative bg-white rounded-lg p-6 shadow-sm border border-neutral-100">
-                <blockquote className="italic text-neutral-700">
-                  "Clean Bee has transformed how I shop for home products. I can trust that everything they recommend is safe for my family and the environment."
-                </blockquote>
-                <div className="mt-4 flex items-center">
-                  <div className="h-10 w-10 rounded-full bg-primary-100 flex items-center justify-center">
-                    <span className="text-sm font-medium text-primary-800">JD</span>
-                  </div>
-                  <div className="ml-3">
-                    <p className="text-sm font-medium text-neutral-900">Jane Doe</p>
-                    <p className="text-sm text-neutral-500">Happy Customer</p>
+              {testimonials.map((testimonial, index) => (
+                <div key={index} className="relative bg-white rounded-lg p-6 shadow-sm border border-neutral-100">
+                  <blockquote className="italic text-neutral-700">
+                    "{testimonial.quote}"
+                  </blockquote>
+                  <div className="mt-4 flex items-center">
+                    <div className="h-10 w-10 rounded-full bg-primary-100 flex items-center justify-center">
+                      <span className="text-sm font-medium text-primary-800">{testimonial.initials}</span>
+                    </div>
+                    <div className="ml-3">
+                      <p className="text-sm font-medium text-neutral-900">{testimonial.name}</p>
+                      <p className="text-sm text-neutral-500">{testimonial.title}</p>
+                    </div>
                   </div>
                 </div>
-              </div>
+              ))}
             </div>
           </div>
         </div>
