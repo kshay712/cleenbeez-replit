@@ -47,7 +47,11 @@ const DevLoginPage = () => {
       const userData = await response.json();
       
       // Set the user in the auth context
+      console.log("Setting user data:", userData);
       setUser(userData);
+      
+      // Set it in localStorage as well to bypass Firebase
+      localStorage.setItem('cleanbee_dev_user', JSON.stringify(userData));
       
       toast({
         title: "Login successful",

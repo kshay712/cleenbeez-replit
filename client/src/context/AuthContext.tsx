@@ -47,6 +47,22 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const { toast } = useToast();
   
   useEffect(() => {
+    // First, check if we have a development user in localStorage
+    const devUserJson = localStorage.getItem('cleanbee_dev_user');
+    if (devUserJson) {
+      try {
+        const devUser = JSON.parse(devUserJson);
+        console.log("Found development user in localStorage:", devUser);
+        setUser(devUser);
+        setIsLoading(false);
+        return () => {}; // No cleanup needed for localStorage
+      } catch (error) {
+        console.error("Error parsing dev user from localStorage:", error);
+        localStorage.removeItem('cleanbee_dev_user');
+      }
+    }
+    
+    // If no dev user, proceed with regular Firebase auth
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         try {
@@ -195,10 +211,16 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     try {
       setIsLoading(true);
       
-      // Sign out from Firebase
-      await signOut(auth);
-      
-      // The onAuthStateChanged listener will handle clearing the user
+      // Check if we have a development user
+      if (localStorage.getItem('cleanbee_dev_user')) {
+        // Clear the development user from localStorage
+        localStorage.removeItem('cleanbee_dev_user');
+        setUser(null);
+      } else {
+        // Sign out from Firebase
+        await signOut(auth);
+        // The onAuthStateChanged listener will handle clearing the user
+      }
     } catch (error: any) {
       console.error('Logout error:', error);
       throw new Error(error.message || 'Failed to logout');
