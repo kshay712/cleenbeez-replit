@@ -407,14 +407,6 @@ const ProductsPage = () => {
                       <LayoutGrid className="h-4 w-4" />
                     )}
                   </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={clearAllFilters}
-                    className="text-sm"
-                  >
-                    Clear filters
-                  </Button>
                 </div>
               </div>
               
