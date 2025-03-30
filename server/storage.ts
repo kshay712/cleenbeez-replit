@@ -212,7 +212,27 @@ export class DatabaseStorage implements IStorage {
         sulfatesFree: raw.sulfates_free,
         fdcFree: raw.fdc_free,
         whyRecommend: raw.why_recommend,
-        ingredients: raw.ingredients ? JSON.parse(raw.ingredients) : [],
+        ingredients: (() => {
+          // BUGFIX: Handle ingredients properly by checking if it's already parsed
+          if (!raw.ingredients) return [];
+          
+          try {
+            // If it's a string, try to parse it
+            if (typeof raw.ingredients === 'string') {
+              return JSON.parse(raw.ingredients);
+            } 
+            // If it's already an array, use it as is
+            if (Array.isArray(raw.ingredients)) {
+              return raw.ingredients;
+            }
+            // If it's an object (from PostgreSQL), stringify and parse to ensure format
+            return JSON.parse(JSON.stringify(raw.ingredients));
+          } catch (error) {
+            console.warn('Error parsing ingredients JSON, using as string:', error);
+            // If parsing fails, wrap the raw string in an array
+            return [raw.ingredients];
+          }
+        })(),
         affiliateLink: raw.affiliate_link,
         createdAt: raw.created_at,
         updatedAt: raw.updated_at,
@@ -387,14 +407,35 @@ export class DatabaseStorage implements IStorage {
           .where(inArray(categories.id, categoryIds))
       : [];
     
-    // Combine products with their categories
+    // Combine products with their categories and process ingredients
     const enrichedProducts = productList.map(product => {
       const category = product.categoryId
         ? categoryList.find(cat => cat.id === product.categoryId)
         : null;
       
+      // BUGFIX: Handle ingredients properly for listing
+      let ingredients = [];
+      if (product.ingredients) {
+        try {
+          // Check if it's already an array
+          if (Array.isArray(product.ingredients)) {
+            ingredients = product.ingredients;
+          } else if (typeof product.ingredients === 'string') {
+            // Try to parse the JSON string
+            ingredients = JSON.parse(product.ingredients);
+          } else {
+            // Handle object representation 
+            ingredients = JSON.parse(JSON.stringify(product.ingredients));
+          }
+        } catch (error) {
+          console.warn('Error parsing ingredients in products list, using as string:', error);
+          ingredients = [product.ingredients].filter(Boolean);
+        }
+      }
+      
       return {
         ...product,
+        ingredients,
         category: category || null
       } as unknown as Product;
     });
@@ -431,14 +472,32 @@ export class DatabaseStorage implements IStorage {
           .where(inArray(categories.id, categoryIds))
       : [];
     
-    // Combine products with their categories
+    // Combine products with their categories and parse ingredients
     return productList.map(product => {
       const category = product.categoryId
         ? categoryList.find(cat => cat.id === product.categoryId)
         : null;
       
+      // Handle ingredients the same way
+      let ingredients = [];
+      if (product.ingredients) {
+        try {
+          if (Array.isArray(product.ingredients)) {
+            ingredients = product.ingredients;
+          } else if (typeof product.ingredients === 'string') {
+            ingredients = JSON.parse(product.ingredients);
+          } else {
+            ingredients = JSON.parse(JSON.stringify(product.ingredients));
+          }
+        } catch (error) {
+          console.warn('Error parsing ingredients in featured products, using as string:', error);
+          ingredients = [product.ingredients].filter(Boolean);
+        }
+      }
+      
       return {
         ...product,
+        ingredients,
         category: category || null
       } as unknown as Product;
     });
@@ -494,14 +553,32 @@ export class DatabaseStorage implements IStorage {
           .where(inArray(categories.id, categoryIds))
       : [];
     
-    // Combine products with their categories
+    // Combine products with their categories and parse ingredients
     return relatedProducts.map(product => {
       const category = product.categoryId
         ? categoryList.find(cat => cat.id === product.categoryId)
         : null;
       
+      // Handle ingredients the same way
+      let ingredients = [];
+      if (product.ingredients) {
+        try {
+          if (Array.isArray(product.ingredients)) {
+            ingredients = product.ingredients;
+          } else if (typeof product.ingredients === 'string') {
+            ingredients = JSON.parse(product.ingredients);
+          } else {
+            ingredients = JSON.parse(JSON.stringify(product.ingredients));
+          }
+        } catch (error) {
+          console.warn('Error parsing ingredients in related products, using as string:', error);
+          ingredients = [product.ingredients].filter(Boolean);
+        }
+      }
+      
       return {
         ...product,
+        ingredients,
         category: category || null
       } as unknown as Product;
     });
