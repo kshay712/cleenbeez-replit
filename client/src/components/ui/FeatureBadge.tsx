@@ -80,7 +80,7 @@ const featureInfo = {
 const FeatureBadge: React.FC<FeatureBadgeProps> = ({ 
   type, 
   className = "", 
-  showIcon = true,
+  showIcon = false, // Default changed to false
   small = false
 }) => {
   const info = featureInfo[type] || featureInfo["features"];

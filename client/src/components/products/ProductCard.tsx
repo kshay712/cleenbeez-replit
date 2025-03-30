@@ -61,7 +61,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           )}
         </div>
         
-        <div className="absolute top-2 right-2">
+        <div className="absolute top-2 right-2 flex flex-wrap gap-1 justify-end max-w-[80%]">
           <ProductFeatures 
             features={{
               organic: !!product.organic,
@@ -73,7 +73,8 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
               sulfatesFree: !!product.sulfatesFree,
               fdcFree: !!product.fdcFree
             }}
-            displayMode="tooltip"
+            displayMode="badge"
+            maxDisplay={8} /* Show all features */
             small={true}
           />
         </div>
