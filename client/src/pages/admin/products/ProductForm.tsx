@@ -302,6 +302,17 @@ const ProductForm = ({ productId }: ProductFormProps) => {
       submitData.categoryId = categoryId;
     }
     
+    // CRITICAL: Always include all feature flag fields, even if they're false
+    // This ensures that FormData will include all checkboxes, even unchecked ones
+    submitData.organic = Boolean(submitData.organic);
+    submitData.bpaFree = Boolean(submitData.bpaFree);
+    submitData.phthalateFree = Boolean(submitData.phthalateFree);
+    submitData.parabenFree = Boolean(submitData.parabenFree);
+    submitData.oxybenzoneFree = Boolean(submitData.oxybenzoneFree);
+    submitData.formaldehydeFree = Boolean(submitData.formaldehydeFree);
+    submitData.sulfatesFree = Boolean(submitData.sulfatesFree);
+    submitData.fdcFree = Boolean(submitData.fdcFree);
+    
     // Add image to values if provided
     if (imageFile) {
       (submitData as any).image = imageFile;

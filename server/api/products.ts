@@ -215,7 +215,8 @@ export const products = {
         const { db } = await import('../db');
         const { sql } = await import('drizzle-orm');
         
-        // Extract boolean values from form data
+        // Extract boolean values from form data - CRITICAL FIX: Handle both presence and actual value
+        // This is crucial for checkboxes which may be omitted (undefined) when unchecked
         const organicVal = req.body.organic === 'true' || req.body.organic === true;
         const bpaFreeVal = req.body.bpaFree === 'true' || req.body.bpaFree === true;
         const phthalateFreeVal = req.body.phthalateFree === 'true' || req.body.phthalateFree === true;
@@ -236,19 +237,46 @@ export const products = {
           fdcFree: fdcFreeVal
         });
         
-        // Execute a very simple direct update just for feature flags
-        const emergencyUpdate = await db.execute(sql`
-          UPDATE products 
-          SET organic = ${organicVal},
-              bpa_free = ${bpaFreeVal},
-              phthalate_free = ${phthalateFreeVal},
-              paraben_free = ${parabenFreeVal},
-              oxybenzone_free = ${oxybenzoneFreeVal},
-              formaldehyde_free = ${formaldehydeFreeVal},
-              sulfates_free = ${sulfatesFreeVal},
-              fdc_free = ${fdcFreeVal}
-          WHERE id = ${id}
-        `);
+        // CRITICAL: Need to include these fields in the form even if they're unchecked
+      // In FormData, a checkbox that's unchecked typically doesn't get included in the payload
+      // So let's check for each field's existence, and if it's missing, explicitly set it to false
+      
+      // Ensure all checkbox fields are represented in update
+      // This is the key fix - we need to force all checkboxes to be included,
+      // even when they're unchecked (which means they're missing from req.body)
+      const organicFinal = 'organic' in req.body ? organicVal : false;
+      const bpaFreeFinal = 'bpaFree' in req.body ? bpaFreeVal : false;
+      const phthalateFreeFinal = 'phthalateFree' in req.body ? phthalateFreeVal : false;
+      const parabenFreeFinal = 'parabenFree' in req.body ? parabenFreeVal : false;
+      const oxybenzoneFreeFinal = 'oxybenzoneFree' in req.body ? oxybenzoneFreeVal : false;
+      const formaldehydeFreeFinal = 'formaldehydeFree' in req.body ? formaldehydeFreeVal : false;
+      const sulfatesFreeFinal = 'sulfatesFree' in req.body ? sulfatesFreeVal : false;
+      const fdcFreeFinal = 'fdcFree' in req.body ? fdcFreeVal : false;
+      
+      console.log('CRITICAL FIX: Final boolean values after checking for presence in form data:', {
+        organic: organicFinal,
+        bpaFree: bpaFreeFinal,
+        phthalateFree: phthalateFreeFinal,
+        parabenFree: parabenFreeFinal, 
+        oxybenzoneFree: oxybenzoneFreeFinal,
+        formaldehydeFree: formaldehydeFreeFinal,
+        sulfatesFree: sulfatesFreeFinal,
+        fdcFree: fdcFreeFinal
+      });
+      
+      // Execute a very simple direct update just for feature flags
+      const emergencyUpdate = await db.execute(sql`
+        UPDATE products 
+        SET organic = ${organicFinal},
+            bpa_free = ${bpaFreeFinal},
+            phthalate_free = ${phthalateFreeFinal},
+            paraben_free = ${parabenFreeFinal},
+            oxybenzone_free = ${oxybenzoneFreeFinal},
+            formaldehyde_free = ${formaldehydeFreeFinal},
+            sulfates_free = ${sulfatesFreeFinal},
+            fdc_free = ${fdcFreeFinal}
+        WHERE id = ${id}
+      `);
         
         console.log('EMERGENCY: Feature flag direct update completed');
         
