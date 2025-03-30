@@ -390,15 +390,41 @@ export const products = {
           updateFields.push(sql`ingredients = ${ingredientsJson}`);
         }
         
-        // Add feature flags
-        if (productData.organic !== undefined) updateFields.push(sql`organic = ${productData.organic}`);
-        if (productData.bpaFree !== undefined) updateFields.push(sql`bpa_free = ${productData.bpaFree}`);
-        if (productData.phthalateFree !== undefined) updateFields.push(sql`phthalate_free = ${productData.phthalateFree}`);
-        if (productData.parabenFree !== undefined) updateFields.push(sql`paraben_free = ${productData.parabenFree}`);
-        if (productData.oxybenzoneFree !== undefined) updateFields.push(sql`oxybenzone_free = ${productData.oxybenzoneFree}`);
-        if (productData.formaldehydeFree !== undefined) updateFields.push(sql`formaldehyde_free = ${productData.formaldehydeFree}`);
-        if (productData.sulfatesFree !== undefined) updateFields.push(sql`sulfates_free = ${productData.sulfatesFree}`);
-        if (productData.fdcFree !== undefined) updateFields.push(sql`fdc_free = ${productData.fdcFree}`);
+        // CRITICAL FIX: Always include ALL feature flags in the update
+        // The client should now explicitly include all boolean fields, so we'll trust what we get
+        // Instead of conditionally adding these, we'll force their inclusion with explicit boolean conversion
+        
+        // Convert these to true boolean values to guarantee correct SQL values
+        const organicFinal = productData.organic === 'true' || productData.organic === true;
+        const bpaFreeFinal = productData.bpaFree === 'true' || productData.bpaFree === true;
+        const phthalateFreeFinal = productData.phthalateFree === 'true' || productData.phthalateFree === true;
+        const parabenFreeFinal = productData.parabenFree === 'true' || productData.parabenFree === true;
+        const oxybenzoneFreeFinal = productData.oxybenzoneFree === 'true' || productData.oxybenzoneFree === true;
+        const formaldehydeFreeFinal = productData.formaldehydeFree === 'true' || productData.formaldehydeFree === true;
+        const sulfatesFreeFinal = productData.sulfatesFree === 'true' || productData.sulfatesFree === true;
+        const fdcFreeFinal = productData.fdcFree === 'true' || productData.fdcFree === true;
+        
+        // Log ALL feature flag values to debug
+        console.log('FEATURE FLAGS for SQL update:', {
+          organic: organicFinal,
+          bpaFree: bpaFreeFinal,
+          phthalateFree: phthalateFreeFinal,
+          parabenFree: parabenFreeFinal,
+          oxybenzoneFree: oxybenzoneFreeFinal,
+          formaldehydeFree: formaldehydeFreeFinal,
+          sulfatesFree: sulfatesFreeFinal,
+          fdcFree: fdcFreeFinal
+        });
+        
+        // Force-add ALL boolean fields to the SQL update
+        updateFields.push(sql`organic = ${organicFinal}`);
+        updateFields.push(sql`bpa_free = ${bpaFreeFinal}`);
+        updateFields.push(sql`phthalate_free = ${phthalateFreeFinal}`);
+        updateFields.push(sql`paraben_free = ${parabenFreeFinal}`);
+        updateFields.push(sql`oxybenzone_free = ${oxybenzoneFreeFinal}`);
+        updateFields.push(sql`formaldehyde_free = ${formaldehydeFreeFinal}`);
+        updateFields.push(sql`sulfates_free = ${sulfatesFreeFinal}`);
+        updateFields.push(sql`fdc_free = ${fdcFreeFinal}`);
         
         // Add categoryId if it exists
         if (categoryIdToUpdate !== null) {

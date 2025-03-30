@@ -204,7 +204,6 @@ const ProductForm = ({ productId }: ProductFormProps) => {
     mutationFn: async (values: ProductFormValues & { image?: File }) => {
       const formData = new FormData();
       
-      // Add all form values
       // Process categoryId first to ensure it's handled correctly
       if (values.categoryId !== undefined) {
         const categoryIdValue = Number(values.categoryId);
@@ -212,23 +211,35 @@ const ProductForm = ({ productId }: ProductFormProps) => {
         formData.append('categoryId', categoryIdValue.toString());
       }
 
+      // CRITICAL FIX: Always include ALL boolean feature flags
+      // This is the key problem - we need to ensure all these fields are in the formData
+      // whether they're true or false
+      const booleanFields = [
+        'organic', 'bpaFree', 'phthalateFree', 'parabenFree', 
+        'oxybenzoneFree', 'formaldehydeFree', 'sulfatesFree', 'fdcFree', 'featured'
+      ];
+      
+      // Set all boolean fields explicitly to ensure they're included
+      booleanFields.forEach(field => {
+        // Get value from values, or default to false if undefined
+        const boolValue = values[field as keyof ProductFormValues] === true;
+        const stringValue = boolValue ? 'true' : 'false';
+        
+        console.log(`FIXING: Explicitly setting ${field} to`, stringValue);
+        formData.append(field, stringValue);
+      });
+
       // Process other fields
       Object.entries(values).forEach(([key, value]) => {
-        if (key === 'categoryId') {
-          // Skip categoryId as we've already handled it
+        if (key === 'categoryId' || booleanFields.includes(key)) {
+          // Skip categoryId and boolean fields as we've already handled them
           return;
         } else if (key === 'ingredients') {
           // Ensure ingredients is always serialized as an array
           const ingredientsArray = Array.isArray(value) ? value : [];
           formData.append('ingredients', JSON.stringify(ingredientsArray));
         } else if (key !== 'image' && value !== undefined && value !== null) {
-          // Special handling for boolean values to ensure they're stringified consistently
-          if (typeof value === 'boolean') {
-            formData.append(key, value ? 'true' : 'false');
-            console.log(`Appending boolean ${key}:`, value ? 'true' : 'false');
-          } else {
-            formData.append(key, value.toString());
-          }
+          formData.append(key, value.toString());
         }
       });
       
