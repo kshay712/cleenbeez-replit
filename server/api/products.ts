@@ -4,6 +4,56 @@ import { upload, getFileUrl } from '../middleware/multer';
 import { insertProductSchema, insertCategorySchema, insertVendorSchema } from '@shared/schema';
 import { requireEditor } from './auth';
 
+// Manual SQL function to help diagnose the issue
+// Import client properly
+import { client } from '../db';
+
+const directUpdateCategory = async (productId: number, categoryId: number): Promise<boolean> => {
+  try {
+    console.log('DIRECT SQL: Attempting to update product', productId, 'to category', categoryId);
+    
+    // Use direct postgres client for the query
+    await client.query('UPDATE products SET category_id = $1 WHERE id = $2', [categoryId, productId]);
+    
+    console.log('DIRECT SQL: Update SUCCESS');
+    return true;
+  } catch (error) {
+    console.error('DIRECT SQL: Update FAILED', error);
+    return false;
+  }
+};
+
+// Add new method to update just the category
+const performCategoryUpdate = async (productId: number, categoryId: number): Promise<boolean> => {
+  try {
+    console.log(`DEDICATED CATEGORY UPDATE: Setting product ${productId} to category ${categoryId}`);
+    
+    // Use direct raw SQL with the client
+    await client`
+      UPDATE products 
+      SET category_id = ${categoryId}, 
+          updated_at = NOW() 
+      WHERE id = ${productId}
+    `;
+    
+    // Verify the update
+    const result = await client`
+      SELECT id, name, category_id FROM products WHERE id = ${productId}
+    `;
+    
+    if (result.length === 0) {
+      console.error(`DEDICATED CATEGORY UPDATE: Product ${productId} not found after update`);
+      return false;
+    }
+    
+    console.log(`DEDICATED CATEGORY UPDATE: Update successful, new category_id = ${result[0].category_id}`);
+    return true;
+  } catch (error) {
+    console.error(`DEDICATED CATEGORY UPDATE: Failed with error:`, error);
+    return false;
+  }
+};
+
 export const products = {
   // Public endpoints
   getProducts: async (req: Request, res: Response) => {
@@ -861,6 +911,40 @@ export const products = {
     } catch (error: any) {
       console.error('Error deleting vendor:', error);
       res.status(500).json({ message: 'Failed to delete vendor' });
+    }
+  }],
+  
+  // Dedicated category update endpoint
+  updateProductCategory: [requireEditor, async (req: Request, res: Response) => {
+    try {
+      const { id, categoryId } = req.params;
+      console.log(`Category Update Handler: Updating product ${id} to category ${categoryId}`);
+      
+      const success = await performCategoryUpdate(Number(id), Number(categoryId));
+      
+      if (!success) {
+        return res.status(400).json({ 
+          message: 'Failed to update product category',
+          details: 'Direct SQL update failed'
+        });
+      }
+      
+      // Get the updated product to return
+      const updatedProduct = await storage.getProductById(Number(id));
+      
+      if (!updatedProduct) {
+        return res.status(404).json({ message: 'Product not found after update' });
+      }
+      
+      // Invalidate cache for this product
+      console.log('Category Update Handler: Update successful, returning updated product');
+      res.json(updatedProduct);
+    } catch (error: any) {
+      console.error('Error updating product category:', error);
+      res.status(500).json({ 
+        message: 'Failed to update product category',
+        error: error.message 
+      });
     }
   }],
 };
