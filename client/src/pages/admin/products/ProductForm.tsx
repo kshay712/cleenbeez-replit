@@ -340,6 +340,42 @@ const ProductForm = ({ productId }: ProductFormProps) => {
     setImagePreview(null);
   };
 
+  // Create a specialized category update mutation
+  const categoryUpdateMutation = useMutation({
+    mutationFn: async (categoryId: number) => {
+      console.log('CATEGORY UPDATE ONLY: Starting specialized category update with ID:', categoryId);
+      
+      // Using our dedicated endpoint for category updates
+      console.log('CATEGORY UPDATE ONLY: Using dedicated category update endpoint');
+      
+      const response = await apiRequest(
+        'PUT', // Using PUT for idempotent update
+        `/api/products/${productId}/category/${categoryId}`,
+        {}, // No body needed as categoryId is in the URL
+        false // Not using FormData
+      );
+      
+      return response.json();
+    },
+    onSuccess: (data) => {
+      console.log('CATEGORY UPDATE ONLY: Success, updated product category:', data);
+      
+      // Invalidate ALL product-related queries to ensure fresh data
+      queryClient.invalidateQueries({ queryKey: [`/api/products/${productId}`] });
+      queryClient.invalidateQueries({ queryKey: ['/api/products/admin'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/products'] }); 
+      queryClient.invalidateQueries({ queryKey: ['/api/products/featured'] });
+    },
+    onError: (error: any) => {
+      console.error('CATEGORY UPDATE ONLY: Error updating category:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Category Update Failed',
+        description: error.message || 'Failed to update product category',
+      });
+    }
+  });
+
   // Create a separate feature update mutation with enhanced logging
   const featureUpdateMutation = useMutation({
     mutationFn: async (features: any) => {
@@ -416,10 +452,26 @@ const ProductForm = ({ productId }: ProductFormProps) => {
                 "Type:", typeof categoryId, 
                 "Original value:", values.categoryId);
     
-    submitData.categoryId = categoryId;
+    // Save initial category ID for comparison
+    const initialCategoryId = isEditMode && productData?.categoryId !== undefined 
+      ? Number(productData.categoryId) 
+      : 0;
+      
+    console.log("*** CATEGORY DEBUG: Initial category ID:", initialCategoryId, "New category ID:", categoryId);
     
-    // Add new categoryId field with _number suffix to ensure it's treated as a number
-    (submitData as any).categoryId_number = categoryId;
+    // Determine if category has changed
+    const categoryChanged = initialCategoryId !== categoryId && categoryId > 0;
+    console.log("*** CATEGORY DEBUG: Has category changed?", categoryChanged);
+    
+    // We'll delete categoryId from the main submission since we'll use dedicated endpoint
+    if (isEditMode && categoryChanged) {
+      console.log("*** CATEGORY DEBUG: Removing categoryId from main update payload!");
+      delete submitData.categoryId;
+    } else {
+      submitData.categoryId = categoryId;
+      // Add new categoryId field with _number suffix to ensure it's treated as a number
+      (submitData as any).categoryId_number = categoryId;
+    }
     
     // Log the full submit data
     console.log("Final submit data:", submitData);
@@ -470,39 +522,47 @@ const ProductForm = ({ productId }: ProductFormProps) => {
     console.log("Submitting product with data:", submitData);
     
     if (isEditMode && productId) {
-      console.log("Updating both main product data AND features for existing product");
+      console.log("Updating product with multi-stage approach");
       
-      // First update the main product data (including category)
+      // First update the main product data (excluding category if it's changed)
       saveProductMutation.mutate(submitData as any, {
         onSuccess: () => {
-          console.log("Main product update successful, now updating features");
+          console.log("Main product update successful");
           
-          // Then update the features with the dedicated endpoint
-          featureUpdateMutation.mutate(featureData, {
-            onSuccess: () => {
-              console.log("Feature update also successful!");
-              
-              toast({
-                title: 'Product updated successfully',
-                description: 'The product and its features have been updated.',
-              });
-              
-              // After successful update, navigate back to products list
-              navigate('/admin/products');
-            },
-            onError: (error) => {
-              console.error("Feature update failed after main update succeeded:", error);
-              
-              toast({
-                variant: 'destructive',
-                title: 'Partial update',
-                description: 'Product saved but feature update failed. Please try again.',
-              });
-              
-              // Still navigate away as the main update was successful
-              navigate('/admin/products');
-            }
-          });
+          let continueWithUpdates = true;
+          
+          // If category has changed, update it using dedicated endpoint
+          if (categoryChanged) {
+            console.log("Category has changed, updating using dedicated endpoint");
+            
+            // Use our dedicated category update endpoint
+            categoryUpdateMutation.mutate(categoryId, {
+              onSuccess: (data) => {
+                console.log("Category update successful:", data);
+                
+                // Continue with feature update
+                if (continueWithUpdates) {
+                  updateFeatures(featureData);
+                }
+              },
+              onError: (error: any) => {
+                console.error("Category update failed after main update succeeded:", error);
+                continueWithUpdates = false;
+                
+                toast({
+                  variant: 'destructive',
+                  title: 'Partial update',
+                  description: 'Product saved but category update failed. Please try again.',
+                });
+                
+                // Still navigate away as the main update was successful
+                navigate('/admin/products');
+              }
+            });
+          } else {
+            // No category change, continue directly to feature update
+            updateFeatures(featureData);
+          }
         },
         onError: (error) => {
           console.error("Main product update failed:", error);
@@ -520,12 +580,44 @@ const ProductForm = ({ productId }: ProductFormProps) => {
     }
   };
   
+  // Helper function to update features as the final step
+  const updateFeatures = (featureData: any) => {
+    console.log("Now updating features with data:", featureData);
+    
+    // Update the features with the dedicated endpoint
+    featureUpdateMutation.mutate(featureData, {
+      onSuccess: () => {
+        console.log("Feature update successful!");
+        
+        toast({
+          title: 'Product updated successfully',
+          description: 'The product and its features have been updated.',
+        });
+        
+        // After successful update, navigate back to products list
+        navigate('/admin/products');
+      },
+      onError: (error) => {
+        console.error("Feature update failed after other updates succeeded:", error);
+        
+        toast({
+          variant: 'destructive',
+          title: 'Partial update',
+          description: 'Product saved but feature update failed. Please try again.',
+        });
+        
+        // Still navigate away as the main update was successful
+        navigate('/admin/products');
+      }
+    });
+  };
+  
   // Cancel editing
   const handleCancel = () => {
     navigate('/admin/products');
   };
 
-  const isLoading = isCategoriesLoading || isProductLoading || saveProductMutation.isPending;
+  const isLoading = isCategoriesLoading || isProductLoading || saveProductMutation.isPending || categoryUpdateMutation.isPending || featureUpdateMutation.isPending;
 
   return (
     <div className="container mx-auto py-10">
