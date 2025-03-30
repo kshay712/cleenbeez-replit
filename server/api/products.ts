@@ -365,6 +365,16 @@ export const products = {
       
       // Parse numeric and boolean fields if they exist in the request
       if (productData.price) productData.price = productData.price.toString(); // Convert to string to match schema
+      
+      // SIMPLIFIED APPROACH: Always ensure categoryId is a number if present
+      if (productData.categoryId !== undefined && productData.categoryId !== null && productData.categoryId !== '') {
+        const categoryIdNum = Number(productData.categoryId);
+        if (!isNaN(categoryIdNum)) {
+          console.log('*** SIMPLIFIED APPROACH: Explicitly converting categoryId to number:', categoryIdNum);
+          productData.categoryId = categoryIdNum;
+        }
+      }
+      
       // CRITICAL DEBUGGING: Enhanced category ID handling
       console.log('\n==== CRITICAL CATEGORY DEBUG ====');
       console.log('All categoryId related fields in request:');

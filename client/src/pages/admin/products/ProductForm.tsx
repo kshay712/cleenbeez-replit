@@ -204,45 +204,16 @@ const ProductForm = ({ productId }: ProductFormProps) => {
     mutationFn: async (values: ProductFormValues & { image?: File }) => {
       const formData = new FormData();
       
-      // Process categoryId first - this is a CRITICAL field that must be handled correctly
-      // Even if it's undefined in values, we should provide a default (0)
-      const categoryIdValue = values.categoryId !== undefined && values.categoryId !== null 
-        ? Number(values.categoryId) 
-        : 0;
+      // SIMPLIFIED APPROACH: Just ensure categoryId is a number
+      const categoryIdValue = Number(values.categoryId) || 0;
       
-      console.log('\n=== CATEGORY ID DEBUG ===');
+      console.log('\n=== SIMPLIFIED CATEGORY HANDLING ===');
       console.log('Setting categoryId in FormData. Value:', categoryIdValue, 'Type:', typeof categoryIdValue);
       
-      // Use THREE different naming conventions to ensure at least one works
-      // 1. camelCase (JavaScript standard)
+      // Just use the standard camelCase field name
       formData.append('categoryId', categoryIdValue.toString());
-      console.log('Added to FormData as: categoryId =', categoryIdValue.toString());
       
-      // 2. snake_case (database column name)
-      formData.append('category_id', categoryIdValue.toString());
-      console.log('Added to FormData as: category_id =', categoryIdValue.toString());
-      
-      // 3. With _number suffix to indicate type
-      formData.append('categoryId_number', categoryIdValue.toString());
-      console.log('Added to FormData as: categoryId_number =', categoryIdValue.toString());
-      
-      // 4. Force numeric conversion on server with special field
-      formData.append('FORCE_CATEGORY_ID', categoryIdValue.toString());
-      console.log('Added to FormData as: FORCE_CATEGORY_ID =', categoryIdValue.toString());
-      
-      // 5. Add a field that includes both ID and name to help debugging
-      // Use the categories already fetched with useQuery - making this type-safe
-      if (categoriesData && categoriesData.length > 0) {
-        const category = categoriesData.find(c => c.id === categoryIdValue);
-        if (category) {
-          console.log('Category found:', category);
-          formData.append('categoryInfo', JSON.stringify(category));
-        } else {
-          console.log('WARNING: Category ID', categoryIdValue, 'not found in categories list.');
-        }
-      }
-      
-      console.log('=== END CATEGORY ID DEBUG ===\n');
+      console.log('=== END SIMPLIFIED CATEGORY HANDLING ===\n');
 
       // CRITICAL FIX: Always include ALL boolean feature flags
       // This is the key problem - we need to ensure all these fields are in the formData
@@ -474,15 +445,10 @@ const ProductForm = ({ productId }: ProductFormProps) => {
     const categoryChanged = initialCategoryId !== categoryId && categoryId > 0;
     console.log("*** CATEGORY DEBUG: Has category changed?", categoryChanged);
     
-    // We'll delete categoryId from the main submission since we'll use dedicated endpoint
-    if (isEditMode && categoryChanged) {
-      console.log("*** CATEGORY DEBUG: Removing categoryId from main update payload!");
-      delete submitData.categoryId;
-    } else {
-      submitData.categoryId = categoryId;
-      // Add new categoryId field with _number suffix to ensure it's treated as a number
-      (submitData as any).categoryId_number = categoryId;
-    }
+    // DIRECT APPROACH: Always include categoryId in the main update
+    // Always FORCE categoryId to be a number
+    submitData.categoryId = categoryId;
+    console.log('*** SIMPLIFIED APPROACH: Always including categoryId in main payload as', categoryId);
     
     // Log the full submit data
     console.log("Final submit data:", submitData);
