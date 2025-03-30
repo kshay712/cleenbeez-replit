@@ -312,23 +312,25 @@ const ProductFilters = ({ filters, onChange }: ProductFiltersProps) => {
                 </Label>
               </div>
               
-              {/* Clear Filters button inside Features section */}
-              {isFilterActive && (
-                <div className="pt-4 mt-2 border-t border-neutral-100">
-                  <Button 
-                    variant="default" 
-                    size="sm" 
-                    onClick={resetFilters}
-                    className="w-full text-sm"
-                  >
-                    Clear All Filters
-                  </Button>
-                </div>
-              )}
+              {/* Removed clear button from here */}
             </div>
           </AccordionContent>
         </AccordionItem>
       </Accordion>
+
+      {/* Clear Filters button at the bottom of all filters */}
+      {isFilterActive && (
+        <div className="pt-4 mt-4 border-t border-neutral-200">
+          <Button 
+            variant="destructive" 
+            size="sm" 
+            onClick={resetFilters}
+            className="w-full text-sm font-medium"
+          >
+            Clear All Filters
+          </Button>
+        </div>
+      )}
     </div>
   );
 };
