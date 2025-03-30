@@ -19,7 +19,7 @@ import {
   type BlogPostToCategory,
   type InsertBlogPostToCategory
 } from "@shared/schema";
-import { eq, like, or, inArray, and, desc, asc, sql } from "drizzle-orm";
+import { eq, like, or, inArray, and, desc, asc, sql, gte, lte, ne } from "drizzle-orm";
 
 import session from "express-session";
 import MemoryStore from "memorystore";
@@ -341,11 +341,11 @@ export class DatabaseStorage implements IStorage {
     }
     
     if (minPrice !== undefined) {
-      whereConditions.push(products.price.gte(minPrice));
+      whereConditions.push(gte(products.price, minPrice));
     }
     
     if (maxPrice !== undefined) {
-      whereConditions.push(products.price.lte(maxPrice));
+      whereConditions.push(lte(products.price, maxPrice));
     }
     
     if (search) {
@@ -519,7 +519,7 @@ export class DatabaseStorage implements IStorage {
       .where(
         and(
           eq(products.categoryId, product.categoryId),
-          products.id.notEq(productId)
+          ne(products.id, productId)
         )
       )
       .limit(limit);
@@ -531,8 +531,8 @@ export class DatabaseStorage implements IStorage {
         .from(products)
         .where(
           and(
-            products.id.notEq(productId),
-            products.categoryId.notEq(product.categoryId)
+            ne(products.id, productId),
+            ne(products.categoryId, product.categoryId)
           )
         )
         .orderBy(desc(products.createdAt))
@@ -988,7 +988,7 @@ export class DatabaseStorage implements IStorage {
       .where(
         and(
           inArray(blogPostsToCategories.categoryId, categoryIds),
-          blogPostsToCategories.blogPostId.notEq(postId)
+          ne(blogPostsToCategories.blogPostId, postId)
         )
       )
       .groupBy(blogPostsToCategories.blogPostId)

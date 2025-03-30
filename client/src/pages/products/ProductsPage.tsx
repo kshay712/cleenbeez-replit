@@ -213,7 +213,7 @@ const ProductsPage = () => {
     sulfatesFree: false,
     fdcFree: false,
     minPrice: 0,
-    maxPrice: 100,
+    maxPrice: 500,
   });
 
   // Parse query params
@@ -260,7 +260,7 @@ const ProductsPage = () => {
       sulfatesFree: false,
       fdcFree: false,
       minPrice: 0,
-      maxPrice: 100,
+      maxPrice: 500,
     });
     setSearchTerm('');
     setSortBy('recommended');
@@ -291,7 +291,7 @@ const ProductsPage = () => {
     filters.categories.forEach(cat => queryParams.append('category', cat));
   }
   if (filters.minPrice > 0) queryParams.set('minPrice', filters.minPrice.toString());
-  if (filters.maxPrice < 100) queryParams.set('maxPrice', filters.maxPrice.toString());
+  if (filters.maxPrice < 500) queryParams.set('maxPrice', filters.maxPrice.toString());
   if (debouncedSearchTerm) queryParams.set('search', debouncedSearchTerm);
 
   const queryString = queryParams.toString() ? `?${queryParams.toString()}` : '';
@@ -424,7 +424,7 @@ const ProductsPage = () => {
                 filters.sulfatesFree || 
                 filters.fdcFree || 
                 filters.minPrice > 0 || 
-                filters.maxPrice < 100) && (
+                filters.maxPrice < 500) && (
                 <div className="flex flex-wrap gap-2 mb-4">
                   {/* Categories */}
                   {filters.categories.length > 0 && filters.categories.map(cat => (
@@ -533,12 +533,12 @@ const ProductsPage = () => {
                   )}
                   
                   {/* Price range */}
-                  {(filters.minPrice > 0 || filters.maxPrice < 100) && (
+                  {(filters.minPrice > 0 || filters.maxPrice < 500) && (
                     <Badge variant="secondary" className="bg-neutral-50 text-neutral-700 hover:bg-neutral-100">
                       Price: ${filters.minPrice} - ${filters.maxPrice}
                       <button 
                         className="ml-1 text-neutral-500 hover:text-neutral-700" 
-                        onClick={() => handleFilterChange({...filters, minPrice: 0, maxPrice: 100})}
+                        onClick={() => handleFilterChange({...filters, minPrice: 0, maxPrice: 500})}
                       >
                         &times;
                       </button>

@@ -6,7 +6,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Separator } from "@/components/ui/separator";
-import { ShoppingBasket, RollerCoaster, CircleDashed } from 'lucide-react';
+import { Filter as FilterIcon, RollerCoaster, CircleDashed } from 'lucide-react';
 
 // Category interface to match server response
 interface Category {
@@ -96,9 +96,9 @@ const ProductFilters = ({ filters, onChange }: ProductFiltersProps) => {
       sulfatesFree: false,
       fdcFree: false,
       minPrice: 0,
-      maxPrice: 100
+      maxPrice: 500
     });
-    setPriceRange([0, 100]);
+    setPriceRange([0, 500]);
   };
   
   // Check if any filter is active
@@ -113,13 +113,13 @@ const ProductFilters = ({ filters, onChange }: ProductFiltersProps) => {
     filters.sulfatesFree || 
     filters.fdcFree || 
     filters.minPrice > 0 || 
-    filters.maxPrice < 100;
+    filters.maxPrice < 500;
   
   return (
     <div className="space-y-6">
       <div>
         <h3 className="text-lg font-medium text-neutral-900 flex items-center">
-          <ShoppingBasket className="mr-2 h-5 w-5" />
+          <FilterIcon className="mr-2 h-5 w-5" />
           Filters
         </h3>
         <p className="text-sm text-neutral-500">
@@ -173,8 +173,8 @@ const ProductFilters = ({ filters, onChange }: ProductFiltersProps) => {
             <div className="space-y-4 pt-2">
               <Slider
                 min={0}
-                max={100}
-                step={1}
+                max={500}
+                step={5}
                 value={priceRange}
                 onValueChange={(values) => setPriceRange(values as [number, number])}
                 className="mt-4"
@@ -311,23 +311,24 @@ const ProductFilters = ({ filters, onChange }: ProductFiltersProps) => {
                   <CircleDashed className="mr-1 h-4 w-4 text-orange-600" /> FD&C-Free
                 </Label>
               </div>
+              
+              {/* Clear Filters button inside Features section */}
+              {isFilterActive && (
+                <div className="pt-4 mt-2 border-t border-neutral-100">
+                  <Button 
+                    variant="default" 
+                    size="sm" 
+                    onClick={resetFilters}
+                    className="w-full text-sm"
+                  >
+                    Clear All Filters
+                  </Button>
+                </div>
+              )}
             </div>
           </AccordionContent>
         </AccordionItem>
       </Accordion>
-      
-      {isFilterActive && (
-        <div className="pt-2">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={resetFilters}
-            className="w-full text-sm"
-          >
-            Clear All Filters
-          </Button>
-        </div>
-      )}
     </div>
   );
 };
