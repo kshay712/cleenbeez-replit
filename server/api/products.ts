@@ -484,15 +484,30 @@ export const products = {
       });
       console.log('FEATURE UPDATE ONLY: Request body:', req.body);
       
-      // Enhanced extraction of boolean values - add more robust handling
-      const organicVal = req.body.organic === true || req.body.organic === 'true' || req.body.organic === 1;
-      const bpaFreeVal = req.body.bpaFree === true || req.body.bpaFree === 'true' || req.body.bpaFree === 1;
-      const phthalateFreeVal = req.body.phthalateFree === true || req.body.phthalateFree === 'true' || req.body.phthalateFree === 1;
-      const parabenFreeVal = req.body.parabenFree === true || req.body.parabenFree === 'true' || req.body.parabenFree === 1;
-      const oxybenzoneFreeVal = req.body.oxybenzoneFree === true || req.body.oxybenzoneFree === 'true' || req.body.oxybenzoneFree === 1;
-      const formaldehydeFreeVal = req.body.formaldehydeFree === true || req.body.formaldehydeFree === 'true' || req.body.formaldehydeFree === 1;
-      const sulfatesFreeVal = req.body.sulfatesFree === true || req.body.sulfatesFree === 'true' || req.body.sulfatesFree === 1;
-      const fdcFreeVal = req.body.fdcFree === true || req.body.fdcFree === 'true' || req.body.fdcFree === 1;
+      // CRITICAL FIX: JSON direct handling with simpler extraction
+      // Just use the double bang (!!value) operator to force boolean conversion
+      const featureFlags = {
+        organic: !!req.body.organic,
+        bpaFree: !!req.body.bpaFree, 
+        phthalateFree: !!req.body.phthalateFree,
+        parabenFree: !!req.body.parabenFree,
+        oxybenzoneFree: !!req.body.oxybenzoneFree,
+        formaldehydeFree: !!req.body.formaldehydeFree,
+        sulfatesFree: !!req.body.sulfatesFree,
+        fdcFree: !!req.body.fdcFree
+      };
+      
+      console.log('FEATURE UPDATE ONLY: Direct boolean conversion results:', featureFlags);
+      
+      // Use these as our source values
+      const organicVal = featureFlags.organic;
+      const bpaFreeVal = featureFlags.bpaFree;
+      const phthalateFreeVal = featureFlags.phthalateFree;
+      const parabenFreeVal = featureFlags.parabenFree;
+      const oxybenzoneFreeVal = featureFlags.oxybenzoneFree;
+      const formaldehydeFreeVal = featureFlags.formaldehydeFree;
+      const sulfatesFreeVal = featureFlags.sulfatesFree;
+      const fdcFreeVal = featureFlags.fdcFree;
       
       console.log('FEATURE UPDATE ONLY: Values extracted (types):', {
         organic: `${organicVal} (${typeof organicVal})`,

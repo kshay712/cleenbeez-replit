@@ -302,25 +302,28 @@ const ProductForm = ({ productId }: ProductFormProps) => {
   const featureUpdateMutation = useMutation({
     mutationFn: async (features: any) => {
       console.log('FEATURE UPDATE ONLY: Starting specialized feature update with data:', features);
+
+      // CRITICAL FIX: Switch to direct JSON approach instead of FormData
+      // This ensures cleaner boolean handling
       
-      // Enhanced logging to track feature data
-      const formData = new FormData();
+      console.log('FEATURE UPDATE ONLY: Using direct JSON update method');
       
-      // Enhanced approach - explicit boolean conversions
-      Object.entries(features).forEach(([key, value]) => {
-        // Convert boolean values to explicit 'true'/'false' strings
-        const stringVal = value === true ? 'true' : 'false';
-        console.log(`FEATURE UPDATE ONLY: Setting ${key}=${stringVal} (original: ${value}, type: ${typeof value})`);
-        formData.append(key, stringVal);
+      // Make a deep copy to ensure we're not modifying the original
+      const featuresCopy = { ...features };
+      
+      // Force all values to be explicit booleans using !! operator
+      Object.keys(featuresCopy).forEach(key => {
+        featuresCopy[key] = !!featuresCopy[key];
+        console.log(`FEATURE UPDATE ONLY: JSON approach - ${key}=${featuresCopy[key]} (forced boolean type: ${typeof featuresCopy[key]})`);
       });
       
-      // Using apiRequest with FormData to ensure proper authentication and content-type
-      console.log('FEATURE UPDATE ONLY: Sending feature update with FormData');
+      // Using apiRequest with JSON instead of FormData
+      console.log('FEATURE UPDATE ONLY: Sending direct JSON update with explicit boolean values');
       const response = await apiRequest(
         'PATCH',
         `/api/products/${productId}/features`,
-        formData,
-        true // <- Force multipart/form-data
+        featuresCopy, // direct JSON object with proper booleans
+        false // <- NOT using form-data, using JSON
       );
       
       return response.json();
@@ -363,16 +366,32 @@ const ProductForm = ({ productId }: ProductFormProps) => {
     }
     
     // CRITICAL: Extract feature flags into their own object for targeted update
+    // Log the raw values first
+    console.log("DEBUG: Raw form values for features:", {
+      organic: values.organic,
+      bpaFree: values.bpaFree,
+      phthalateFree: values.phthalateFree,
+      parabenFree: values.parabenFree,
+      oxybenzoneFree: values.oxybenzoneFree,
+      formaldehydeFree: values.formaldehydeFree,
+      sulfatesFree: values.sulfatesFree,
+      fdcFree: values.fdcFree
+    });
+    
+    // Ensure ALL values are explicitly converted to booleans
     const featureData = {
-      organic: Boolean(values.organic),
-      bpaFree: Boolean(values.bpaFree),
-      phthalateFree: Boolean(values.phthalateFree),
-      parabenFree: Boolean(values.parabenFree),
-      oxybenzoneFree: Boolean(values.oxybenzoneFree),
-      formaldehydeFree: Boolean(values.formaldehydeFree),
-      sulfatesFree: Boolean(values.sulfatesFree),
-      fdcFree: Boolean(values.fdcFree)
+      organic: values.organic === true,
+      bpaFree: values.bpaFree === true,
+      phthalateFree: values.phthalateFree === true,
+      parabenFree: values.parabenFree === true,
+      oxybenzoneFree: values.oxybenzoneFree === true,
+      formaldehydeFree: values.formaldehydeFree === true,
+      sulfatesFree: values.sulfatesFree === true,
+      fdcFree: values.fdcFree === true
     };
+    
+    // Log the converted values for debugging
+    console.log("DEBUG: Converted boolean values:", featureData);
     
     // Also include in main form data
     submitData.organic = featureData.organic;
@@ -678,7 +697,12 @@ const ProductForm = ({ productId }: ProductFormProps) => {
                         <FormControl>
                           <Checkbox
                             checked={field.value}
-                            onCheckedChange={field.onChange}
+                            onCheckedChange={(checked) => {
+                              console.log("DEBUG: Organic checkbox changed to:", checked);
+                              field.onChange(checked);
+                              // Force update the form state with the correct boolean value
+                              form.setValue("organic", !!checked);
+                            }}
                           />
                         </FormControl>
                         <FormLabel className="font-normal">Organic</FormLabel>
@@ -694,7 +718,12 @@ const ProductForm = ({ productId }: ProductFormProps) => {
                         <FormControl>
                           <Checkbox
                             checked={field.value}
-                            onCheckedChange={field.onChange}
+                            onCheckedChange={(checked) => {
+                              console.log("DEBUG: bpaFree checkbox changed to:", checked);
+                              field.onChange(checked);
+                              // Force update the form state with the correct boolean value
+                              form.setValue("bpaFree", !!checked);
+                            }}
                           />
                         </FormControl>
                         <FormLabel className="font-normal">BPA-Free</FormLabel>
