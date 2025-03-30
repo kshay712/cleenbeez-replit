@@ -323,10 +323,10 @@ const ProductFilters = ({ filters, onChange }: ProductFiltersProps) => {
       {isFilterActive && (
         <div className="pt-4 mt-4 border-t border-neutral-200">
           <Button 
-            variant="destructive" 
+            variant="default" 
             size="default" 
             onClick={resetFilters}
-            className="w-full text-sm font-medium flex items-center justify-center gap-2"
+            className="w-full text-sm font-medium flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-600 text-white"
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M19 12H5"></path>
