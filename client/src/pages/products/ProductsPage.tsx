@@ -298,6 +298,8 @@ const ProductsPage = () => {
   
   const { data, isLoading } = useQuery<ProductsResponse>({
     queryKey: [`/api/products${queryString}`],
+    staleTime: 0, // Always fetch fresh data 
+    refetchOnWindowFocus: true, // Refetch when window regains focus
   });
 
   const handleFilterChange = (newFilters: typeof filters) => {

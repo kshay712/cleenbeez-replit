@@ -260,9 +260,13 @@ const ProductForm = ({ productId }: ProductFormProps) => {
         description: `The product has been ${isEditMode ? 'updated' : 'created'}.`,
       });
       
-      // Invalidate both admin product list and regular product list
+      // Invalidate ALL product-related cache entries to ensure fresh data
       queryClient.invalidateQueries({ queryKey: ['/api/products/admin'] });
       queryClient.invalidateQueries({ queryKey: ['/api/products'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/products/featured'] });
+      
+      // Force immediate refetch of crucial data
+      queryClient.fetchQuery({ queryKey: ['/api/products'] });
       
       // Redirect to the products list
       navigate('/admin/products');
@@ -330,14 +334,18 @@ const ProductForm = ({ productId }: ProductFormProps) => {
     },
     onSuccess: (data) => {
       console.log('FEATURE UPDATE ONLY: Success, updated product:', data);
-      // Invalidate the cache for this product to make sure changes are reflected
+      
+      // Invalidate ALL product-related queries to ensure fresh data throughout the app
       queryClient.invalidateQueries({ queryKey: [`/api/products/${productId}`] });
       queryClient.invalidateQueries({ queryKey: ['/api/products/admin'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/products'] }); // Main products list
+      queryClient.invalidateQueries({ queryKey: ['/api/products/featured'] }); // Featured products
       
-      // Force a refetch of the current product to update the UI immediately
+      // Force refetch of key queries to update the UI immediately 
       if (productId) {
-        console.log('FEATURE UPDATE ONLY: Force refetching product data');
+        console.log('FEATURE UPDATE ONLY: Force refetching all product data');
         queryClient.fetchQuery({ queryKey: [`/api/products/${productId}`] });
+        queryClient.fetchQuery({ queryKey: ['/api/products'] });
       }
     },
     onError: (error) => {

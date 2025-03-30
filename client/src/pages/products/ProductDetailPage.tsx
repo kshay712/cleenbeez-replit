@@ -14,11 +14,15 @@ const ProductDetailPage = () => {
   const { data: product, isLoading, error } = useQuery({
     queryKey: [`/api/products/${productId}`],
     enabled: !!productId,
+    staleTime: 0, // Always fetch fresh data
+    refetchOnWindowFocus: true, // Refetch when window regains focus
   });
   
   const { data: relatedProducts, isLoading: relatedLoading } = useQuery({
     queryKey: [`/api/products/related/${productId}`],
     enabled: !!productId,
+    staleTime: 0, // Always fetch fresh data
+    refetchOnWindowFocus: true, // Refetch when window regains focus
   });
 
   if (isLoading) {
