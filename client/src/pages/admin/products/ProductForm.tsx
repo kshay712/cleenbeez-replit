@@ -344,18 +344,29 @@ const ProductForm = ({ productId }: ProductFormProps) => {
   const categoryUpdateMutation = useMutation({
     mutationFn: async (categoryId: number) => {
       console.log('CATEGORY UPDATE ONLY: Starting specialized category update with ID:', categoryId);
+      console.log('CATEGORY UPDATE ONLY: Product ID:', productId);
       
       // Using our dedicated endpoint for category updates
-      console.log('CATEGORY UPDATE ONLY: Using dedicated category update endpoint');
+      const endpoint = `/api/products/${productId}/category/${categoryId}`;
+      console.log('CATEGORY UPDATE ONLY: Using dedicated category update endpoint:', endpoint);
       
-      const response = await apiRequest(
-        'PATCH', // Changed to PATCH to match server endpoint
-        `/api/products/${productId}/category/${categoryId}`,
-        {}, // No body needed as categoryId is in the URL
-        false // Not using FormData
-      );
-      
-      return response.json();
+      try {
+        console.log('CATEGORY UPDATE ONLY: Making API request...');
+        const response = await apiRequest(
+          'PATCH', // Using PATCH to match server endpoint
+          endpoint,
+          {}, // No body needed as categoryId is in the URL
+          false // Not using FormData
+        );
+        
+        console.log('CATEGORY UPDATE ONLY: Response status:', response.status);
+        const responseData = await response.json();
+        console.log('CATEGORY UPDATE ONLY: Response data:', responseData);
+        return responseData;
+      } catch (error) {
+        console.error('CATEGORY UPDATE ONLY: API request failed with error:', error);
+        throw error;
+      }
     },
     onSuccess: (data) => {
       console.log('CATEGORY UPDATE ONLY: Success, updated product category:', data);
