@@ -357,14 +357,12 @@ export const products = {
       
       console.log('Final productData to update:', productData);
       
-      // Critical workaround: Store the categoryId for direct update
+      // Store the categoryId for direct update
       const categoryIdToUpdate = productData.categoryId !== undefined ? productData.categoryId : null;
       
-      // If we're updating the category, remove it from the main update operation
-      // We'll handle it separately with a direct SQL approach
-      if (categoryIdToUpdate !== null) {
-        delete productData.categoryId;
-      }
+      // IMPORTANT: Do NOT remove categoryId from productData anymore
+      // This was causing product category updates to fail
+      console.log('Keeping categoryId in update data:', categoryIdToUpdate);
       
       try {
         console.log('Using direct SQL update for feature flags and all fields');

@@ -209,6 +209,11 @@ const ProductForm = ({ productId }: ProductFormProps) => {
         const categoryIdValue = Number(values.categoryId);
         console.log('Setting categoryId in FormData:', categoryIdValue);
         formData.append('categoryId', categoryIdValue.toString());
+        
+        // CRITICAL FIX: Log the categoryId more prominently for debugging
+        console.log('IMPORTANT: Updating product category to ID:', categoryIdValue);
+      } else {
+        console.warn('WARNING: categoryId is undefined in form values');
       }
 
       // CRITICAL FIX: Always include ALL boolean feature flags
