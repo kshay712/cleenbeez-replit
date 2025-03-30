@@ -26,6 +26,7 @@ import AdminCategoriesPage from "./pages/admin/categories/AdminCategoriesPage";
 import AdminBlogPage from "./pages/admin/AdminBlogPage";
 import AdminUsersPage from "./pages/admin/AdminUsersPage";
 import TestPage from "./pages/TestPage";
+import FixedCardTestPage from "./pages/FixedCardTestPage";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -51,6 +52,7 @@ function Router() {
           <Route path="/admin/blog" component={AdminBlogPage} />
           <Route path="/admin/users" component={AdminUsersPage} />
           <Route path="/test" component={TestPage} />
+          <Route path="/fixed-card-test" component={FixedCardTestPage} />
           <Route component={NotFound} />
         </Switch>
       </main>

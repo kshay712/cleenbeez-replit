@@ -1,0 +1,145 @@
+import { useState } from "react";
+import { Link } from "wouter";
+import { Heart } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import CategoryBadge from "@/components/ui/CategoryBadge";
+
+interface Product {
+  id: number;
+  name: string;
+  description: string;
+  price: string;
+  category: {
+    id: number;
+    name: string;
+    slug: string;
+  };
+  image: string;
+  organic: boolean | null;
+  bpaFree: boolean | null;
+  phthalateFree: boolean | null;
+  parabenFree: boolean | null;
+  oxybenzoneFree: boolean | null;
+  formaldehydeFree: boolean | null;
+  sulfatesFree: boolean | null;
+  fdcFree: boolean | null;
+}
+
+interface FixedProductCardProps {
+  product: Product;
+}
+
+const PlaceholderImage = () => (
+  <div className="w-full h-full bg-gradient-to-r from-neutral-200 to-neutral-300 flex items-center justify-center">
+    <span className="text-neutral-400 text-xs">Image loading...</span>
+  </div>
+);
+
+const FixedProductCard: React.FC<FixedProductCardProps> = ({ product }) => {
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [imageError, setImageError] = useState(false);
+  
+  // Count active features for badge
+  const featureCount = [
+    product.organic,
+    product.bpaFree,
+    product.phthalateFree, 
+    product.parabenFree,
+    product.oxybenzoneFree,
+    product.formaldehydeFree,
+    product.sulfatesFree, 
+    product.fdcFree
+  ].filter(Boolean).length;
+
+  // Create array of feature objects for rendering
+  const features = [
+    { enabled: product.organic, name: "Organic", className: "bg-green-100 text-green-800" },
+    { enabled: product.bpaFree, name: "BPA-Free", className: "bg-blue-100 text-blue-800" },
+    { enabled: product.phthalateFree, name: "Phthalate-Free", className: "bg-purple-100 text-purple-800" },
+    { enabled: product.parabenFree, name: "Paraben-Free", className: "bg-indigo-100 text-indigo-800" },
+    { enabled: product.oxybenzoneFree, name: "Oxybenzone-Free", className: "bg-red-100 text-red-800" },
+    { enabled: product.formaldehydeFree, name: "Formaldehyde-Free", className: "bg-amber-100 text-amber-800" },
+    { enabled: product.sulfatesFree, name: "Sulfates-Free", className: "bg-teal-100 text-teal-800" },
+    { enabled: product.fdcFree, name: "FDC-Free", className: "bg-pink-100 text-pink-800" }
+  ];
+
+  // Get active features only
+  const activeFeatures = features.filter(f => f.enabled);
+
+  return (
+    <Link href={`/products/${product.id}`} className="block group">
+      <div className="group relative bg-white rounded-lg shadow-sm overflow-hidden transition-all duration-300 hover:shadow-md hover:translate-y-[-4px]">
+        <div className="w-full bg-neutral-100 aspect-w-16 aspect-h-9 overflow-hidden">
+          {!imageLoaded && !imageError && <PlaceholderImage />}
+          {!imageError ? (
+            <img 
+              src={product.image} 
+              alt={product.name} 
+              className={`w-full h-full object-center object-cover transform group-hover:scale-105 transition-transform duration-300 ease-in-out ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
+              onLoad={() => setImageLoaded(true)}
+              onError={() => setImageError(true)}
+              loading="lazy"
+            />
+          ) : (
+            <div className="w-full h-full bg-neutral-100 flex items-center justify-center">
+              <span className="text-neutral-500 text-sm">No image available</span>
+            </div>
+          )}
+        </div>
+        
+        {/* Feature badges section */}
+        <div className="absolute top-0 right-0 flex flex-wrap gap-1 justify-end p-2 max-w-full bg-gradient-to-l from-white/90 to-transparent">
+          {activeFeatures.length > 0 && activeFeatures.map((feature, idx) => (
+            <Badge 
+              key={idx} 
+              className={`px-1.5 py-px text-xs font-normal ${feature.className}`}
+            >
+              {feature.name}
+            </Badge>
+          ))}
+        </div>
+        
+        <div className="p-4">
+          <div className="flex justify-between items-center mb-2">
+            <CategoryBadge category={product.category.name} className="px-2 py-1 bg-neutral-100 rounded-full text-xs" />
+            <div className="flex items-center">
+              <span className="text-sm font-medium text-neutral-900">${parseFloat(product.price).toFixed(2)}</span>
+            </div>
+          </div>
+          
+          <h3 className="text-lg font-semibold text-neutral-900 mb-2 line-clamp-2 min-h-[3.5rem]">
+            {product.name}
+          </h3>
+          
+          <p className="text-sm text-neutral-600 line-clamp-3 min-h-[4.5rem]">
+            {product.description}
+          </p>
+          
+          <div className="mt-3 pt-3 border-t border-neutral-100 flex justify-between items-center">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-primary-600 group-hover:text-primary-700">
+                View details
+              </span>
+              <Badge variant="outline" className="bg-amber-50 border-amber-200">
+                {featureCount} features
+              </Badge>
+            </div>
+            <Button variant="ghost" size="icon" className="rounded-full text-neutral-400 hover:text-primary-500 hover:bg-primary-50"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                // Add to wishlist functionality would go here
+              }}
+            >
+              <Heart className="h-5 w-5" />
+              <span className="sr-only">Add to wishlist</span>
+            </Button>
+          </div>
+        </div>
+      </div>
+    </Link>
+  );
+};
+
+export default FixedProductCard;
