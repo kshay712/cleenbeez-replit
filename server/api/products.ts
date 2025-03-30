@@ -198,7 +198,11 @@ export const products = {
       const { id } = req.params;
       
       // Enhanced debug logging for the incoming request
+      console.log('\n\n*** PRODUCT UPDATE TRIGGERED ***');
+      console.log('Update product ID:', id);
       console.log('Update product request body:', JSON.stringify(req.body));
+      console.log('Update product request file:', req.file ? 'Present' : 'None');
+      console.log('Content-Type:', req.headers['content-type']);
       console.log('Product update feature flags (RAW):');
       console.log('- organic:', req.body.organic, 'type:', typeof req.body.organic);
       console.log('- bpaFree:', req.body.bpaFree, 'type:', typeof req.body.bpaFree);

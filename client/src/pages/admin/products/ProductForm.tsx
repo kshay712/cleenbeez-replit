@@ -204,17 +204,21 @@ const ProductForm = ({ productId }: ProductFormProps) => {
     mutationFn: async (values: ProductFormValues & { image?: File }) => {
       const formData = new FormData();
       
-      // Process categoryId first to ensure it's handled correctly
-      if (values.categoryId !== undefined) {
-        const categoryIdValue = Number(values.categoryId);
-        console.log('Setting categoryId in FormData:', categoryIdValue);
-        formData.append('categoryId', categoryIdValue.toString());
-        
-        // CRITICAL FIX: Log the categoryId more prominently for debugging
-        console.log('IMPORTANT: Updating product category to ID:', categoryIdValue);
-      } else {
-        console.warn('WARNING: categoryId is undefined in form values');
-      }
+      // Process categoryId first - this is a CRITICAL field that must be handled correctly
+      // Even if it's undefined in values, we should provide a default (0)
+      const categoryIdValue = values.categoryId !== undefined && values.categoryId !== null 
+        ? Number(values.categoryId) 
+        : 0;
+      
+      console.log('CRITICAL FIX: Setting categoryId in FormData:', categoryIdValue);
+      formData.append('categoryId', categoryIdValue.toString());
+      
+      // Add it a second time with a different name to ensure it gets through
+      formData.append('category_id', categoryIdValue.toString());
+      formData.append('categoryId_number', categoryIdValue.toString());
+      
+      // CRITICAL FIX: Log the categoryId more prominently for debugging
+      console.log('IMPORTANT: Updating product category to ID:', categoryIdValue);
 
       // CRITICAL FIX: Always include ALL boolean feature flags
       // This is the key problem - we need to ensure all these fields are in the formData
@@ -370,18 +374,31 @@ const ProductForm = ({ productId }: ProductFormProps) => {
 
   // Submit form
   const onSubmit = (values: ProductFormValues) => {
+    console.log("\n\n*** FORM SUBMISSION STARTED ***");
+    console.log("Raw form values:", values);
+    
     // Make sure ingredients are correctly set
     const submitData = { 
       ...values,
       ingredients: ingredientsList
     };
     
-    // Always ensure categoryId is a number
-    if (submitData.categoryId !== undefined) {
-      const categoryId = Number(submitData.categoryId);
-      console.log("Ensuring categoryId is a number in submit:", categoryId);
-      submitData.categoryId = categoryId;
-    }
+    // Always ensure categoryId is a number and is explicitly included
+    const categoryId = values.categoryId !== undefined ? Number(values.categoryId) : (
+      isEditMode && productData?.categoryId !== undefined ? Number(productData.categoryId) : 0
+    );
+    
+    console.log("*** CRITICAL FIX: Explicitly setting categoryId in submit data:", categoryId, 
+                "Type:", typeof categoryId, 
+                "Original value:", values.categoryId);
+    
+    submitData.categoryId = categoryId;
+    
+    // Add new categoryId field with _number suffix to ensure it's treated as a number
+    (submitData as any).categoryId_number = categoryId;
+    
+    // Log the full submit data
+    console.log("Final submit data:", submitData);
     
     // CRITICAL: Extract feature flags into their own object for targeted update
     // Log the raw values first
@@ -673,11 +690,20 @@ const ProductForm = ({ productId }: ProductFormProps) => {
                       onValueChange={(value) => {
                         // Directly update the form with the number value
                         const numberValue = Number(value);
-                        console.log("Category selected:", numberValue);
+                        console.log("CATEGORY SELECTION EVENT: Category selected:", numberValue, "Original:", value);
+                        
+                        // Log the form state before change
+                        console.log("CATEGORY SELECTION EVENT: Form values before change:", form.getValues());
+                        
+                        // Update the field via onChange
                         field.onChange(numberValue);
                         
                         // Explicitly force the value to be a number in form state
                         form.setValue("categoryId", numberValue);
+                        
+                        // Log the form state after change to confirm it worked
+                        console.log("CATEGORY SELECTION EVENT: Form values after change:", form.getValues());
+                        console.log("CATEGORY SELECTION EVENT: Field value is now:", field.value);
                       }}
                       value={field.value?.toString() || ""}
                       disabled={isCategoriesLoading}
