@@ -235,15 +235,43 @@ export const products = {
         console.log('Parsed categoryId:', productData.categoryId);
       }
       // Convert all boolean fields
-      if (productData.organic !== undefined) productData.organic = productData.organic === 'true';
-      if (productData.bpaFree !== undefined) productData.bpaFree = productData.bpaFree === 'true';
-      if (productData.phthalateFree !== undefined) productData.phthalateFree = productData.phthalateFree === 'true';
-      if (productData.parabenFree !== undefined) productData.parabenFree = productData.parabenFree === 'true';
-      if (productData.oxybenzoneFree !== undefined) productData.oxybenzoneFree = productData.oxybenzoneFree === 'true';
-      if (productData.formaldehydeFree !== undefined) productData.formaldehydeFree = productData.formaldehydeFree === 'true';
-      if (productData.sulfatesFree !== undefined) productData.sulfatesFree = productData.sulfatesFree === 'true';
-      if (productData.fdcFree !== undefined) productData.fdcFree = productData.fdcFree === 'true';
-      if (productData.featured !== undefined) productData.featured = productData.featured === 'true';
+      console.log('Converting boolean fields:');
+      if (productData.organic !== undefined) {
+        productData.organic = productData.organic === 'true' || productData.organic === true;
+        console.log('- organic converted to:', productData.organic);
+      }
+      if (productData.bpaFree !== undefined) {
+        productData.bpaFree = productData.bpaFree === 'true' || productData.bpaFree === true;
+        console.log('- bpaFree converted to:', productData.bpaFree);
+      }
+      if (productData.phthalateFree !== undefined) {
+        productData.phthalateFree = productData.phthalateFree === 'true' || productData.phthalateFree === true;
+        console.log('- phthalateFree converted to:', productData.phthalateFree);
+      }
+      if (productData.parabenFree !== undefined) {
+        productData.parabenFree = productData.parabenFree === 'true' || productData.parabenFree === true;
+        console.log('- parabenFree converted to:', productData.parabenFree);
+      }
+      if (productData.oxybenzoneFree !== undefined) {
+        productData.oxybenzoneFree = productData.oxybenzoneFree === 'true' || productData.oxybenzoneFree === true;
+        console.log('- oxybenzoneFree converted to:', productData.oxybenzoneFree);
+      }
+      if (productData.formaldehydeFree !== undefined) {
+        productData.formaldehydeFree = productData.formaldehydeFree === 'true' || productData.formaldehydeFree === true;
+        console.log('- formaldehydeFree converted to:', productData.formaldehydeFree);
+      }
+      if (productData.sulfatesFree !== undefined) {
+        productData.sulfatesFree = productData.sulfatesFree === 'true' || productData.sulfatesFree === true;
+        console.log('- sulfatesFree converted to:', productData.sulfatesFree);
+      }
+      if (productData.fdcFree !== undefined) {
+        productData.fdcFree = productData.fdcFree === 'true' || productData.fdcFree === true;
+        console.log('- fdcFree converted to:', productData.fdcFree);
+      }
+      if (productData.featured !== undefined) {
+        productData.featured = productData.featured === 'true' || productData.featured === true;
+        console.log('- featured converted to:', productData.featured);
+      }
       
       console.log('Final productData to update:', productData);
       

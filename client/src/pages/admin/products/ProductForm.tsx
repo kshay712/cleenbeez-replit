@@ -222,7 +222,13 @@ const ProductForm = ({ productId }: ProductFormProps) => {
           const ingredientsArray = Array.isArray(value) ? value : [];
           formData.append('ingredients', JSON.stringify(ingredientsArray));
         } else if (key !== 'image' && value !== undefined && value !== null) {
-          formData.append(key, value.toString());
+          // Special handling for boolean values to ensure they're stringified consistently
+          if (typeof value === 'boolean') {
+            formData.append(key, value ? 'true' : 'false');
+            console.log(`Appending boolean ${key}:`, value ? 'true' : 'false');
+          } else {
+            formData.append(key, value.toString());
+          }
         }
       });
       
