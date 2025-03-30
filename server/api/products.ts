@@ -210,30 +210,48 @@ export const products = {
       
       console.log('Final productData to update:', productData);
       
-      // Direct SQL query to update the category as a workaround
-      if (productData.categoryId) {
-        try {
-          console.log('Attempting direct SQL update for categoryId to:', productData.categoryId);
-          // Get the database client from the db module
-          const { db } = await import('../db');
-          const { sql } = await import('drizzle-orm');
-          
-          // Execute a direct SQL update
-          const result = await db.execute(
-            sql`UPDATE products SET category_id = ${productData.categoryId} WHERE id = ${id}`
-          );
-          console.log('Direct SQL update result:', result);
-        } catch (sqlError) {
-          console.error('Direct SQL update failed:', sqlError);
-        }
+      // Critical workaround: Store the categoryId for direct update
+      const categoryIdToUpdate = productData.categoryId !== undefined ? productData.categoryId : null;
+      
+      // If we're updating the category, remove it from the main update operation
+      // We'll handle it separately with a direct SQL approach
+      if (categoryIdToUpdate !== null) {
+        delete productData.categoryId;
       }
       
+      // First update all fields except categoryId
       const product = await storage.updateProduct(Number(id), productData);
       
       if (!product) {
         return res.status(404).json({ message: 'Product not found' });
       }
       
+      // Now update the categoryId separately using a direct SQL approach
+      if (categoryIdToUpdate !== null) {
+        try {
+          console.log('Executing direct SQL update for categoryId to:', categoryIdToUpdate);
+          // Get the database client from the db module
+          const { db } = await import('../db');
+          const { sql } = await import('drizzle-orm');
+          
+          // Execute a direct SQL update for categoryId
+          await db.execute(
+            sql`UPDATE products SET category_id = ${categoryIdToUpdate} WHERE id = ${id}`
+          );
+          
+          // Re-fetch the product to include updated category
+          const updatedProduct = await storage.getProductById(Number(id));
+          if (updatedProduct) {
+            console.log('Product successfully updated with new category ID:', updatedProduct.categoryId);
+            return res.json(updatedProduct);
+          }
+        } catch (sqlError) {
+          console.error('Direct SQL update failed:', sqlError);
+          // Continue with original response if SQL update fails
+        }
+      }
+      
+      // Return the product (only reached if no categoryId was updated or if re-fetch failed)
       res.json(product);
     } catch (error: any) {
       console.error('Error updating product:', error);
