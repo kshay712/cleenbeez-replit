@@ -151,7 +151,16 @@ export const blog = {
       
       // Add categories if provided
       if (categories.length > 0) {
-        for (const categoryId of categories) {
+        // Convert all categoryIds to numbers for consistent comparison
+        const categoryIds = categories.map(cat => Number(cat));
+        
+        console.log('Adding categories for new post:', {
+          postId: post.id,
+          categoryIds
+        });
+        
+        for (const categoryId of categoryIds) {
+          console.log(`Adding category ${categoryId} to new post ${post.id}`);
           await storage.addPostToCategory(post.id, Number(categoryId));
         }
       }
@@ -201,24 +210,33 @@ export const blog = {
         return res.status(404).json({ message: 'Blog post not found' });
       }
       
-      // Update categories if provided
-      if (categories.length > 0) {
-        // Get existing categories
-        const existingCategories = await storage.getPostCategories(Number(id));
-        const existingCategoryIds = existingCategories.map(c => c.id);
-        
-        // Remove categories that are no longer associated
-        for (const categoryId of existingCategoryIds) {
-          if (!categories.includes(categoryId)) {
-            await storage.removePostFromCategory(Number(id), categoryId);
-          }
+      // Always update categories (even if empty, to allow removing all categories)
+      // Get existing categories
+      const existingCategories = await storage.getPostCategories(Number(id));
+      const existingCategoryIds = existingCategories.map(c => c.id);
+      
+      // Convert all categoryIds to numbers for consistent comparison
+      const categoryIds = categories.map(cat => Number(cat));
+      
+      console.log('Updating categories for post:', {
+        postId: id,
+        existingCategoryIds,
+        newCategoryIds: categoryIds
+      });
+      
+      // Remove categories that are no longer associated
+      for (const categoryId of existingCategoryIds) {
+        if (!categoryIds.includes(categoryId)) {
+          console.log(`Removing category ${categoryId} from post ${id}`);
+          await storage.removePostFromCategory(Number(id), categoryId);
         }
-        
-        // Add new categories
-        for (const categoryId of categories) {
-          if (!existingCategoryIds.includes(Number(categoryId))) {
-            await storage.addPostToCategory(Number(id), Number(categoryId));
-          }
+      }
+      
+      // Add new categories
+      for (const categoryId of categoryIds) {
+        if (!existingCategoryIds.includes(categoryId)) {
+          console.log(`Adding category ${categoryId} to post ${id}`);
+          await storage.addPostToCategory(Number(id), Number(categoryId));
         }
       }
       

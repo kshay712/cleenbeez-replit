@@ -116,13 +116,46 @@ const AdminBlogPage = () => {
   const [selectedTab, setSelectedTab] = useState("posts");
   const [searchQuery, setSearchQuery] = useState("");
   
+  // Define types
+  interface BlogPostWithRelations {
+    id: number;
+    title: string;
+    slug: string;
+    content: string;
+    excerpt: string;
+    featuredImage: string;
+    published: boolean;
+    publishedAt: string | null;
+    createdAt: string;
+    updatedAt: string;
+    authorId: number;
+    author: any;
+    categories: Array<{
+      id: number;
+      name: string;
+      slug: string;
+    }>;
+  }
+
+  interface BlogPostsResponse {
+    posts: BlogPostWithRelations[];
+    total: number;
+  }
+  
   // Fetch blog posts
-  const { data: blogPosts, isLoading: postsLoading } = useQuery({
+  const { data: blogPosts, isLoading: postsLoading } = useQuery<BlogPostsResponse>({
     queryKey: ['/api/blog/admin', searchQuery],
   });
   
+  interface BlogCategory {
+    id: number;
+    name: string;
+    slug: string;
+    postCount?: number;
+  }
+  
   // Fetch categories
-  const { data: categories, isLoading: categoriesLoading } = useQuery({
+  const { data: categories, isLoading: categoriesLoading } = useQuery<BlogCategory[]>({
     queryKey: ['/api/blog/categories'],
   });
   
