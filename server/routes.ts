@@ -43,11 +43,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     
     // Special handling for GET requests - allow them to be public
+    // Skip auth for these specific paths
     if (
-      // Product & category public paths
+      // Product & category public paths (GET only)
       (req.path === '/categories' && req.method === 'GET') || 
       (req.path.startsWith('/categories/') && req.method === 'GET') ||
-      // Blog public paths
+      // Blog public paths (GET only)
       (req.path === '/blog/categories' && req.method === 'GET') ||
       (req.path.startsWith('/blog/posts/') && req.method === 'GET') ||
       (req.path.startsWith('/blog/related/') && req.method === 'GET')

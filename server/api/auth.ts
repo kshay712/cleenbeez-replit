@@ -36,7 +36,7 @@ export const verifyAuthToken = async (req: Request, res: Response, next: NextFun
     
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       console.log('No authentication token provided for route:', req.path);
-      return res.status(401).json({ message: 'No authentication token provided' });
+      return res.status(401).json({ message: 'Authentication required' });
     }
     
     const token = authHeader.split('Bearer ')[1];

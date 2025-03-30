@@ -21,16 +21,19 @@ export async function apiRequest(
     headers: {},
   };
 
-  // Add dev user ID if it exists in localStorage
+  // Add dev user ID and Firebase UID if it exists in localStorage
   const devUser = localStorage.getItem('dev-user');
   if (devUser) {
     try {
       const userData = JSON.parse(devUser);
       if (userData && userData.id) {
+        // Add for development auth - this will ensure token works in verifyAuthToken
         config.headers = {
           ...config.headers,
-          'X-Dev-User-ID': userData.id.toString()
+          'X-Dev-User-ID': userData.id.toString(),
+          'Authorization': `Bearer ${userData.firebaseUid || 'test-' + userData.id}`
         };
+        console.log('Found development user in localStorage:', userData);
       }
     } catch (e) {
       console.error('Failed to parse dev user from localStorage:', e);
@@ -82,16 +85,19 @@ export const getQueryFn: <T>(options: {
       headers: {},
     };
 
-    // Add dev user ID if it exists in localStorage
+    // Add dev user ID and Firebase UID if it exists in localStorage
     const devUser = localStorage.getItem('dev-user');
     if (devUser) {
       try {
         const userData = JSON.parse(devUser);
         if (userData && userData.id) {
+          // Add for development auth - this will ensure token works in verifyAuthToken
           config.headers = {
             ...config.headers,
-            'X-Dev-User-ID': userData.id.toString()
+            'X-Dev-User-ID': userData.id.toString(),
+            'Authorization': `Bearer ${userData.firebaseUid || 'test-' + userData.id}`
           };
+          console.log('Found development user in localStorage:', userData);
         }
       } catch (e) {
         console.error('Failed to parse dev user from localStorage:', e);
