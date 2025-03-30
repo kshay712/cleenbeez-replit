@@ -170,23 +170,23 @@ const ProductFilters = ({ filters, onChange }: ProductFiltersProps) => {
             Price Range
           </AccordionTrigger>
           <AccordionContent>
-            <div className="space-y-4 pt-2">
+            <div className="space-y-3 pt-1">
               <Slider
                 min={0}
                 max={500}
                 step={5}
                 value={priceRange}
                 onValueChange={(values) => setPriceRange(values as [number, number])}
-                className="mt-4"
+                className="mt-2"
                 showSecondThumb={true}
               />
               
               <div className="flex items-center justify-between">
-                <div className="text-sm">
+                <div className="text-xs">
                   <span className="text-neutral-500">Min: </span>
                   <span className="font-medium">${priceRange[0]}</span>
                 </div>
-                <div className="text-sm">
+                <div className="text-xs">
                   <span className="text-neutral-500">Max: </span>
                   <span className="font-medium">${priceRange[1]}</span>
                 </div>
