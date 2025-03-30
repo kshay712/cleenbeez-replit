@@ -409,7 +409,9 @@ const AdminBlogPage = () => {
       return await apiRequest("POST", "/api/blog/categories", data);
     },
     onSuccess: () => {
+      // Invalidate both blog and product category caches
       queryClient.invalidateQueries({ queryKey: ['/api/blog/categories'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/categories'] });
       toast({
         title: "Category created",
         description: "The category has been created successfully."
@@ -433,7 +435,9 @@ const AdminBlogPage = () => {
       return await apiRequest("PUT", `/api/blog/categories/${id}`, categoryData);
     },
     onSuccess: () => {
+      // Invalidate both blog and product category caches
       queryClient.invalidateQueries({ queryKey: ['/api/blog/categories'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/categories'] });
       toast({
         title: "Category updated",
         description: "The category has been updated successfully."
@@ -457,7 +461,9 @@ const AdminBlogPage = () => {
       return await apiRequest("DELETE", `/api/blog/categories/${id}`, undefined);
     },
     onSuccess: () => {
+      // Invalidate both blog and product category caches
       queryClient.invalidateQueries({ queryKey: ['/api/blog/categories'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/categories'] });
       toast({
         title: "Category deleted",
         description: "The category has been deleted successfully."
