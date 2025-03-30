@@ -133,7 +133,7 @@ export const products = {
       // Parse price and other numeric fields
       const productData = {
         ...req.body,
-        price: parseFloat(req.body.price),
+        price: req.body.price.toString(), // Convert to string to match schema
         categoryId: parseInt(req.body.categoryId),
         organic: req.body.organic === 'true',
         bpaFree: req.body.bpaFree === 'true',
@@ -165,7 +165,7 @@ export const products = {
       }
       
       // Parse numeric and boolean fields if they exist in the request
-      if (productData.price) productData.price = parseFloat(productData.price);
+      if (productData.price) productData.price = productData.price.toString(); // Convert to string to match schema
       if (productData.categoryId) productData.categoryId = parseInt(productData.categoryId);
       if (productData.organic !== undefined) productData.organic = productData.organic === 'true';
       if (productData.bpaFree !== undefined) productData.bpaFree = productData.bpaFree === 'true';
