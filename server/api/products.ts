@@ -493,14 +493,30 @@ export const products = {
           
           // FOR URGENT DEBUGGING: Add additional direct SQL for just the category
           try {
-            // Execute a simple standalone SQL update JUST for category_id
+            // Execute a SUPER-SIMPLE standalone SQL update JUST for category_id
+            // This is our very last resort - direct SQL without any fancy features
             console.log('EXECUTING EMERGENCY DIRECT CATEGORY UPDATE SQL');
+            
+            // Log the raw SQL we're about to execute
+            const rawSql = `UPDATE products SET category_id = ${categoryIdNumber} WHERE id = ${id}`;
+            console.log('EMERGENCY RAW SQL:', rawSql);
+            
+            // First try with drizzle's sql template
             const emergencyCategoryUpdate = await db.execute(sql`
               UPDATE products 
               SET category_id = ${categoryIdNumber}
               WHERE id = ${id}
             `);
             console.log('EMERGENCY CATEGORY UPDATE COMPLETED');
+            
+            // Also try with a completely direct query as a fallback
+            try {
+              const { client } = await import('../db');
+              await client.query(`UPDATE products SET category_id = $1 WHERE id = $2`, [categoryIdNumber, id]);
+              console.log('ULTRA-EMERGENCY DIRECT PG QUERY COMPLETED');
+            } catch (pgError) {
+              console.error('ULTRA-EMERGENCY DIRECT PG QUERY FAILED:', pgError);
+            }
           } catch (e) {
             console.error('EMERGENCY CATEGORY UPDATE FAILED:', e);
           }
@@ -536,8 +552,41 @@ export const products = {
           return res.status(404).json({ message: 'Product not found after update' });
         }
       } catch (error: any) {
-        console.error('Direct SQL update failed:', error);
-        res.status(500).json({ message: 'Failed to update product with SQL', error: error.message });
+        console.error('\n\n!!! CRITICAL ERROR !!!');
+        console.error('Direct SQL update failed with error:');
+        console.error(error);
+        
+        // If it's a database error, let's get more details
+        if (error.code) {
+          console.error('Database error code:', error.code);
+        }
+        if (error.detail) {
+          console.error('Database error detail:', error.detail);
+        }
+        if (error.constraint) {
+          console.error('Database constraint violated:', error.constraint);
+        }
+        if (error.hint) {
+          console.error('Database error hint:', error.hint);
+        }
+        if (error.where) {
+          console.error('Error occurred at:', error.where);
+        }
+        
+        console.error('Error stack trace:');
+        console.error(error.stack);
+        console.error('!!! END CRITICAL ERROR !!!\n\n');
+        
+        res.status(500).json({ 
+          message: 'Failed to update product with SQL', 
+          error: error.message,
+          details: {
+            code: error.code,
+            detail: error.detail,
+            constraint: error.constraint,
+            hint: error.hint
+          }
+        });
       }
       
       // This point should never be reached because we're now using direct SQL

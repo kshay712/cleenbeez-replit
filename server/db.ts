@@ -10,7 +10,7 @@ if (!connectionString) {
 }
 
 // For use in production environments
-const client = postgres(connectionString);
+export const client = postgres(connectionString);
 export const db = drizzle(client, { schema });
 
 // Close the connection when the process exits

@@ -231,8 +231,9 @@ const ProductForm = ({ productId }: ProductFormProps) => {
       console.log('Added to FormData as: FORCE_CATEGORY_ID =', categoryIdValue.toString());
       
       // 5. Add a field that includes both ID and name to help debugging
-      if (categories && categories.length > 0) {
-        const category = categories.find(c => c.id === categoryIdValue);
+      // Use the categories already fetched with useQuery - making this type-safe
+      if (categoriesData && categoriesData.length > 0) {
+        const category = categoriesData.find(c => c.id === categoryIdValue);
         if (category) {
           console.log('Category found:', category);
           formData.append('categoryInfo', JSON.stringify(category));
