@@ -178,6 +178,7 @@ const ProductFilters = ({ filters, onChange }: ProductFiltersProps) => {
                 value={priceRange}
                 onValueChange={(values) => setPriceRange(values as [number, number])}
                 className="mt-4"
+                showSecondThumb={true}
               />
               
               <div className="flex items-center justify-between">
