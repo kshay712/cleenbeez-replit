@@ -210,6 +210,24 @@ export const products = {
       
       console.log('Final productData to update:', productData);
       
+      // Direct SQL query to update the category as a workaround
+      if (productData.categoryId) {
+        try {
+          console.log('Attempting direct SQL update for categoryId to:', productData.categoryId);
+          // Get the database client from the db module
+          const { db } = await import('../db');
+          const { sql } = await import('drizzle-orm');
+          
+          // Execute a direct SQL update
+          const result = await db.execute(
+            sql`UPDATE products SET category_id = ${productData.categoryId} WHERE id = ${id}`
+          );
+          console.log('Direct SQL update result:', result);
+        } catch (sqlError) {
+          console.error('Direct SQL update failed:', sqlError);
+        }
+      }
+      
       const product = await storage.updateProduct(Number(id), productData);
       
       if (!product) {
