@@ -864,8 +864,8 @@ const AdminBlogPage = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {blogPosts?.length > 0 ? (
-                    blogPosts.map((post: any) => (
+                  {blogPosts?.posts && blogPosts.posts.length > 0 ? (
+                    blogPosts.posts.map((post: any) => (
                       <TableRow key={post.id}>
                         <TableCell className="font-medium">{post.title}</TableCell>
                         <TableCell>{post.author?.username || 'Unknown'}</TableCell>
@@ -941,7 +941,15 @@ const AdminBlogPage = () => {
                   ) : (
                     <TableRow>
                       <TableCell colSpan={6} className="text-center h-24">
-                        {searchQuery ? "No blog posts match your search." : "No blog posts found. Create your first post to get started."}
+                        {postsLoading ? (
+                          <div className="flex justify-center">
+                            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                          </div>
+                        ) : searchQuery ? (
+                          "No blog posts match your search."
+                        ) : (
+                          "No blog posts found. Create your first post to get started."
+                        )}
                       </TableCell>
                     </TableRow>
                   )}
