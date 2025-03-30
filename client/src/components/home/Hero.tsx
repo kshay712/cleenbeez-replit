@@ -8,7 +8,7 @@ interface Product {
   id: number;
   name: string;
   description: string;
-  price: number;
+  price: string;
   category: {
     id: number;
     name: string;
@@ -108,7 +108,7 @@ const Hero = () => {
                         <h4 className="font-semibold text-neutral-900">{product.name}</h4>
                         <div className="flex justify-between items-center">
                           <span className="text-sm text-neutral-600">{product.category.name}</span>
-                          <span className="text-sm font-medium text-primary-700">${product.price.toFixed(2)}</span>
+                          <span className="text-sm font-medium text-primary-700">${parseFloat(product.price).toFixed(2)}</span>
                         </div>
                       </div>
                       <ArrowRight className="h-4 w-4 text-neutral-400" />

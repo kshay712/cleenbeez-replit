@@ -36,7 +36,7 @@ import { Badge } from '@/components/ui/badge';
 const productSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   description: z.string().min(10, 'Description must be at least 10 characters'),
-  price: z.coerce.number().positive('Price must be a positive number'),
+  price: z.coerce.string().min(1, 'Price is required'),
   categoryId: z.coerce.number().positive('Category is required'),
   organic: z.boolean().default(false),
   bpaFree: z.boolean().default(false),
@@ -70,7 +70,7 @@ const ProductForm = ({ productId }: ProductFormProps) => {
     defaultValues: {
       name: '',
       description: '',
-      price: 0,
+      price: '0.00',
       categoryId: 0,
       organic: false,
       bpaFree: false,

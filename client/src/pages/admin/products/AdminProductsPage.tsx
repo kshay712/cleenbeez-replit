@@ -31,7 +31,7 @@ interface Product {
   id: number;
   name: string;
   description: string;
-  price: number;
+  price: string;
   category: {
     id: number;
     name: string;
@@ -169,7 +169,7 @@ const AdminProductsPage = () => {
                         {product.category.name}
                       </Badge>
                     </TableCell>
-                    <TableCell>${product.price.toFixed(2)}</TableCell>
+                    <TableCell>${parseFloat(product.price).toFixed(2)}</TableCell>
                     <TableCell>
                       <div className="flex gap-2">
                         {product.organic && (

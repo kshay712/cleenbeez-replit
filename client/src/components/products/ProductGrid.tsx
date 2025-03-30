@@ -84,7 +84,7 @@ const ProductGrid = ({ products }: ProductGridProps) => {
           </CardContent>
           
           <CardFooter className="p-4 pt-0 flex items-center justify-between">
-            <div className="font-medium text-gray-900">${product.price.toFixed(2)}</div>
+            <div className="font-medium text-gray-900">${parseFloat(product.price).toFixed(2)}</div>
             <Link href={`/products/${product.id}`}>
               <Badge className="cursor-pointer">View Details</Badge>
             </Link>

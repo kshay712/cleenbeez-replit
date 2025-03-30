@@ -9,7 +9,7 @@ interface Product {
   id: number;
   name: string;
   description: string;
-  price: number;
+  price: string;
   category: {
     id: number;
     name: string;
@@ -64,7 +64,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           <div className="flex justify-between items-center mb-2">
             <CategoryBadge category={product.category.name} className="px-2 py-1 bg-neutral-100 rounded-full text-xs" />
             <div className="flex items-center">
-              <span className="text-sm font-medium text-neutral-900">${product.price.toFixed(2)}</span>
+              <span className="text-sm font-medium text-neutral-900">${parseFloat(product.price).toFixed(2)}</span>
             </div>
           </div>
           

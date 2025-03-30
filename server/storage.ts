@@ -19,7 +19,7 @@ import {
   type BlogPostToCategory,
   type InsertBlogPostToCategory
 } from "@shared/schema";
-import { eq, like, or, inArray, and, desc, asc } from "drizzle-orm";
+import { eq, like, or, inArray, and, desc, asc, sql } from "drizzle-orm";
 
 import session from "express-session";
 import MemoryStore from "memorystore";
@@ -270,10 +270,12 @@ export class DatabaseStorage implements IStorage {
       : undefined;
     
     // Count total products for pagination
-    const [{ count }] = await db
-      .select({ count: db.fn.count() })
+    const countResult = await db
+      .select({ count: sql`count(*)` })
       .from(products)
       .where(whereClause as any);
+    
+    const count = Number(countResult[0]?.count || 0);
     
     // Get the products with category information
     const productList = await db
@@ -670,10 +672,12 @@ export class DatabaseStorage implements IStorage {
     }
     
     // Count total posts for pagination
-    const [{ count }] = await db
-      .select({ count: db.fn.count() })
+    const countResult = await db
+      .select({ count: sql`count(*)` })
       .from(blogPosts)
       .where(whereClause as any);
+    
+    const count = Number(countResult[0]?.count || 0);
     
     // Get the posts
     const postList = await db
@@ -778,7 +782,7 @@ export class DatabaseStorage implements IStorage {
         )
       )
       .groupBy(blogPostsToCategories.blogPostId)
-      .orderBy(desc(db.fn.count()))
+      .orderBy(desc(sql`count(*)`))
       .limit(limit);
     
     if (relatedPostIds.length === 0) {

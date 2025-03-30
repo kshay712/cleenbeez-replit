@@ -129,7 +129,7 @@ const ProductDetailPage = () => {
             
             <div className="mt-4">
               <div className="flex items-center">
-                <p className="text-2xl font-bold text-neutral-900">${product.price.toFixed(2)}</p>
+                <p className="text-2xl font-bold text-neutral-900">${parseFloat(product.price).toFixed(2)}</p>
                 {/* Add original price if available */}
               </div>
             </div>
@@ -172,7 +172,7 @@ const ProductDetailPage = () => {
                       className="flex items-center justify-between px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
                     >
                       <span>{vendor.name}</span>
-                      <span className="ml-4">${vendor.price.toFixed(2)}</span>
+                      <span className="ml-4">${parseFloat(vendor.price).toFixed(2)}</span>
                     </a>
                   ))}
                 </div>
@@ -217,7 +217,7 @@ const ProductDetailPage = () => {
                       <h3 className="text-sm font-medium text-neutral-900">
                         <Link href={`/products/${relatedProduct.id}`}>{relatedProduct.name}</Link>
                       </h3>
-                      <p className="mt-1 text-sm text-neutral-500">${relatedProduct.price.toFixed(2)}</p>
+                      <p className="mt-1 text-sm text-neutral-500">${parseFloat(relatedProduct.price).toFixed(2)}</p>
                     </div>
                   </div>
                 ))}
