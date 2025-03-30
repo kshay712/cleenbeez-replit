@@ -39,6 +39,18 @@ const PlaceholderImage = () => (
 const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
+  
+  console.log('ProductCard receiving product:', product.id, product.name);
+  console.log('ProductCard features:', {
+    organic: product.organic,
+    bpaFree: product.bpaFree,
+    phthalateFree: product.phthalateFree,
+    parabenFree: product.parabenFree,
+    oxybenzoneFree: product.oxybenzoneFree,
+    formaldehydeFree: product.formaldehydeFree,
+    sulfatesFree: product.sulfatesFree,
+    fdcFree: product.fdcFree
+  });
 
   return (
     <Link href={`/products/${product.id}`} className="block group">
