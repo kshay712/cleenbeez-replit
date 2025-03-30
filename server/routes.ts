@@ -19,6 +19,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Middleware to parse and validate auth token
   // Apply auth to all /api routes EXCEPT those exempt below
   app.use('/api', (req, res, next) => {
+    console.log(`[AUTH] Checking auth for ${req.method} ${req.path}`);
+    
     // Paths that don't require authentication
     const publicPaths = [
       '/admin-util/direct-login',
@@ -26,19 +28,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       '/admin-util/create-test-user',
       '/auth/register',
       '/auth/google',
+      '/auth/me',     // Add this to public paths for initial loading
       '/products',
       '/products/featured',
-      '/products/*',
+      '/products/related',
+      '/categories',  // Add this explicitly
       '/blog/posts',
       '/blog/featured',
-      // Individual paths requiring pattern matching are handled separately below
-      // Only GET requests to categories should be public
-      // POST/PUT/DELETE operations need authentication and proper role
-      // This is handled by the middleware in the router setup
+      '/blog/categories',
     ];
     
     // Check for exact path matches
     if (publicPaths.includes(req.path)) {
+      console.log(`[AUTH] Public path match: ${req.path}`);
       return next();
     }
     
@@ -46,29 +48,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // Skip auth for these specific paths
     if (
       // Product & category public paths (GET only)
-      (req.path === '/categories' && req.method === 'GET') || 
-      (req.path.startsWith('/categories/') && req.method === 'GET') ||
-      // Blog public paths (GET only)
-      (req.path === '/blog/categories' && req.method === 'GET') ||
-      (req.path.startsWith('/blog/posts/') && req.method === 'GET') ||
-      (req.path.startsWith('/blog/related/') && req.method === 'GET')
+      (req.method === 'GET' && (
+        req.path.startsWith('/products/') ||
+        req.path.startsWith('/categories/') ||
+        req.path.startsWith('/blog/posts/') ||
+        req.path.startsWith('/blog/related/') ||
+        req.path === '/blog/categories'
+      ))
     ) {
+      console.log(`[AUTH] Public GET path: ${req.path}`);
       return next();
     }
     
-    // Check for path patterns
-    const isPublicPath = publicPaths.some(pattern => {
-      // If the pattern ends with a wildcard (*), check if the path starts with the pattern without the *
-      if (pattern.endsWith('*')) {
-        const basePattern = pattern.slice(0, -1);
-        return req.path.startsWith(basePattern);
-      }
-      return false;
-    });
+    // Check for Authorization header (from development environment)
+    const authHeader = req.headers.authorization;
+    console.log(`[AUTH] Authorization header present: ${!!authHeader}`);
     
-    if (isPublicPath) {
-      return next();
-    }
+    // Log session info
+    console.log(`[AUTH] Session user ID: ${req.session?.userId}`);
     
     return verifyAuthToken(req, res, next);
   });
