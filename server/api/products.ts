@@ -198,8 +198,8 @@ export const products = {
       const { id } = req.params;
       
       // Enhanced debug logging for the incoming request
-      console.log('Update product request body:', req.body);
-      console.log('Product update feature flags:');
+      console.log('Update product request body:', JSON.stringify(req.body));
+      console.log('Product update feature flags (RAW):');
       console.log('- organic:', req.body.organic, 'type:', typeof req.body.organic);
       console.log('- bpaFree:', req.body.bpaFree, 'type:', typeof req.body.bpaFree);
       console.log('- phthalateFree:', req.body.phthalateFree, 'type:', typeof req.body.phthalateFree);
@@ -256,40 +256,74 @@ export const products = {
         delete productData.categoryId;
       }
       
-      // First update all fields except categoryId
-      const product = await storage.updateProduct(Number(id), productData);
-      
-      if (!product) {
-        return res.status(404).json({ message: 'Product not found' });
-      }
-      
-      // Now update the categoryId separately using a direct SQL approach
-      if (categoryIdToUpdate !== null) {
-        try {
-          console.log('Executing direct SQL update for categoryId to:', categoryIdToUpdate);
-          // Get the database client from the db module
-          const { db } = await import('../db');
-          const { sql } = await import('drizzle-orm');
-          
-          // Execute a direct SQL update for categoryId
-          await db.execute(
-            sql`UPDATE products SET category_id = ${categoryIdToUpdate} WHERE id = ${id}`
-          );
-          
-          // Re-fetch the product to include updated category
-          const updatedProduct = await storage.getProductById(Number(id));
-          if (updatedProduct) {
-            console.log('Product successfully updated with new category ID:', updatedProduct.categoryId);
-            return res.json(updatedProduct);
-          }
-        } catch (sqlError) {
-          console.error('Direct SQL update failed:', sqlError);
-          // Continue with original response if SQL update fails
+      try {
+        console.log('Using direct SQL update for feature flags and all fields');
+        // Get the database client and SQL
+        const { db } = await import('../db');
+        const { sql } = await import('drizzle-orm');
+        
+        // Build SQL statement for all fields
+        let updateFields = [];
+        
+        // Basic fields
+        if (productData.name !== undefined) updateFields.push(sql`name = ${productData.name}`);
+        if (productData.description !== undefined) updateFields.push(sql`description = ${productData.description}`);
+        if (productData.price !== undefined) updateFields.push(sql`price = ${productData.price}`);
+        if (productData.whyRecommend !== undefined) updateFields.push(sql`why_recommend = ${productData.whyRecommend}`);
+        if (productData.affiliateLink !== undefined) updateFields.push(sql`affiliate_link = ${productData.affiliateLink}`);
+        if (productData.image !== undefined) updateFields.push(sql`image = ${productData.image}`);
+        
+        // Process ingredients array
+        if (productData.ingredients) {
+          const ingredientsJson = JSON.stringify(productData.ingredients);
+          updateFields.push(sql`ingredients = ${ingredientsJson}`);
         }
+        
+        // Add feature flags
+        if (productData.organic !== undefined) updateFields.push(sql`organic = ${productData.organic}`);
+        if (productData.bpaFree !== undefined) updateFields.push(sql`bpa_free = ${productData.bpaFree}`);
+        if (productData.phthalateFree !== undefined) updateFields.push(sql`phthalate_free = ${productData.phthalateFree}`);
+        if (productData.parabenFree !== undefined) updateFields.push(sql`paraben_free = ${productData.parabenFree}`);
+        if (productData.oxybenzoneFree !== undefined) updateFields.push(sql`oxybenzone_free = ${productData.oxybenzoneFree}`);
+        if (productData.formaldehydeFree !== undefined) updateFields.push(sql`formaldehyde_free = ${productData.formaldehydeFree}`);
+        if (productData.sulfatesFree !== undefined) updateFields.push(sql`sulfates_free = ${productData.sulfatesFree}`);
+        if (productData.fdcFree !== undefined) updateFields.push(sql`fdc_free = ${productData.fdcFree}`);
+        
+        // Add categoryId if it exists
+        if (categoryIdToUpdate !== null) {
+          updateFields.push(sql`category_id = ${categoryIdToUpdate}`);
+        }
+        
+        // Combine all field updates
+        if (updateFields.length === 0) {
+          console.log('No fields to update');
+          return res.status(400).json({ message: 'No valid fields provided for update' });
+        }
+        
+        // Debug the SQL we're building
+        console.log('Direct SQL update fields:', updateFields.map(f => f.toString()).join(', '));
+
+        // Execute a direct SQL update for all fields
+        await db.execute(
+          sql`UPDATE products SET ${sql.join(updateFields, sql`, `)} WHERE id = ${id} RETURNING *`
+        );
+        
+        // Re-fetch the product with latest data
+        const updatedProduct = await storage.getProductById(Number(id));
+        if (updatedProduct) {
+          console.log('Product successfully updated with direct SQL:', updatedProduct);
+          return res.json(updatedProduct);
+        } else {
+          return res.status(404).json({ message: 'Product not found after update' });
+        }
+      } catch (error: any) {
+        console.error('Direct SQL update failed:', error);
+        res.status(500).json({ message: 'Failed to update product with SQL', error: error.message });
       }
       
-      // Return the product (only reached if no categoryId was updated or if re-fetch failed)
-      res.json(product);
+      // This point should never be reached because we're now using direct SQL
+      // but if it does, return an appropriate error
+      return res.status(500).json({ message: 'Failed to update product via direct SQL method' });
     } catch (error: any) {
       console.error('Error updating product:', error);
       res.status(400).json({ message: 'Failed to update product', error: error.message });
