@@ -39,18 +39,19 @@ const PlaceholderImage = () => (
 const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const [showDebug, setShowDebug] = useState(true);
   
-  console.log('ProductCard receiving product:', product.id, product.name);
-  console.log('ProductCard features:', {
-    organic: product.organic,
-    bpaFree: product.bpaFree,
-    phthalateFree: product.phthalateFree,
-    parabenFree: product.parabenFree,
-    oxybenzoneFree: product.oxybenzoneFree,
-    formaldehydeFree: product.formaldehydeFree,
-    sulfatesFree: product.sulfatesFree,
-    fdcFree: product.fdcFree
-  });
+  // Count active features
+  const featureCount = [
+    product.organic,
+    product.bpaFree,
+    product.phthalateFree, 
+    product.parabenFree,
+    product.oxybenzoneFree,
+    product.formaldehydeFree,
+    product.sulfatesFree, 
+    product.fdcFree
+  ].filter(Boolean).length;
 
   return (
     <Link href={`/products/${product.id}`} className="block group">
@@ -134,9 +135,16 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           </p>
           
           <div className="mt-3 pt-3 border-t border-neutral-100 flex justify-between items-center">
-            <span className="text-sm font-medium text-primary-600 group-hover:text-primary-700">
-              View details
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-primary-600 group-hover:text-primary-700">
+                View details
+              </span>
+              {showDebug && (
+                <Badge variant="outline" className="bg-amber-50 border-amber-200">
+                  {featureCount} features
+                </Badge>
+              )}
+            </div>
             <Button variant="ghost" size="icon" className="rounded-full text-neutral-400 hover:text-primary-500 hover:bg-primary-50"
               onClick={(e) => {
                 e.preventDefault();
