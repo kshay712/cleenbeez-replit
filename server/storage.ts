@@ -465,9 +465,20 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateProduct(id: number, product: Partial<InsertProduct>): Promise<Product | undefined> {
-    // Debug logging
+    // Enhanced debug logging
     console.log('Storage: updateProduct - ID:', id);
     console.log('Storage: updateProduct - Product data:', JSON.stringify(product, null, 2));
+    
+    // Log all boolean features specifically
+    console.log('Storage: Feature flags debug:');
+    console.log('- organic:', product.organic, typeof product.organic);
+    console.log('- bpaFree:', product.bpaFree, typeof product.bpaFree);
+    console.log('- phthalateFree:', product.phthalateFree, typeof product.phthalateFree);
+    console.log('- parabenFree:', product.parabenFree, typeof product.parabenFree);
+    console.log('- oxybenzoneFree:', product.oxybenzoneFree, typeof product.oxybenzoneFree);
+    console.log('- formaldehydeFree:', product.formaldehydeFree, typeof product.formaldehydeFree);
+    console.log('- sulfatesFree:', product.sulfatesFree, typeof product.sulfatesFree);
+    console.log('- fdcFree:', product.fdcFree, typeof product.fdcFree);
     
     // Explicitly ensure categoryId is a number if present
     const updateData: Partial<InsertProduct> = { ...product };
@@ -481,15 +492,28 @@ export class DatabaseStorage implements IStorage {
       updateData.categoryId = numCategoryId;
     }
     
-    // Perform update
-    const [updatedProduct] = await db
-      .update(products)
-      .set(updateData)
-      .where(eq(products.id, id))
-      .returning();
+    // Check ingredient handling
+    if (updateData.ingredients) {
+      console.log('Storage: ingredients type before update:', 
+        typeof updateData.ingredients, 
+        Array.isArray(updateData.ingredients) ? 'is array' : 'not array'
+      );
+    }
     
-    console.log('Storage: updateProduct - Result:', updatedProduct);
-    return updatedProduct;
+    // Perform update
+    try {
+      const [updatedProduct] = await db
+        .update(products)
+        .set(updateData)
+        .where(eq(products.id, id))
+        .returning();
+      
+      console.log('Storage: updateProduct - Result:', updatedProduct);
+      return updatedProduct;
+    } catch (error) {
+      console.error('Storage: Error updating product:', error);
+      throw error;
+    }
   }
 
   async deleteProduct(id: number): Promise<boolean> {

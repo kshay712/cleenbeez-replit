@@ -197,8 +197,17 @@ export const products = {
     try {
       const { id } = req.params;
       
-      // Debug log the incoming request
+      // Enhanced debug logging for the incoming request
       console.log('Update product request body:', req.body);
+      console.log('Product update feature flags:');
+      console.log('- organic:', req.body.organic, 'type:', typeof req.body.organic);
+      console.log('- bpaFree:', req.body.bpaFree, 'type:', typeof req.body.bpaFree);
+      console.log('- phthalateFree:', req.body.phthalateFree, 'type:', typeof req.body.phthalateFree);
+      console.log('- parabenFree:', req.body.parabenFree, 'type:', typeof req.body.parabenFree);
+      console.log('- oxybenzoneFree:', req.body.oxybenzoneFree, 'type:', typeof req.body.oxybenzoneFree);
+      console.log('- formaldehydeFree:', req.body.formaldehydeFree, 'type:', typeof req.body.formaldehydeFree);
+      console.log('- sulfatesFree:', req.body.sulfatesFree, 'type:', typeof req.body.sulfatesFree);
+      console.log('- fdcFree:', req.body.fdcFree, 'type:', typeof req.body.fdcFree);
       
       // Build product update data
       let productData: any = { ...req.body };
