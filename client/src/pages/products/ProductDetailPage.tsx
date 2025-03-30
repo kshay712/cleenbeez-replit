@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import ProductGrid from "@/components/products/ProductGrid";
-import ProductFeatures from "@/components/products/ProductFeatures";
 
 const ProductDetailPage = () => {
   const [match, params] = useRoute("/products/:id");
@@ -117,20 +116,48 @@ const ProductDetailPage = () => {
           
           {/* Product details */}
           <div className="mt-10 lg:mt-0 lg:col-start-2 lg:row-span-2 lg:self-start">
-            <ProductFeatures 
-              features={{
-                organic: !!product.organic,
-                bpaFree: !!product.bpaFree,
-                phthalateFree: !!product.phthalateFree,
-                parabenFree: !!product.parabenFree,
-                oxybenzoneFree: !!product.oxybenzoneFree,
-                formaldehydeFree: !!product.formaldehydeFree,
-                sulfatesFree: !!product.sulfatesFree,
-                fdcFree: !!product.fdcFree
-              }} 
-              displayMode="badge"
-              className="flex flex-wrap gap-2"
-            />
+            <div className="flex flex-wrap gap-2">
+              {product.organic && (
+                <Badge className="bg-green-100 text-green-800 px-2 py-1 text-sm font-normal">
+                  Organic
+                </Badge>
+              )}
+              {product.bpaFree && (
+                <Badge className="bg-blue-100 text-blue-800 px-2 py-1 text-sm font-normal">
+                  BPA-Free
+                </Badge>
+              )}
+              {product.phthalateFree && (
+                <Badge className="bg-purple-100 text-purple-800 px-2 py-1 text-sm font-normal">
+                  Phthalate-Free
+                </Badge>
+              )}
+              {product.parabenFree && (
+                <Badge className="bg-indigo-100 text-indigo-800 px-2 py-1 text-sm font-normal">
+                  Paraben-Free
+                </Badge>
+              )}
+              {product.oxybenzoneFree && (
+                <Badge className="bg-red-100 text-red-800 px-2 py-1 text-sm font-normal">
+                  Oxybenzone-Free
+                </Badge>
+              )}
+              {product.formaldehydeFree && (
+                <Badge className="bg-amber-100 text-amber-800 px-2 py-1 text-sm font-normal">
+                  Formaldehyde-Free
+                </Badge>
+              )}
+              {product.sulfatesFree && (
+                <Badge className="bg-teal-100 text-teal-800 px-2 py-1 text-sm font-normal">
+                  Sulfates-Free
+                </Badge>
+              )}
+              {product.fdcFree && (
+                <Badge className="bg-pink-100 text-pink-800 px-2 py-1 text-sm font-normal">
+                  FDC-Free
+                </Badge>
+              )}
+            </div>
             
             <div className="mt-4">
               <h1 className="text-3xl font-extrabold text-neutral-900">{product.name}</h1>

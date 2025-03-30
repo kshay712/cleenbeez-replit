@@ -1,8 +1,8 @@
 import { Link } from "wouter";
 import { Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import CategoryBadge from "@/components/ui/CategoryBadge";
-import ProductFeatures from "@/components/products/ProductFeatures";
 import { useState } from "react";
 
 interface Product {
@@ -62,21 +62,47 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         </div>
         
         <div className="absolute top-0 right-0 flex flex-wrap gap-1 justify-end p-2 max-w-full bg-gradient-to-l from-white/90 to-transparent">
-          <ProductFeatures 
-            features={{
-              organic: !!product.organic,
-              bpaFree: !!product.bpaFree,
-              phthalateFree: !!product.phthalateFree,
-              parabenFree: !!product.parabenFree,
-              oxybenzoneFree: !!product.oxybenzoneFree,
-              formaldehydeFree: !!product.formaldehydeFree,
-              sulfatesFree: !!product.sulfatesFree,
-              fdcFree: !!product.fdcFree
-            }}
-            displayMode="badge"
-            maxDisplay={8} /* Show all features */
-            small={true}
-          />
+          {/* Direct rendering of badges for maximum control */}
+          {product.organic && (
+            <Badge className="bg-green-100 text-green-800 px-1.5 py-px text-xs font-normal">
+              Organic
+            </Badge>
+          )}
+          {product.bpaFree && (
+            <Badge className="bg-blue-100 text-blue-800 px-1.5 py-px text-xs font-normal">
+              BPA-Free
+            </Badge>
+          )}
+          {product.phthalateFree && (
+            <Badge className="bg-purple-100 text-purple-800 px-1.5 py-px text-xs font-normal">
+              Phthalate-Free
+            </Badge>
+          )}
+          {product.parabenFree && (
+            <Badge className="bg-indigo-100 text-indigo-800 px-1.5 py-px text-xs font-normal">
+              Paraben-Free
+            </Badge>
+          )}
+          {product.oxybenzoneFree && (
+            <Badge className="bg-red-100 text-red-800 px-1.5 py-px text-xs font-normal">
+              Oxybenzone-Free
+            </Badge>
+          )}
+          {product.formaldehydeFree && (
+            <Badge className="bg-amber-100 text-amber-800 px-1.5 py-px text-xs font-normal">
+              Formaldehyde-Free
+            </Badge>
+          )}
+          {product.sulfatesFree && (
+            <Badge className="bg-teal-100 text-teal-800 px-1.5 py-px text-xs font-normal">
+              Sulfates-Free
+            </Badge>
+          )}
+          {product.fdcFree && (
+            <Badge className="bg-pink-100 text-pink-800 px-1.5 py-px text-xs font-normal">
+              FDC-Free
+            </Badge>
+          )}
         </div>
         
         <div className="p-4">
