@@ -298,27 +298,52 @@ const ProductForm = ({ productId }: ProductFormProps) => {
     setImagePreview(null);
   };
 
-  // Create a separate feature update mutation
+  // Create a separate feature update mutation with enhanced logging
   const featureUpdateMutation = useMutation({
     mutationFn: async (features: any) => {
       console.log('FEATURE UPDATE ONLY: Starting specialized feature update with data:', features);
       
-      // Using apiRequest to ensure proper authentication
+      // Enhanced logging to track feature data
+      const formData = new FormData();
+      
+      // Enhanced approach - explicit boolean conversions
+      Object.entries(features).forEach(([key, value]) => {
+        // Convert boolean values to explicit 'true'/'false' strings
+        const stringVal = value === true ? 'true' : 'false';
+        console.log(`FEATURE UPDATE ONLY: Setting ${key}=${stringVal} (original: ${value}, type: ${typeof value})`);
+        formData.append(key, stringVal);
+      });
+      
+      // Using apiRequest with FormData to ensure proper authentication and content-type
+      console.log('FEATURE UPDATE ONLY: Sending feature update with FormData');
       const response = await apiRequest(
         'PATCH',
         `/api/products/${productId}/features`,
-        features
+        formData,
+        true // <- Force multipart/form-data
       );
       
       return response.json();
     },
     onSuccess: (data) => {
       console.log('FEATURE UPDATE ONLY: Success, updated product:', data);
-      // We don't need a toast here as the main mutation already shows one
+      // Invalidate the cache for this product to make sure changes are reflected
+      queryClient.invalidateQueries({ queryKey: [`/api/products/${productId}`] });
+      queryClient.invalidateQueries({ queryKey: ['/api/products/admin'] });
+      
+      // Force a refetch of the current product to update the UI immediately
+      if (productId) {
+        console.log('FEATURE UPDATE ONLY: Force refetching product data');
+        queryClient.fetchQuery({ queryKey: [`/api/products/${productId}`] });
+      }
     },
     onError: (error) => {
       console.error('FEATURE UPDATE ONLY: Error updating features:', error);
-      // Don't show a toast for this since the main mutation will handle that
+      toast({
+        variant: 'destructive',
+        title: 'Feature update failed',
+        description: 'Could not update product features. Please try again.',
+      });
     }
   });
 
@@ -367,13 +392,29 @@ const ProductForm = ({ productId }: ProductFormProps) => {
     console.log("Submitting product with data:", submitData);
     
     // If editing, send a dedicated feature flags update BEFORE the main update
+    // and wait for it to complete before continuing with the main save
     if (isEditMode && productId) {
       console.log("FEATURE UPDATE ONLY: Sending dedicated feature update first");
-      featureUpdateMutation.mutate(featureData);
+      
+      // First update the features with the dedicated endpoint
+      featureUpdateMutation.mutate(featureData, {
+        onSuccess: () => {
+          console.log("FEATURE UPDATE ONLY: Feature update successful, proceeding with main save");
+          
+          // Once features are updated, continue with the main product update
+          saveProductMutation.mutate(submitData as any);
+        },
+        onError: () => {
+          console.error("FEATURE UPDATE ONLY: Feature update failed, still proceeding with main save");
+          
+          // Even if feature update fails, still try to save the entire product
+          saveProductMutation.mutate(submitData as any);
+        }
+      });
+    } else {
+      // For new products, just do the normal create
+      saveProductMutation.mutate(submitData as any);
     }
-    
-    // Then send the normal form update
-    saveProductMutation.mutate(submitData as any);
   };
   
   // Cancel editing

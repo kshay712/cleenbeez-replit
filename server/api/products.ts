@@ -475,57 +475,88 @@ export const products = {
   updateProductFeatures: [requireEditor, async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
+      
+      // Add more detailed logging for debugging
       console.log('FEATURE UPDATE ONLY: Starting specialized feature flag update for product', id);
-      console.log('Request body:', req.body);
+      console.log(`FEATURE UPDATE ONLY: Request headers:`, {
+        contentType: req.headers['content-type'],
+        authorization: req.headers.authorization ? 'Present' : 'Missing'
+      });
+      console.log('FEATURE UPDATE ONLY: Request body:', req.body);
       
-      // Extract boolean values directly
-      const organicVal = req.body.organic === 'true' || req.body.organic === true;
-      const bpaFreeVal = req.body.bpaFree === 'true' || req.body.bpaFree === true;
-      const phthalateFreeVal = req.body.phthalateFree === 'true' || req.body.phthalateFree === true;
-      const parabenFreeVal = req.body.parabenFree === 'true' || req.body.parabenFree === true;
-      const oxybenzoneFreeVal = req.body.oxybenzoneFree === 'true' || req.body.oxybenzoneFree === true;
-      const formaldehydeFreeVal = req.body.formaldehydeFree === 'true' || req.body.formaldehydeFree === true;
-      const sulfatesFreeVal = req.body.sulfatesFree === 'true' || req.body.sulfatesFree === true;
-      const fdcFreeVal = req.body.fdcFree === 'true' || req.body.fdcFree === true;
+      // Enhanced extraction of boolean values - add more robust handling
+      const organicVal = req.body.organic === true || req.body.organic === 'true' || req.body.organic === 1;
+      const bpaFreeVal = req.body.bpaFree === true || req.body.bpaFree === 'true' || req.body.bpaFree === 1;
+      const phthalateFreeVal = req.body.phthalateFree === true || req.body.phthalateFree === 'true' || req.body.phthalateFree === 1;
+      const parabenFreeVal = req.body.parabenFree === true || req.body.parabenFree === 'true' || req.body.parabenFree === 1;
+      const oxybenzoneFreeVal = req.body.oxybenzoneFree === true || req.body.oxybenzoneFree === 'true' || req.body.oxybenzoneFree === 1;
+      const formaldehydeFreeVal = req.body.formaldehydeFree === true || req.body.formaldehydeFree === 'true' || req.body.formaldehydeFree === 1;
+      const sulfatesFreeVal = req.body.sulfatesFree === true || req.body.sulfatesFree === 'true' || req.body.sulfatesFree === 1;
+      const fdcFreeVal = req.body.fdcFree === true || req.body.fdcFree === 'true' || req.body.fdcFree === 1;
       
-      console.log('FEATURE UPDATE ONLY: Values extracted:', {
-        organic: organicVal,
-        bpaFree: bpaFreeVal,
-        phthalateFree: phthalateFreeVal,
-        parabenFree: parabenFreeVal,
-        oxybenzoneFree: oxybenzoneFreeVal,
-        formaldehydeFree: formaldehydeFreeVal,
-        sulfatesFree: sulfatesFreeVal,
-        fdcFree: fdcFreeVal
+      console.log('FEATURE UPDATE ONLY: Values extracted (types):', {
+        organic: `${organicVal} (${typeof organicVal})`,
+        bpaFree: `${bpaFreeVal} (${typeof bpaFreeVal})`,
+        phthalateFree: `${phthalateFreeVal} (${typeof phthalateFreeVal})`,
+        parabenFree: `${parabenFreeVal} (${typeof parabenFreeVal})`,
+        oxybenzoneFree: `${oxybenzoneFreeVal} (${typeof oxybenzoneFreeVal})`,
+        formaldehydeFree: `${formaldehydeFreeVal} (${typeof formaldehydeFreeVal})`,
+        sulfatesFree: `${sulfatesFreeVal} (${typeof sulfatesFreeVal})`,
+        fdcFree: `${fdcFreeVal} (${typeof fdcFreeVal})`
+      });
+      
+      // Get product before update to compare values
+      const productBeforeUpdate = await storage.getProductById(Number(id));
+      console.log('FEATURE UPDATE ONLY: Product before update:', {
+        id: productBeforeUpdate?.id,
+        organic: productBeforeUpdate?.organic,
+        bpaFree: productBeforeUpdate?.bpaFree,
       });
       
       // Execute direct SQL update for just feature flags
       const { db } = await import('../db');
       const { sql } = await import('drizzle-orm');
       
+      // Force boolean type casting to ensure proper SQL handling
       const result = await db.execute(sql`
         UPDATE products 
-        SET organic = ${organicVal},
-            bpa_free = ${bpaFreeVal},
-            phthalate_free = ${phthalateFreeVal},
-            paraben_free = ${parabenFreeVal},
-            oxybenzone_free = ${oxybenzoneFreeVal},
-            formaldehyde_free = ${formaldehydeFreeVal},
-            sulfates_free = ${sulfatesFreeVal},
-            fdc_free = ${fdcFreeVal}
-        WHERE id = ${id}
+        SET organic = ${!!organicVal}::boolean,
+            bpa_free = ${!!bpaFreeVal}::boolean,
+            phthalate_free = ${!!phthalateFreeVal}::boolean,
+            paraben_free = ${!!parabenFreeVal}::boolean,
+            oxybenzone_free = ${!!oxybenzoneFreeVal}::boolean,
+            formaldehyde_free = ${!!formaldehydeFreeVal}::boolean,
+            sulfates_free = ${!!sulfatesFreeVal}::boolean,
+            fdc_free = ${!!fdcFreeVal}::boolean,
+            updated_at = NOW()
+        WHERE id = ${Number(id)}
         RETURNING *
       `);
       
-      console.log('FEATURE UPDATE ONLY: Direct SQL update result:', result);
+      console.log('FEATURE UPDATE ONLY: Direct SQL update result rows:', result.length);
       
-      // Re-fetch product to confirm update
+      // Verify the raw SQL result first
+      if (result && result.length > 0) {
+        const rawResult = result[0];
+        console.log('FEATURE UPDATE ONLY: First row of raw SQL result:', {
+          id: rawResult.id,
+          organic: rawResult.organic,
+          bpa_free: rawResult.bpa_free,
+          updated_at: rawResult.updated_at
+        });
+      }
+      
+      // Add a small delay to ensure database consistency
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Re-fetch product with our enhanced direct SQL method
       const updatedProduct = await storage.getProductById(Number(id));
       if (!updatedProduct) {
+        console.error('FEATURE UPDATE ONLY: Product not found after update');
         return res.status(404).json({ message: 'Product not found after update' });
       }
       
-      console.log('FEATURE UPDATE ONLY: Updated product:', {
+      console.log('FEATURE UPDATE ONLY: Updated product features from storage:', {
         id: updatedProduct.id,
         organic: updatedProduct.organic,
         bpaFree: updatedProduct.bpaFree,

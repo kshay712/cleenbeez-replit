@@ -167,27 +167,79 @@ export class DatabaseStorage implements IStorage {
 
   // Product methods
   async getProductById(id: number): Promise<Product | undefined> {
-    const [product] = await db
-      .select()
-      .from(products)
-      .where(eq(products.id, id));
-    
-    if (!product) return undefined;
-    
-    // Get category info
-    if (product.categoryId) {
-      const [category] = await db
-        .select()
-        .from(categories)
-        .where(eq(categories.id, product.categoryId));
+    try {
+      // Force a fresh database query using SQL to avoid any cache issues
+      // Especially important for feature flags
+      const { sql } = await import('drizzle-orm');
       
-      return {
-        ...product,
-        category
-      } as unknown as Product;
+      console.log('STORAGE: Getting fresh product data for ID:', id);
+      
+      const rawProduct = await db.execute(sql`
+        SELECT 
+          p.*,
+          c.id as category_id,
+          c.name as category_name,
+          c.slug as category_slug
+        FROM 
+          products p
+        LEFT JOIN 
+          categories c ON p.category_id = c.id
+        WHERE 
+          p.id = ${id}
+      `);
+      
+      if (!rawProduct || !rawProduct.length || !rawProduct[0]) {
+        console.log('STORAGE: Product not found with ID:', id);
+        return undefined;
+      }
+      
+      const raw = rawProduct[0] as any;
+      
+      // Map the raw result to the Product type
+      const product: Product = {
+        id: raw.id,
+        name: raw.name,
+        description: raw.description,
+        price: raw.price,
+        categoryId: raw.category_id,
+        image: raw.image,
+        organic: raw.organic,
+        bpaFree: raw.bpa_free,
+        phthalateFree: raw.phthalate_free,
+        parabenFree: raw.paraben_free,
+        oxybenzoneFree: raw.oxybenzone_free,
+        formaldehydeFree: raw.formaldehyde_free,
+        sulfatesFree: raw.sulfates_free,
+        fdcFree: raw.fdc_free,
+        whyRecommend: raw.why_recommend,
+        ingredients: raw.ingredients ? JSON.parse(raw.ingredients) : [],
+        affiliateLink: raw.affiliate_link,
+        createdAt: raw.created_at,
+        updatedAt: raw.updated_at,
+        category: raw.category_id ? {
+          id: raw.category_id,
+          name: raw.category_name,
+          slug: raw.category_slug,
+        } : undefined,
+      };
+      
+      console.log('STORAGE: Fresh product feature flags:', {
+        id: product.id,
+        organic: product.organic,
+        bpaFree: product.bpaFree,
+        phthalateFree: product.phthalateFree,
+        parabenFree: product.parabenFree,
+        oxybenzoneFree: product.oxybenzoneFree,
+        formaldehydeFree: product.formaldehydeFree,
+        sulfatesFree: product.sulfatesFree,
+        fdcFree: product.fdcFree
+      });
+      
+      return product;
+    } catch (error) {
+      console.error('Error getting product by ID:', error);
+      return undefined;
     }
-    
-    return product;
   }
 
   async getProducts(options: {
