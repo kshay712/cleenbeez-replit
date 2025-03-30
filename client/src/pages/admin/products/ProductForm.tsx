@@ -349,7 +349,7 @@ const ProductForm = ({ productId }: ProductFormProps) => {
       console.log('CATEGORY UPDATE ONLY: Using dedicated category update endpoint');
       
       const response = await apiRequest(
-        'PUT', // Using PUT for idempotent update
+        'PATCH', // Changed to PATCH to match server endpoint
         `/api/products/${productId}/category/${categoryId}`,
         {}, // No body needed as categoryId is in the URL
         false // Not using FormData
