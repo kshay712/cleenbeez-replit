@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { Link } from 'wouter';
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Leaf, ShieldCheck } from 'lucide-react';
 
 // Product interface that matches the server response
 interface Product {
@@ -11,13 +10,19 @@ interface Product {
   description: string;
   price: number;
   image: string;
-  organic: boolean;
-  bpaFree: boolean;
   category: {
     id: number;
     name: string;
     slug: string;
   };
+  organic: boolean | null;
+  bpaFree: boolean | null;
+  phthalateFree: boolean | null;
+  parabenFree: boolean | null;
+  oxybenzoneFree: boolean | null;
+  formaldehydeFree: boolean | null;
+  sulfatesFree: boolean | null;
+  fdcFree: boolean | null;
 }
 
 interface ProductGridProps {
@@ -32,6 +37,34 @@ const ProductGrid = ({ products }: ProductGridProps) => {
       ...prev,
       [productId]: true
     }));
+  };
+
+  // Create feature map for each product
+  const getProductFeatures = (product: Product) => {
+    return [
+      { enabled: product.organic, name: "Organic", className: "bg-green-100 text-green-800" },
+      { enabled: product.bpaFree, name: "BPA-Free", className: "bg-blue-100 text-blue-800" },
+      { enabled: product.phthalateFree, name: "Phthalate-Free", className: "bg-purple-100 text-purple-800" },
+      { enabled: product.parabenFree, name: "Paraben-Free", className: "bg-indigo-100 text-indigo-800" },
+      { enabled: product.oxybenzoneFree, name: "Oxybenzone-Free", className: "bg-red-100 text-red-800" },
+      { enabled: product.formaldehydeFree, name: "Formaldehyde-Free", className: "bg-amber-100 text-amber-800" },
+      { enabled: product.sulfatesFree, name: "Sulfates-Free", className: "bg-teal-100 text-teal-800" },
+      { enabled: product.fdcFree, name: "FDC-Free", className: "bg-pink-100 text-pink-800" }
+    ].filter(f => f.enabled);
+  };
+
+  // Count features for a product
+  const countFeatures = (product: Product) => {
+    return [
+      product.organic,
+      product.bpaFree,
+      product.phthalateFree, 
+      product.parabenFree,
+      product.oxybenzoneFree,
+      product.formaldehydeFree,
+      product.sulfatesFree, 
+      product.fdcFree
+    ].filter(Boolean).length;
   };
 
   return (
@@ -50,19 +83,19 @@ const ProductGrid = ({ products }: ProductGridProps) => {
                   alt={product.name}
                   className="object-cover w-full h-full hover:scale-105 transition-transform duration-300"
                   onError={() => handleImageError(product.id)}
+                  loading="lazy"
                 />
               )}
-              <div className="absolute top-2 right-2 flex flex-col gap-2">
-                {product.organic && (
-                  <Badge variant="secondary" className="bg-green-100 text-green-800 border-green-300">
-                    <Leaf className="h-3 w-3 mr-1" /> Organic
+              {/* Feature badges */}
+              <div className="absolute top-0 right-0 flex flex-wrap gap-1 justify-end p-2 max-w-full bg-gradient-to-l from-white/90 to-transparent">
+                {getProductFeatures(product).map((feature, idx) => (
+                  <Badge 
+                    key={idx} 
+                    className={`px-1.5 py-px text-xs font-normal ${feature.className}`}
+                  >
+                    {feature.name}
                   </Badge>
-                )}
-                {product.bpaFree && (
-                  <Badge variant="secondary" className="bg-blue-100 text-blue-800 border-blue-300">
-                    <ShieldCheck className="h-3 w-3 mr-1" /> BPA-Free
-                  </Badge>
-                )}
+                ))}
               </div>
             </div>
           </Link>
@@ -84,7 +117,12 @@ const ProductGrid = ({ products }: ProductGridProps) => {
           </CardContent>
           
           <CardFooter className="p-4 pt-0 flex items-center justify-between">
-            <div className="font-medium text-gray-900">${parseFloat(product.price).toFixed(2)}</div>
+            <div className="flex items-center gap-2">
+              <div className="font-medium text-gray-900">${parseFloat(product.price.toString()).toFixed(2)}</div>
+              <Badge variant="outline" className="bg-amber-50 border-amber-200 text-amber-800">
+                {countFeatures(product)} features
+              </Badge>
+            </div>
             <Link href={`/products/${product.id}`}>
               <Badge className="cursor-pointer">View Details</Badge>
             </Link>
