@@ -311,10 +311,26 @@ export const products = {
       
       // Parse numeric and boolean fields if they exist in the request
       if (productData.price) productData.price = productData.price.toString(); // Convert to string to match schema
-      if (productData.categoryId) {
-        console.log('Original categoryId:', productData.categoryId, 'Type:', typeof productData.categoryId);
-        productData.categoryId = parseInt(productData.categoryId);
-        console.log('Parsed categoryId:', productData.categoryId);
+      // CRITICAL FIX: Process categoryId correctly, including handling '0' as a valid category
+      if (productData.categoryId !== undefined && productData.categoryId !== null) {
+        // First log the raw value
+        console.log('Original categoryId (raw):', productData.categoryId, 'Type:', typeof productData.categoryId);
+        
+        // Convert to a number - handles both string and numeric values
+        const categoryIdNumber = Number(productData.categoryId);
+        
+        // CRITICAL: Check for NaN to avoid invalid values
+        if (isNaN(categoryIdNumber)) {
+          console.log('WARNING: categoryId could not be parsed as a number:', productData.categoryId);
+          // Set to null if we can't parse it
+          productData.categoryId = null;
+        } else {
+          // Valid number - use it
+          productData.categoryId = categoryIdNumber;
+          console.log('Parsed categoryId as number:', categoryIdNumber);
+        }
+      } else {
+        console.log('categoryId is undefined or null in request');
       }
       // Convert all boolean fields
       console.log('Converting boolean fields:');
@@ -362,7 +378,11 @@ export const products = {
       
       // IMPORTANT: Do NOT remove categoryId from productData anymore
       // This was causing product category updates to fail
-      console.log('Keeping categoryId in update data:', categoryIdToUpdate);
+      console.log('CRITICAL DEBUGGING: categoryId in update data:', {
+        categoryIdRaw: productData.categoryId,
+        categoryIdParsed: categoryIdToUpdate,
+        categoryIdType: typeof productData.categoryId,
+      });
       
       try {
         console.log('Using direct SQL update for feature flags and all fields');
@@ -424,9 +444,14 @@ export const products = {
         updateFields.push(sql`sulfates_free = ${sulfatesFreeFinal}`);
         updateFields.push(sql`fdc_free = ${fdcFreeFinal}`);
         
-        // Add categoryId if it exists
-        if (categoryIdToUpdate !== null) {
-          updateFields.push(sql`category_id = ${categoryIdToUpdate}`);
+        // Add categoryId if it exists - even if it's 0
+        // FIXED: Check for null and undefined separately to handle all cases
+        if (categoryIdToUpdate !== null && categoryIdToUpdate !== undefined) {
+          const categoryIdNumber = Number(categoryIdToUpdate);
+          console.log('ADDING CATEGORY ID TO SQL UPDATE FIELDS:', categoryIdNumber, '(original value:', categoryIdToUpdate, ')');
+          updateFields.push(sql`category_id = ${categoryIdNumber}`);
+        } else {
+          console.log('NOT ADDING CATEGORY ID TO SQL UPDATE - categoryIdToUpdate is null or undefined');
         }
         
         // Combine all field updates
