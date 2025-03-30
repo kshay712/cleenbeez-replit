@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import ProductGrid from "@/components/products/ProductGrid";
-import FeatureBadge from "@/components/ui/FeatureBadge";
+import ProductFeatures from "@/components/products/ProductFeatures";
 
 const ProductDetailPage = () => {
   const [match, params] = useRoute("/products/:id");
@@ -117,10 +117,20 @@ const ProductDetailPage = () => {
           
           {/* Product details */}
           <div className="mt-10 lg:mt-0 lg:col-start-2 lg:row-span-2 lg:self-start">
-            <div className="flex items-center space-x-2">
-              {product.organic && <FeatureBadge type="organic" />}
-              {product.bpaFree && <FeatureBadge type="bpafree" />}
-            </div>
+            <ProductFeatures 
+              features={{
+                organic: !!product.organic,
+                bpaFree: !!product.bpaFree,
+                phthalateFree: !!product.phthalateFree,
+                parabenFree: !!product.parabenFree,
+                oxybenzoneFree: !!product.oxybenzoneFree,
+                formaldehydeFree: !!product.formaldehydeFree,
+                sulfatesFree: !!product.sulfatesFree,
+                fdcFree: !!product.fdcFree
+              }} 
+              displayMode="badge"
+              className="flex flex-wrap gap-2"
+            />
             
             <div className="mt-4">
               <h1 className="text-3xl font-extrabold text-neutral-900">{product.name}</h1>

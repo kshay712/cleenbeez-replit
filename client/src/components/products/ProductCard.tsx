@@ -1,8 +1,8 @@
 import { Link } from "wouter";
 import { Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import FeatureBadge from "@/components/ui/FeatureBadge";
 import CategoryBadge from "@/components/ui/CategoryBadge";
+import ProductFeatures from "@/components/products/ProductFeatures";
 import { useState } from "react";
 
 interface Product {
@@ -16,8 +16,14 @@ interface Product {
     slug: string;
   };
   image: string;
-  organic: boolean;
-  bpaFree: boolean;
+  organic: boolean | null;
+  bpaFree: boolean | null;
+  phthalateFree: boolean | null;
+  parabenFree: boolean | null;
+  oxybenzoneFree: boolean | null;
+  formaldehydeFree: boolean | null;
+  sulfatesFree: boolean | null;
+  fdcFree: boolean | null;
 }
 
 interface ProductCardProps {
@@ -55,9 +61,21 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           )}
         </div>
         
-        <div className="absolute top-2 right-2 flex flex-col space-y-1">
-          {product.organic && <FeatureBadge type="organic" className="text-xs" />}
-          {product.bpaFree && <FeatureBadge type="bpafree" className="text-xs" />}
+        <div className="absolute top-2 right-2">
+          <ProductFeatures 
+            features={{
+              organic: !!product.organic,
+              bpaFree: !!product.bpaFree,
+              phthalateFree: !!product.phthalateFree,
+              parabenFree: !!product.parabenFree,
+              oxybenzoneFree: !!product.oxybenzoneFree,
+              formaldehydeFree: !!product.formaldehydeFree,
+              sulfatesFree: !!product.sulfatesFree,
+              fdcFree: !!product.fdcFree
+            }}
+            displayMode="tooltip"
+            small={true}
+          />
         </div>
         
         <div className="p-4">

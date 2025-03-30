@@ -6,6 +6,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { apiRequest } from '@/lib/queryClient';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import ProductFeatures from "@/components/products/ProductFeatures";
 import {
   Table,
   TableBody,
@@ -40,6 +41,12 @@ interface Product {
   image: string;
   organic: boolean;
   bpaFree: boolean;
+  phthalateFree: boolean | null;
+  parabenFree: boolean | null;
+  oxybenzoneFree: boolean | null;
+  formaldehydeFree: boolean | null;
+  sulfatesFree: boolean | null;
+  fdcFree: boolean | null;
   createdAt: string;
   updatedAt: string;
   affiliateLink?: string;
@@ -171,18 +178,20 @@ const AdminProductsPage = () => {
                     </TableCell>
                     <TableCell>${parseFloat(product.price).toFixed(2)}</TableCell>
                     <TableCell>
-                      <div className="flex gap-2">
-                        {product.organic && (
-                          <Badge className="bg-green-100 text-green-800 hover:bg-green-200">
-                            Organic
-                          </Badge>
-                        )}
-                        {product.bpaFree && (
-                          <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-200">
-                            BPA-Free
-                          </Badge>
-                        )}
-                      </div>
+                      <ProductFeatures 
+                        features={{
+                          organic: !!product.organic,
+                          bpaFree: !!product.bpaFree,
+                          phthalateFree: !!product.phthalateFree,
+                          parabenFree: !!product.parabenFree,
+                          oxybenzoneFree: !!product.oxybenzoneFree,
+                          formaldehydeFree: !!product.formaldehydeFree,
+                          sulfatesFree: !!product.sulfatesFree,
+                          fdcFree: !!product.fdcFree
+                        }}
+                        displayMode="compact"
+                        small={true}
+                      />
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
