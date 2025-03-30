@@ -2,7 +2,7 @@ import { useAuth } from '@/hooks/useAuth';
 import ProductForm from './ProductForm';
 import { useLocation, useRoute } from 'wouter';
 import { Button } from '@/components/ui/button';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, type UseQueryOptions } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
 
 const EditProductPage = () => {
@@ -11,11 +11,11 @@ const EditProductPage = () => {
   const [match, params] = useRoute<{ id: string }>('/admin/products/edit/:id');
   const productId = params?.id;
 
-  // Verify the product exists
+  // Verify the product exists with proper type
   const { isLoading, error } = useQuery({
-    queryKey: [`/api/products/${productId}`],
+    queryKey: [`/api/products/${productId}`] as const,
     enabled: !!productId,
-  });
+  } as UseQueryOptions);
 
   if (!isEditor) {
     return (

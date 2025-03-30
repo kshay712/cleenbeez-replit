@@ -104,39 +104,61 @@ const ProductForm = ({ productId }: ProductFormProps) => {
   });
 
   // Fetch product data in edit mode
-  const { data: productData, isLoading: isProductLoading } = useQuery<{ product: any }>({
-    queryKey: [`/api/products/${productId}`],
+  const { data: productData, isLoading: isProductLoading } = useQuery({
+    queryKey: [`/api/products/${productId}`] as const,
     enabled: isEditMode,
-  });
+  } as any);
 
   // Update form with product data in edit mode
   useEffect(() => {
     if (isEditMode && productData) {
-      const product = productData.product;
-      
-      // Extract ingredients if available
-      if (product.ingredients && Array.isArray(product.ingredients)) {
-        setIngredientsList(product.ingredients);
-      }
-      
-      // Build the form data
-      const formData = {
-        name: product.name,
-        description: product.description,
-        price: product.price,
-        categoryId: Number(product.categoryId),
-        organic: Boolean(product.organic),
-        bpaFree: Boolean(product.bpaFree),
-        whyRecommend: product.whyRecommend || '',
-        ingredients: product.ingredients || [],
-        affiliateLink: product.affiliateLink || '',
-        image: undefined,
-      };
-      
-      form.reset(formData);
-      
-      if (product.image) {
-        setImagePreview(product.image);
+      // Process the data safely using type assertions for TypeScript
+      try {
+        // TypeScript type assertion to access properties
+        const typedProduct = productData as any;
+        
+        // Extract ingredients safely
+        let ingredients: string[] = [];
+        if (typedProduct.ingredients) {
+          if (Array.isArray(typedProduct.ingredients)) {
+            ingredients = typedProduct.ingredients;
+          } else if (typeof typedProduct.ingredients === 'string') {
+            try {
+              const parsed = JSON.parse(typedProduct.ingredients);
+              ingredients = Array.isArray(parsed) ? parsed : [];
+            } catch {
+              // If parsing fails, use empty array
+              ingredients = [];
+            }
+          }
+        }
+        
+        // Set ingredients list
+        setIngredientsList(ingredients);
+        
+        // Build the form data with safe fallbacks
+        const formData = {
+          name: typedProduct.name || '',
+          description: typedProduct.description || '',
+          price: typeof typedProduct.price === 'string' ? typedProduct.price : '0.00',
+          categoryId: Number(typedProduct.categoryId) || 0,
+          organic: Boolean(typedProduct.organic),
+          bpaFree: Boolean(typedProduct.bpaFree),
+          whyRecommend: typedProduct.whyRecommend || '',
+          ingredients: ingredients,
+          affiliateLink: typedProduct.affiliateLink || '',
+          image: undefined,
+        };
+        
+        // Reset form with the prepared data
+        form.reset(formData);
+        
+        // Set image preview if available
+        if (typedProduct.image) {
+          setImagePreview(typedProduct.image);
+        }
+      } catch (error) {
+        console.error("Error while setting product data in form:", error);
       }
     }
   }, [isEditMode, productData, form]);
@@ -148,8 +170,10 @@ const ProductForm = ({ productId }: ProductFormProps) => {
       
       // Add all form values
       Object.entries(values).forEach(([key, value]) => {
-        if (key === 'ingredients' && Array.isArray(value)) {
-          formData.append('ingredients', JSON.stringify(value));
+        if (key === 'ingredients') {
+          // Ensure ingredients is always serialized as an array
+          const ingredientsArray = Array.isArray(value) ? value : [];
+          formData.append('ingredients', JSON.stringify(ingredientsArray));
         } else if (key !== 'image' && value !== undefined && value !== null) {
           formData.append(key, value.toString());
         }

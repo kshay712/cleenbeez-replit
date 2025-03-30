@@ -80,6 +80,14 @@ export const products = {
         return res.status(404).json({ message: 'Product not found' });
       }
       
+      // Log the product data format
+      console.log('Product data being returned:', {
+        type: typeof product,
+        hasIngredients: product.hasOwnProperty('ingredients'),
+        ingredientsType: typeof product.ingredients,
+        product: JSON.stringify(product)
+      });
+      
       res.json(product);
     } catch (error: any) {
       console.error('Error fetching product:', error);
