@@ -184,16 +184,22 @@ const ProductForm = ({ productId }: ProductFormProps) => {
       const formData = new FormData();
       
       // Add all form values
+      // Process categoryId first to ensure it's handled correctly
+      if (values.categoryId !== undefined) {
+        const categoryIdValue = Number(values.categoryId);
+        console.log('Setting categoryId in FormData:', categoryIdValue);
+        formData.append('categoryId', categoryIdValue.toString());
+      }
+
+      // Process other fields
       Object.entries(values).forEach(([key, value]) => {
-        if (key === 'ingredients') {
+        if (key === 'categoryId') {
+          // Skip categoryId as we've already handled it
+          return;
+        } else if (key === 'ingredients') {
           // Ensure ingredients is always serialized as an array
           const ingredientsArray = Array.isArray(value) ? value : [];
           formData.append('ingredients', JSON.stringify(ingredientsArray));
-        } else if (key === 'categoryId') {
-          // Ensure categoryId is always a number and properly set
-          const categoryIdValue = Number(value);
-          console.log('Setting categoryId in FormData:', categoryIdValue);
-          formData.append('categoryId', categoryIdValue.toString());
         } else if (key !== 'image' && value !== undefined && value !== null) {
           formData.append(key, value.toString());
         }
@@ -262,9 +268,11 @@ const ProductForm = ({ productId }: ProductFormProps) => {
       ingredients: ingredientsList
     };
     
-    // Make sure categoryId is a number
-    if (typeof submitData.categoryId !== 'number') {
-      submitData.categoryId = Number(submitData.categoryId);
+    // Always ensure categoryId is a number
+    if (submitData.categoryId !== undefined) {
+      const categoryId = Number(submitData.categoryId);
+      console.log("Ensuring categoryId is a number in submit:", categoryId);
+      submitData.categoryId = categoryId;
     }
     
     // Add image to values if provided
@@ -467,7 +475,15 @@ const ProductForm = ({ productId }: ProductFormProps) => {
                   <FormItem>
                     <FormLabel>Category</FormLabel>
                     <Select
-                      onValueChange={(value) => field.onChange(Number(value))}
+                      onValueChange={(value) => {
+                        // Directly update the form with the number value
+                        const numberValue = Number(value);
+                        console.log("Category selected:", numberValue);
+                        field.onChange(numberValue);
+                        
+                        // Explicitly force the value to be a number in form state
+                        form.setValue("categoryId", numberValue);
+                      }}
                       value={field.value?.toString() || ""}
                       disabled={isCategoriesLoading}
                     >
