@@ -99,14 +99,14 @@ export const blog = {
 
   createPost: [requireEditor, upload.single('featuredImage'), async (req: Request, res: Response) => {
     try {
-      const featuredImage = req.file ? getFileUrl(req.file.filename) : null;
-      if (!featuredImage) {
-        return res.status(400).json({ message: 'Featured image is required' });
-      }
-      
       // Get user ID from authenticated user
       if (!req.user || !req.user.id) {
         return res.status(401).json({ message: 'Authentication required' });
+      }
+      
+      let featuredImage = req.file ? getFileUrl(req.file.filename) : req.body.featuredImage;
+      if (!featuredImage) {
+        return res.status(400).json({ message: 'Featured image is required' });
       }
       
       const authorId = req.user.id;
@@ -148,6 +148,9 @@ export const blog = {
       // Handle image upload if provided
       if (req.file) {
         postData.featuredImage = getFileUrl(req.file.filename);
+      } else if (req.body.featuredImage) {
+        // Use the featuredImage URL from the request body
+        postData.featuredImage = req.body.featuredImage;
       }
       
       // Parse and validate categories if provided

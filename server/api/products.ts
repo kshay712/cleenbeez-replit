@@ -131,6 +131,17 @@ export const products = {
       }
       
       // Parse price and other numeric fields
+      let ingredients = [];
+      if (req.body.ingredients) {
+        try {
+          ingredients = JSON.parse(req.body.ingredients);
+        } catch (e) {
+          console.error('Failed to parse ingredients JSON:', e);
+          // If parsing fails, use the raw string
+          ingredients = req.body.ingredients;
+        }
+      }
+      
       const productData = {
         ...req.body,
         price: req.body.price.toString(), // Convert to string to match schema
@@ -138,6 +149,7 @@ export const products = {
         organic: req.body.organic === 'true',
         bpaFree: req.body.bpaFree === 'true',
         featured: req.body.featured === 'true',
+        ingredients,
         image
       };
       
@@ -162,6 +174,16 @@ export const products = {
       // Handle image upload if provided
       if (req.file) {
         productData.image = getFileUrl(req.file.filename);
+      }
+      
+      // Parse ingredients if provided
+      if (productData.ingredients) {
+        try {
+          productData.ingredients = JSON.parse(productData.ingredients);
+        } catch (e) {
+          console.error('Failed to parse ingredients JSON:', e);
+          // If parsing fails, use the raw string
+        }
       }
       
       // Parse numeric and boolean fields if they exist in the request

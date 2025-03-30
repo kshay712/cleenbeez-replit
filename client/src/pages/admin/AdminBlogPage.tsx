@@ -8,6 +8,7 @@ import { useForm, Controller } from "react-hook-form";
 import { z } from "zod";
 import { useLocation } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
+import { auth } from "@/lib/firebase";
 import { 
   PlusCircle, 
   Edit, 
@@ -84,7 +85,7 @@ const blogPostSchema = z.object({
     }),
   excerpt: z.string().min(10, { message: "Excerpt must be at least 10 characters" }),
   content: z.string().min(50, { message: "Content must be at least 50 characters" }),
-  featuredImage: z.string().url({ message: "Featured image must be a valid URL" }),
+  featuredImage: z.any(), // Will be handled as a file upload
   published: z.boolean().default(false),
   categories: z.array(z.string()).min(1, { message: "Select at least one category" }),
 });
@@ -133,7 +134,7 @@ const AdminBlogPage = () => {
       slug: "",
       excerpt: "",
       content: "",
-      featuredImage: "",
+      featuredImage: undefined, // Set to undefined instead of empty string for file input
       published: false,
       categories: [],
     }
@@ -171,9 +172,71 @@ const AdminBlogPage = () => {
   // Create blog post mutation
   const createPostMutation = useMutation({
     mutationFn: async (data: BlogFormValues) => {
-      return await apiRequest("POST", "/api/blog/posts", {
-        ...data,
-        authorId: user?.id
+      // Create FormData for file upload
+      const formData = new FormData();
+      
+      // Add all text fields to FormData
+      Object.keys(data).forEach(key => {
+        if (key === 'featuredImage') {
+          if (data.featuredImage instanceof File) {
+            formData.append('featuredImage', data.featuredImage);
+          } else if (typeof data.featuredImage === 'string') {
+            formData.append('featuredImage', data.featuredImage);
+          }
+        } else if (key === 'categories') {
+          formData.append('categories', JSON.stringify(data.categories));
+        } else {
+          formData.append(key, String(data[key as keyof typeof data]));
+        }
+      });
+      
+      // Add author ID
+      if (user?.id) {
+        formData.append('authorId', String(user.id));
+      }
+      
+      // Setup headers with authentication
+      const headers: HeadersInit = {};
+      
+      // Add dev user ID and Firebase UID if it exists in localStorage
+      const devUser = localStorage.getItem('dev-user');
+      if (devUser) {
+        try {
+          const userData = JSON.parse(devUser);
+          if (userData && userData.id) {
+            headers['X-Dev-User-ID'] = userData.id.toString();
+            headers['Authorization'] = `Bearer ${userData.firebaseUid || 'test-' + userData.id}`;
+            console.log('Found development user in localStorage:', userData);
+          }
+        } catch (e) {
+          console.error('Failed to parse dev user from localStorage:', e);
+        }
+      }
+      
+      // If Firebase auth is used, add the token to the headers
+      try {
+        const currentUser = auth.currentUser;
+        if (currentUser) {
+          const token = await currentUser.getIdToken();
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+      } catch (e) {
+        console.error('Failed to get Firebase token:', e);
+      }
+      
+      // Special handling for FormData
+      return await fetch('/api/blog/posts', {
+        method: 'POST',
+        headers, // Add auth headers
+        body: formData,
+        credentials: 'include'
+      }).then(response => {
+        if (!response.ok) {
+          return response.json().then(err => {
+            throw new Error(err.message || 'Failed to create blog post');
+          });
+        }
+        return response.json();
       });
     },
     onSuccess: () => {
@@ -198,7 +261,68 @@ const AdminBlogPage = () => {
   const updatePostMutation = useMutation({
     mutationFn: async (data: BlogFormValues & { id: number }) => {
       const { id, ...postData } = data;
-      return await apiRequest("PUT", `/api/blog/posts/${id}`, postData);
+      
+      // Create FormData for file upload
+      const formData = new FormData();
+      
+      // Add all text fields to FormData
+      Object.keys(postData).forEach(key => {
+        if (key === 'featuredImage') {
+          if (postData.featuredImage instanceof File) {
+            formData.append('featuredImage', postData.featuredImage);
+          } else if (typeof postData.featuredImage === 'string') {
+            formData.append('featuredImage', postData.featuredImage);
+          }
+        } else if (key === 'categories') {
+          formData.append('categories', JSON.stringify(postData.categories));
+        } else {
+          formData.append(key, String(postData[key as keyof typeof postData]));
+        }
+      });
+      
+      // Setup headers with authentication
+      const headers: HeadersInit = {};
+      
+      // Add dev user ID and Firebase UID if it exists in localStorage
+      const devUser = localStorage.getItem('dev-user');
+      if (devUser) {
+        try {
+          const userData = JSON.parse(devUser);
+          if (userData && userData.id) {
+            headers['X-Dev-User-ID'] = userData.id.toString();
+            headers['Authorization'] = `Bearer ${userData.firebaseUid || 'test-' + userData.id}`;
+            console.log('Found development user in localStorage:', userData);
+          }
+        } catch (e) {
+          console.error('Failed to parse dev user from localStorage:', e);
+        }
+      }
+      
+      // If Firebase auth is used, add the token to the headers
+      try {
+        const currentUser = auth.currentUser;
+        if (currentUser) {
+          const token = await currentUser.getIdToken();
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+      } catch (e) {
+        console.error('Failed to get Firebase token:', e);
+      }
+      
+      // Special handling for FormData
+      return await fetch(`/api/blog/posts/${id}`, {
+        method: 'PUT',
+        headers, // Add auth headers
+        body: formData,
+        credentials: 'include'
+      }).then(response => {
+        if (!response.ok) {
+          return response.json().then(err => {
+            throw new Error(err.message || 'Failed to update blog post');
+          });
+        }
+        return response.json();
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/blog/admin'] });
@@ -464,14 +588,33 @@ const AdminBlogPage = () => {
                     <FormField
                       control={postForm.control}
                       name="featuredImage"
-                      render={({ field }) => (
+                      render={({ field: { value, onChange, ...field } }) => (
                         <FormItem>
-                          <FormLabel>Featured Image URL</FormLabel>
+                          <FormLabel>Featured Image</FormLabel>
                           <FormControl>
-                            <Input placeholder="https://example.com/image.jpg" {...field} />
+                            <Input
+                              type="file"
+                              accept="image/*"
+                              onChange={(e) => {
+                                // Handle the file input change
+                                if (e.target.files?.[0]) {
+                                  onChange(e.target.files[0]);
+                                }
+                              }}
+                              {...field}
+                            />
                           </FormControl>
+                          {value && typeof value === 'string' && (
+                            <div className="mt-2">
+                              <img 
+                                src={value} 
+                                alt="Current featured image" 
+                                className="max-h-40 object-cover rounded-md" 
+                              />
+                            </div>
+                          )}
                           <FormDescription>
-                            The main image displayed with your blog post.
+                            Upload an image for your blog post.
                           </FormDescription>
                           <FormMessage />
                         </FormItem>
