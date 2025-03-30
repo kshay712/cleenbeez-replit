@@ -38,8 +38,15 @@ const productSchema = z.object({
   description: z.string().min(10, 'Description must be at least 10 characters'),
   price: z.coerce.string().min(1, 'Price is required'),
   categoryId: z.coerce.number().positive('Category is required'),
+  // Product features
   organic: z.boolean().default(false),
   bpaFree: z.boolean().default(false),
+  phthalateFree: z.boolean().default(false),
+  parabenFree: z.boolean().default(false),
+  oxybenzoneFree: z.boolean().default(false),
+  formaldehydeFree: z.boolean().default(false),
+  sulfatesFree: z.boolean().default(false),
+  fdcFree: z.boolean().default(false),
   whyRecommend: z.string().min(1, 'Why we recommend this product is required'),
   ingredients: z.array(z.string()).min(1, 'At least one ingredient is required'),
   affiliateLink: z.string().url('Must be a valid URL').optional().or(z.literal('')),
@@ -72,8 +79,15 @@ const ProductForm = ({ productId }: ProductFormProps) => {
       description: '',
       price: '0.00',
       categoryId: 0,
+      // Product features
       organic: false,
       bpaFree: false,
+      phthalateFree: false,
+      parabenFree: false,
+      oxybenzoneFree: false,
+      formaldehydeFree: false,
+      sulfatesFree: false,
+      fdcFree: false,
       whyRecommend: '',
       ingredients: [],
       affiliateLink: '',
@@ -155,8 +169,15 @@ const ProductForm = ({ productId }: ProductFormProps) => {
           description: typedProduct.description || '',
           price: typeof typedProduct.price === 'string' ? typedProduct.price : '0.00',
           categoryId: categoryId,
+          // Product features
           organic: Boolean(typedProduct.organic),
           bpaFree: Boolean(typedProduct.bpaFree),
+          phthalateFree: Boolean(typedProduct.phthalateFree),
+          parabenFree: Boolean(typedProduct.parabenFree),
+          oxybenzoneFree: Boolean(typedProduct.oxybenzoneFree),
+          formaldehydeFree: Boolean(typedProduct.formaldehydeFree),
+          sulfatesFree: Boolean(typedProduct.sulfatesFree),
+          fdcFree: Boolean(typedProduct.fdcFree),
           whyRecommend: typedProduct.whyRecommend || '',
           ingredients: ingredients,
           affiliateLink: typedProduct.affiliateLink || '',
@@ -523,7 +544,8 @@ const ProductForm = ({ productId }: ProductFormProps) => {
               {/* Features */}
               <div className="space-y-4">
                 <FormLabel>Features</FormLabel>
-                <div className="flex flex-col gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {/* Original features */}
                   <FormField
                     control={form.control}
                     name="organic"
@@ -552,6 +574,103 @@ const ProductForm = ({ productId }: ProductFormProps) => {
                           />
                         </FormControl>
                         <FormLabel className="font-normal">BPA-Free</FormLabel>
+                      </FormItem>
+                    )}
+                  />
+                  
+                  {/* New features */}
+                  <FormField
+                    control={form.control}
+                    name="phthalateFree"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-center gap-2 space-y-0">
+                        <FormControl>
+                          <Checkbox
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                        <FormLabel className="font-normal">Phthalate-Free</FormLabel>
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="parabenFree"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-center gap-2 space-y-0">
+                        <FormControl>
+                          <Checkbox
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                        <FormLabel className="font-normal">Paraben-Free</FormLabel>
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="oxybenzoneFree"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-center gap-2 space-y-0">
+                        <FormControl>
+                          <Checkbox
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                        <FormLabel className="font-normal">Oxybenzone-Free</FormLabel>
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="formaldehydeFree"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-center gap-2 space-y-0">
+                        <FormControl>
+                          <Checkbox
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                        <FormLabel className="font-normal">Formaldehyde-Free</FormLabel>
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="sulfatesFree"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-center gap-2 space-y-0">
+                        <FormControl>
+                          <Checkbox
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                        <FormLabel className="font-normal">Sulfates-Free</FormLabel>
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="fdcFree"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-center gap-2 space-y-0">
+                        <FormControl>
+                          <Checkbox
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                        <FormLabel className="font-normal">FD&C-Free</FormLabel>
                       </FormItem>
                     )}
                   />
