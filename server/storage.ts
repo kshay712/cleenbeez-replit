@@ -303,8 +303,16 @@ export class DatabaseStorage implements IStorage {
     let whereConditions = [];
     
     if (category && category.length > 0) {
-      const categoryIds = category.map(id => parseInt(id));
-      whereConditions.push(inArray(products.categoryId, categoryIds));
+      // First get the category IDs from the slugs
+      const categorySlugs = await db
+        .select()
+        .from(categories)
+        .where(inArray(categories.slug, category));
+        
+      if (categorySlugs.length > 0) {
+        const categoryIds = categorySlugs.map(cat => cat.id);
+        whereConditions.push(inArray(products.categoryId, categoryIds));
+      }
     }
     
     // Add all feature filters
