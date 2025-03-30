@@ -110,7 +110,20 @@ export const blog = {
       }
       
       const authorId = req.user.id;
-      const postData = { ...req.body, featuredImage, authorId };
+      
+      // Convert published string to boolean if it exists
+      const published = req.body.published === 'true' 
+        ? true 
+        : req.body.published === 'false' 
+          ? false 
+          : req.body.published;
+      
+      const postData = { 
+        ...req.body, 
+        featuredImage, 
+        authorId,
+        published
+      };
       
       // Parse and validate categories if provided
       let categories = [];
@@ -144,6 +157,15 @@ export const blog = {
     try {
       const { id } = req.params;
       let postData = { ...req.body };
+      
+      // Convert published string to boolean if it exists
+      if (postData.published) {
+        postData.published = postData.published === 'true' 
+          ? true 
+          : postData.published === 'false' 
+            ? false 
+            : postData.published;
+      }
       
       // Handle image upload if provided
       if (req.file) {

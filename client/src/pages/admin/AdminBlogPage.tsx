@@ -185,6 +185,9 @@ const AdminBlogPage = () => {
           }
         } else if (key === 'categories') {
           formData.append('categories', JSON.stringify(data.categories));
+        } else if (key === 'published') {
+          // Convert the published boolean to a string format that the server can parse
+          formData.append('published', data.published ? 'true' : 'false');
         } else {
           formData.append(key, String(data[key as keyof typeof data]));
         }
@@ -275,6 +278,9 @@ const AdminBlogPage = () => {
           }
         } else if (key === 'categories') {
           formData.append('categories', JSON.stringify(postData.categories));
+        } else if (key === 'published') {
+          // Convert the published boolean to a string format that the server can parse
+          formData.append('published', postData.published ? 'true' : 'false');
         } else {
           formData.append(key, String(postData[key as keyof typeof postData]));
         }
