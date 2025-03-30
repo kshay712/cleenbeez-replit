@@ -204,16 +204,17 @@ const ProductForm = ({ productId }: ProductFormProps) => {
     mutationFn: async (values: ProductFormValues & { image?: File }) => {
       const formData = new FormData();
       
-      // SIMPLIFIED APPROACH: Just ensure categoryId is a number
+      // ULTRA SIMPLIFIED: Convert categoryId to number and ensure it's in formData
       const categoryIdValue = Number(values.categoryId) || 0;
       
-      console.log('\n=== SIMPLIFIED CATEGORY HANDLING ===');
-      console.log('Setting categoryId in FormData. Value:', categoryIdValue, 'Type:', typeof categoryIdValue);
+      console.log('\n=== ULTRA SIMPLIFIED CATEGORY HANDLING ===');
+      console.log('Adding categoryId to FormData as a clean number:', categoryIdValue);
       
-      // Just use the standard camelCase field name
+      // Add it as both camelCase and snake_case to ensure it's properly processed
       formData.append('categoryId', categoryIdValue.toString());
+      formData.append('category_id', categoryIdValue.toString());
       
-      console.log('=== END SIMPLIFIED CATEGORY HANDLING ===\n');
+      console.log('=== END ULTRA SIMPLIFIED CATEGORY HANDLING ===\n');
 
       // CRITICAL FIX: Always include ALL boolean feature flags
       // This is the key problem - we need to ensure all these fields are in the formData
@@ -501,48 +502,35 @@ const ProductForm = ({ productId }: ProductFormProps) => {
     if (isEditMode && productId) {
       console.log("Updating product with multi-stage approach");
       
-      // First update the main product data (excluding category if it's changed)
+      // RADICALLY SIMPLIFIED APPROACH: Just perform a single update with all the data
+      // No more multi-stage updates - just a single comprehensive update
       saveProductMutation.mutate(submitData as any, {
         onSuccess: () => {
-          console.log("Main product update successful");
+          console.log("Product update successful in single operation");
           
-          let continueWithUpdates = true;
+          toast({
+            title: 'Product updated successfully',
+            description: 'The product has been updated.',
+          });
           
-          // If category has changed, update it using dedicated endpoint
-          if (categoryChanged) {
-            console.log("Category has changed, updating using dedicated endpoint");
-            
-            // Use our dedicated category update endpoint
-            categoryUpdateMutation.mutate(categoryId, {
-              onSuccess: (data) => {
-                console.log("Category update successful:", data);
-                
-                // Continue with feature update
-                if (continueWithUpdates) {
-                  updateFeatures(featureData);
-                }
-              },
-              onError: (error: any) => {
-                console.error("Category update failed after main update succeeded:", error);
-                continueWithUpdates = false;
-                
-                toast({
-                  variant: 'destructive',
-                  title: 'Partial update',
-                  description: 'Product saved but category update failed. Please try again.',
-                });
-                
-                // Still navigate away as the main update was successful
-                navigate('/admin/products');
-              }
-            });
-          } else {
-            // No category change, continue directly to feature update
-            updateFeatures(featureData);
+          // Invalidate ALL product-related cache entries to ensure fresh data
+          queryClient.invalidateQueries({ queryKey: ['/api/products/admin'] });
+          queryClient.invalidateQueries({ queryKey: ['/api/products'] });
+          queryClient.invalidateQueries({ queryKey: ['/api/products/featured'] });
+          
+          // Invalidate specific product cache if in edit mode
+          if (isEditMode && productId) {
+            queryClient.invalidateQueries({ queryKey: [`/api/products/${productId}`] });
           }
+          
+          // Force immediate refetch of crucial data
+          queryClient.fetchQuery({ queryKey: ['/api/products'] });
+          
+          // Navigate back to products list
+          navigate('/admin/products');
         },
         onError: (error) => {
-          console.error("Main product update failed:", error);
+          console.error("Product update failed:", error);
           
           toast({
             variant: 'destructive',

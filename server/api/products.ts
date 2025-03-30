@@ -366,15 +366,25 @@ export const products = {
       // Parse numeric and boolean fields if they exist in the request
       if (productData.price) productData.price = productData.price.toString(); // Convert to string to match schema
       
-      // SIMPLIFIED APPROACH: Always ensure categoryId is a number if present
-      if (productData.categoryId !== undefined && productData.categoryId !== null && productData.categoryId !== '') {
-        const categoryIdNum = Number(productData.categoryId);
+      // ULTRA SIMPLIFIED APPROACH: First process category_id (snake_case) from the client
+      if (productData.category_id !== undefined && productData.category_id !== null && productData.category_id !== '') {
+        const categoryIdNum = Number(productData.category_id);
         if (!isNaN(categoryIdNum)) {
-          console.log('*** SIMPLIFIED APPROACH: Explicitly converting categoryId to number:', categoryIdNum);
+          console.log('*** ULTRA SIMPLIFIED: Found valid category_id in snake_case:', categoryIdNum);
           productData.categoryId = categoryIdNum;
         }
       }
       
+      // Then also process categoryId (camelCase) as backup
+      if (productData.categoryId !== undefined && productData.categoryId !== null && productData.categoryId !== '') {
+        const categoryIdNum = Number(productData.categoryId);
+        if (!isNaN(categoryIdNum)) {
+          console.log('*** ULTRA SIMPLIFIED: Explicitly converting categoryId to number:', categoryIdNum);
+          productData.categoryId = categoryIdNum;
+        }
+      }
+      
+      // Disable all the other complex category processing attempts
       // CRITICAL DEBUGGING: Enhanced category ID handling
       console.log('\n==== CRITICAL CATEGORY DEBUG ====');
       console.log('All categoryId related fields in request:');
@@ -540,48 +550,48 @@ export const products = {
         updateFields.push(sql`sulfates_free = ${sulfatesFreeFinal}`);
         updateFields.push(sql`fdc_free = ${fdcFreeFinal}`);
         
-        // Add categoryId if it exists - even if it's 0
-        // FIXED: Check for null and undefined separately to handle all cases
-        if (categoryIdToUpdate !== null && categoryIdToUpdate !== undefined) {
-          const categoryIdNumber = Number(categoryIdToUpdate);
-          console.log('ADDING CATEGORY ID TO SQL UPDATE FIELDS:', categoryIdNumber, '(original value:', categoryIdToUpdate, ')');
+        // ULTRA SIMPLIFIED APPROACH: Always update category_id field 
+        // whether it's null, 0, or a positive number
+        console.log('ULTRA SIMPLIFIED: ALWAYS setting category_id in SQL using direct value:', 
+                    productData.categoryId, 'Type:', typeof productData.categoryId);
+        
+        // Convert to explicit number to avoid any type issues
+        const categoryIdNumber = Number(productData.categoryId);
+        
+        // Add to SQL fields regardless of value
+        console.log('ULTRA SIMPLIFIED: Adding category_id to SQL with explicit number value:', categoryIdNumber);
+        
+        // Push the SQL field - the SQL template will handle null/0 values correctly
+        updateFields.push(sql`category_id = ${categoryIdNumber}`);
           
-          // CRITICAL FIX: Use the correct column name (categoryId in the schema)
-          // The SQL column name is 'category_id' (snake_case) but schema field is 'categoryId' (camelCase)
-          console.log('Using correct column name for SQL UPDATE: category_id');
-          updateFields.push(sql`category_id = ${categoryIdNumber}`);
+        // FOR URGENT DEBUGGING: Add additional direct SQL for just the category
+        try {
+          // Execute a SUPER-SIMPLE standalone SQL update JUST for category_id
+          // This is our very last resort - direct SQL without any fancy features
+          console.log('EXECUTING EMERGENCY DIRECT CATEGORY UPDATE SQL');
           
-          // FOR URGENT DEBUGGING: Add additional direct SQL for just the category
+          // Log the raw SQL we're about to execute
+          const rawSql = `UPDATE products SET category_id = ${categoryIdNumber} WHERE id = ${id}`;
+          console.log('EMERGENCY RAW SQL:', rawSql);
+          
+          // First try with drizzle's sql template
+          const emergencyCategoryUpdate = await db.execute(sql`
+            UPDATE products 
+            SET category_id = ${categoryIdNumber}
+            WHERE id = ${id}
+          `);
+          console.log('EMERGENCY CATEGORY UPDATE COMPLETED');
+          
+          // Also try with a completely direct query as a fallback
           try {
-            // Execute a SUPER-SIMPLE standalone SQL update JUST for category_id
-            // This is our very last resort - direct SQL without any fancy features
-            console.log('EXECUTING EMERGENCY DIRECT CATEGORY UPDATE SQL');
-            
-            // Log the raw SQL we're about to execute
-            const rawSql = `UPDATE products SET category_id = ${categoryIdNumber} WHERE id = ${id}`;
-            console.log('EMERGENCY RAW SQL:', rawSql);
-            
-            // First try with drizzle's sql template
-            const emergencyCategoryUpdate = await db.execute(sql`
-              UPDATE products 
-              SET category_id = ${categoryIdNumber}
-              WHERE id = ${id}
-            `);
-            console.log('EMERGENCY CATEGORY UPDATE COMPLETED');
-            
-            // Also try with a completely direct query as a fallback
-            try {
-              const { client } = await import('../db');
-              await client.query(`UPDATE products SET category_id = $1 WHERE id = $2`, [categoryIdNumber, id]);
-              console.log('ULTRA-EMERGENCY DIRECT PG QUERY COMPLETED');
-            } catch (pgError) {
-              console.error('ULTRA-EMERGENCY DIRECT PG QUERY FAILED:', pgError);
-            }
-          } catch (e) {
-            console.error('EMERGENCY CATEGORY UPDATE FAILED:', e);
+            const { client } = await import('../db');
+            await client.query(`UPDATE products SET category_id = $1 WHERE id = $2`, [categoryIdNumber, id]);
+            console.log('ULTRA-EMERGENCY DIRECT PG QUERY COMPLETED');
+          } catch (pgError) {
+            console.error('ULTRA-EMERGENCY DIRECT PG QUERY FAILED:', pgError);
           }
-        } else {
-          console.log('NOT ADDING CATEGORY ID TO SQL UPDATE - categoryIdToUpdate is null or undefined');
+        } catch (e) {
+          console.error('EMERGENCY CATEGORY UPDATE FAILED:', e);
         }
         
         // Combine all field updates
