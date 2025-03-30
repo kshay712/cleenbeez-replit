@@ -265,6 +265,11 @@ const ProductForm = ({ productId }: ProductFormProps) => {
       queryClient.invalidateQueries({ queryKey: ['/api/products'] });
       queryClient.invalidateQueries({ queryKey: ['/api/products/featured'] });
       
+      // Invalidate specific product cache if in edit mode
+      if (isEditMode && productId) {
+        queryClient.invalidateQueries({ queryKey: [`/api/products/${productId}`] });
+      }
+      
       // Force immediate refetch of crucial data
       queryClient.fetchQuery({ queryKey: ['/api/products'] });
       
@@ -418,35 +423,48 @@ const ProductForm = ({ productId }: ProductFormProps) => {
     
     console.log("Submitting product with data:", submitData);
     
-    // If editing, ONLY send the feature update and skip the main update entirely
-    // This ensures we don't overwrite our feature values
     if (isEditMode && productId) {
-      console.log("CRITICAL FIX: For existing products, ONLY updating feature flags and skipping main update");
-      toast({
-        title: 'Updating product features',
-        description: 'Saving your changes to the product features...',
-      });
+      console.log("Updating both main product data AND features for existing product");
       
-      // We'll ONLY update the features with the dedicated endpoint
-      featureUpdateMutation.mutate(featureData, {
+      // First update the main product data (including category)
+      saveProductMutation.mutate(submitData as any, {
         onSuccess: () => {
-          console.log("FEATURE UPDATE ONLY: Feature update successful!");
+          console.log("Main product update successful, now updating features");
           
-          toast({
-            title: 'Product updated successfully',
-            description: 'The product features have been updated.',
+          // Then update the features with the dedicated endpoint
+          featureUpdateMutation.mutate(featureData, {
+            onSuccess: () => {
+              console.log("Feature update also successful!");
+              
+              toast({
+                title: 'Product updated successfully',
+                description: 'The product and its features have been updated.',
+              });
+              
+              // After successful update, navigate back to products list
+              navigate('/admin/products');
+            },
+            onError: (error) => {
+              console.error("Feature update failed after main update succeeded:", error);
+              
+              toast({
+                variant: 'destructive',
+                title: 'Partial update',
+                description: 'Product saved but feature update failed. Please try again.',
+              });
+              
+              // Still navigate away as the main update was successful
+              navigate('/admin/products');
+            }
           });
-          
-          // After successful update, navigate back to products list
-          navigate('/admin/products');
         },
         onError: (error) => {
-          console.error("FEATURE UPDATE ONLY: Feature update failed:", error);
+          console.error("Main product update failed:", error);
           
           toast({
             variant: 'destructive',
             title: 'Update failed',
-            description: 'Could not update product features. Please try again.',
+            description: 'Could not update product. Please try again.',
           });
         }
       });
