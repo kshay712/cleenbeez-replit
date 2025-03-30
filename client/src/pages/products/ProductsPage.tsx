@@ -278,7 +278,7 @@ const ProductsPage = () => {
   // Build query params
   const queryParams = new URLSearchParams();
   if (currentPage > 1) queryParams.set('page', currentPage.toString());
-  if (sortBy !== 'recommended') queryParams.set('sort', sortBy);
+  if (sortBy !== 'recommended') queryParams.set('sortBy', sortBy);
   
   // Add all feature filters to query params
   if (filters.organic) queryParams.set('organic', 'true');
