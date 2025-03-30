@@ -209,7 +209,61 @@ export const products = {
       console.log('- sulfatesFree:', req.body.sulfatesFree, 'type:', typeof req.body.sulfatesFree);
       console.log('- fdcFree:', req.body.fdcFree, 'type:', typeof req.body.fdcFree);
       
-      // Build product update data
+      // EMERGENCY: Try a direct SQL update for feature flags before anything else
+      try {
+        // Import required modules
+        const { db } = await import('../db');
+        const { sql } = await import('drizzle-orm');
+        
+        // Extract boolean values from form data
+        const organicVal = req.body.organic === 'true' || req.body.organic === true;
+        const bpaFreeVal = req.body.bpaFree === 'true' || req.body.bpaFree === true;
+        const phthalateFreeVal = req.body.phthalateFree === 'true' || req.body.phthalateFree === true;
+        const parabenFreeVal = req.body.parabenFree === 'true' || req.body.parabenFree === true;
+        const oxybenzoneFreeVal = req.body.oxybenzoneFree === 'true' || req.body.oxybenzoneFree === true;
+        const formaldehydeFreeVal = req.body.formaldehydeFree === 'true' || req.body.formaldehydeFree === true;
+        const sulfatesFreeVal = req.body.sulfatesFree === 'true' || req.body.sulfatesFree === true;
+        const fdcFreeVal = req.body.fdcFree === 'true' || req.body.fdcFree === true;
+        
+        console.log('EMERGENCY: Direct boolean values extracted for update:', {
+          organic: organicVal,
+          bpaFree: bpaFreeVal,
+          phthalateFree: phthalateFreeVal,
+          parabenFree: parabenFreeVal,
+          oxybenzoneFree: oxybenzoneFreeVal,
+          formaldehydeFree: formaldehydeFreeVal,
+          sulfatesFree: sulfatesFreeVal,
+          fdcFree: fdcFreeVal
+        });
+        
+        // Execute a very simple direct update just for feature flags
+        const emergencyUpdate = await db.execute(sql`
+          UPDATE products 
+          SET organic = ${organicVal},
+              bpa_free = ${bpaFreeVal},
+              phthalate_free = ${phthalateFreeVal},
+              paraben_free = ${parabenFreeVal},
+              oxybenzone_free = ${oxybenzoneFreeVal},
+              formaldehyde_free = ${formaldehydeFreeVal},
+              sulfates_free = ${sulfatesFreeVal},
+              fdc_free = ${fdcFreeVal}
+          WHERE id = ${id}
+        `);
+        
+        console.log('EMERGENCY: Feature flag direct update completed');
+        
+        // Return success immediately
+        const updatedProduct = await storage.getProductById(Number(id));
+        if (updatedProduct) {
+          console.log('EMERGENCY: Updated product retrieved:', updatedProduct);
+          return res.json(updatedProduct);
+        }
+      } catch (error) {
+        console.error('EMERGENCY: Direct feature flag update failed:', error);
+        // Continue with normal flow if emergency update fails
+      }
+      
+      // Build product update data (original flow continues below)
       let productData: any = { ...req.body };
       
       // Handle image upload if provided
@@ -286,6 +340,7 @@ export const products = {
       
       try {
         console.log('Using direct SQL update for feature flags and all fields');
+        console.log('productData for update:', JSON.stringify(productData, null, 2));
         // Get the database client and SQL
         const { db } = await import('../db');
         const { sql } = await import('drizzle-orm');
@@ -331,10 +386,15 @@ export const products = {
         // Debug the SQL we're building
         console.log('Direct SQL update fields:', updateFields.map(f => f.toString()).join(', '));
 
+        // Log the raw SQL statement
+        const rawSql = `UPDATE products SET ${updateFields.map(f => f.toString()).join(', ')} WHERE id = ${id} RETURNING *`;
+        console.log('Raw SQL about to execute:', rawSql);
+        
         // Execute a direct SQL update for all fields
-        await db.execute(
+        const result = await db.execute(
           sql`UPDATE products SET ${sql.join(updateFields, sql`, `)} WHERE id = ${id} RETURNING *`
         );
+        console.log('SQL update result:', result);
         
         // Re-fetch the product with latest data
         const updatedProduct = await storage.getProductById(Number(id));
