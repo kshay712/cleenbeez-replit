@@ -129,7 +129,9 @@ const AdminCategoriesPage = () => {
         description: "The category has been created successfully.",
       });
       form.reset();
+      // Invalidate both product and blog category caches
       queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/blog/categories"] });
     },
     onError: (error: any) => {
       toast({
@@ -154,7 +156,9 @@ const AdminCategoriesPage = () => {
       setIsEditing(false);
       setSelectedCategory(null);
       form.reset();
+      // Invalidate both product and blog category caches
       queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/blog/categories"] });
     },
     onError: (error: any) => {
       toast({
@@ -177,7 +181,9 @@ const AdminCategoriesPage = () => {
       });
       setIsDeleteDialogOpen(false);
       setCategoryToDelete(null);
+      // Invalidate both product and blog category caches
       queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/blog/categories"] });
     },
     onError: (error: any) => {
       toast({
