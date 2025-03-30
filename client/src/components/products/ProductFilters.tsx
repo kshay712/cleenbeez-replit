@@ -323,11 +323,15 @@ const ProductFilters = ({ filters, onChange }: ProductFiltersProps) => {
         <div className="pt-4 mt-4 border-t border-neutral-200">
           <Button 
             variant="destructive" 
-            size="sm" 
+            size="default" 
             onClick={resetFilters}
-            className="w-full text-sm font-medium"
+            className="w-full text-sm font-medium flex items-center justify-center gap-2"
           >
-            Clear All Filters
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M19 12H5"></path>
+              <path d="M12 19l-7-7 7-7"></path>
+            </svg>
+            Reset All Filters
           </Button>
         </div>
       )}
