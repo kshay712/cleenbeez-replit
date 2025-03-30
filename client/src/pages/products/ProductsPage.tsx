@@ -245,6 +245,10 @@ const ProductsPage = () => {
   // Handle search input change
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
+    if (e.target.value === '') {
+      // Immediately clear search if field is emptied
+      setCurrentPage(1);
+    }
   };
   
   // Clear all filters
@@ -296,6 +300,7 @@ const ProductsPage = () => {
 
   const queryString = queryParams.toString() ? `?${queryParams.toString()}` : '';
   
+  // Update query to include sort functionality
   const { data, isLoading } = useQuery<ProductsResponse>({
     queryKey: [`/api/products${queryString}`],
     staleTime: 0, // Always fetch fresh data 
@@ -578,7 +583,7 @@ const ProductsPage = () => {
                 ))}
               </div>
             ) : data?.products && data.products.length > 0 ? (
-              <ProductGrid products={data.products} />
+              <ProductGrid products={data.products} viewMode={viewMode} />
             ) : (
               <div className="text-center py-12">
                 <h3 className="text-lg font-medium text-neutral-900">No products found</h3>
