@@ -1,11 +1,11 @@
+import { useState } from "react";
 import { Link } from "wouter";
 import { Heart, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import CategoryBadge from "@/components/ui/CategoryBadge";
-import { useState } from "react";
 
-interface Product {
+export interface Product {
   id: number;
   name: string;
   description: string;
@@ -39,9 +39,9 @@ const PlaceholderImage = () => (
 const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
-  const [showDebug, setShowDebug] = useState(true);
+  const [showDebug, setShowDebug] = useState(false); // Set to false by default in production
   
-  // Count active features
+  // Count active features for badge
   const featureCount = [
     product.organic,
     product.bpaFree,
@@ -53,9 +53,25 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     product.fdcFree
   ].filter(Boolean).length;
 
+  // Create array of feature objects for rendering
+  const features = [
+    { enabled: product.organic, name: "Organic", className: "bg-green-100 text-green-800" },
+    { enabled: product.bpaFree, name: "BPA-Free", className: "bg-blue-100 text-blue-800" },
+    { enabled: product.phthalateFree, name: "Phthalate-Free", className: "bg-purple-100 text-purple-800" },
+    { enabled: product.parabenFree, name: "Paraben-Free", className: "bg-indigo-100 text-indigo-800" },
+    { enabled: product.oxybenzoneFree, name: "Oxybenzone-Free", className: "bg-red-100 text-red-800" },
+    { enabled: product.formaldehydeFree, name: "Formaldehyde-Free", className: "bg-amber-100 text-amber-800" },
+    { enabled: product.sulfatesFree, name: "Sulfates-Free", className: "bg-teal-100 text-teal-800" },
+    { enabled: product.fdcFree, name: "FDC-Free", className: "bg-pink-100 text-pink-800" }
+  ];
+
+  // Get active features only
+  const activeFeatures = features.filter(f => f.enabled);
+
   return (
     <Link href={`/products/${product.id}`} className="block group">
       <div className="group relative product-card bg-white rounded-lg shadow-sm overflow-hidden transition-all duration-300 hover:shadow-md hover:translate-y-[-4px]">
+        {/* Debug panel that shows all feature statuses */}
         {showDebug && (
           <div className="absolute top-0 left-0 right-0 z-10 bg-amber-100 text-amber-800 p-2 text-sm font-medium">
             <div className="grid grid-cols-4 gap-2">
@@ -94,6 +110,8 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
             </div>
           </div>
         )}
+
+        {/* Product image section */}
         <div className="w-full bg-neutral-100 aspect-w-16 aspect-h-9 overflow-hidden">
           {!imageLoaded && !imageError && <PlaceholderImage />}
           {!imageError ? (
@@ -112,50 +130,19 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           )}
         </div>
         
+        {/* Feature badges section - using our new approach with array mapping */}
         <div className="absolute top-0 right-0 flex flex-wrap gap-1 justify-end p-2 max-w-full bg-gradient-to-l from-white/90 to-transparent">
-          {/* Direct rendering of badges for maximum control */}
-          {product.organic && (
-            <Badge className="bg-green-100 text-green-800 px-1.5 py-px text-xs font-normal">
-              Organic
+          {activeFeatures.length > 0 && activeFeatures.map((feature, idx) => (
+            <Badge 
+              key={idx} 
+              className={`px-1.5 py-px text-xs font-normal ${feature.className}`}
+            >
+              {feature.name}
             </Badge>
-          )}
-          {product.bpaFree && (
-            <Badge className="bg-blue-100 text-blue-800 px-1.5 py-px text-xs font-normal">
-              BPA-Free
-            </Badge>
-          )}
-          {product.phthalateFree && (
-            <Badge className="bg-purple-100 text-purple-800 px-1.5 py-px text-xs font-normal">
-              Phthalate-Free
-            </Badge>
-          )}
-          {product.parabenFree && (
-            <Badge className="bg-indigo-100 text-indigo-800 px-1.5 py-px text-xs font-normal">
-              Paraben-Free
-            </Badge>
-          )}
-          {product.oxybenzoneFree && (
-            <Badge className="bg-red-100 text-red-800 px-1.5 py-px text-xs font-normal">
-              Oxybenzone-Free
-            </Badge>
-          )}
-          {product.formaldehydeFree && (
-            <Badge className="bg-amber-100 text-amber-800 px-1.5 py-px text-xs font-normal">
-              Formaldehyde-Free
-            </Badge>
-          )}
-          {product.sulfatesFree && (
-            <Badge className="bg-teal-100 text-teal-800 px-1.5 py-px text-xs font-normal">
-              Sulfates-Free
-            </Badge>
-          )}
-          {product.fdcFree && (
-            <Badge className="bg-pink-100 text-pink-800 px-1.5 py-px text-xs font-normal">
-              FDC-Free
-            </Badge>
-          )}
+          ))}
         </div>
         
+        {/* Product details section */}
         <div className="p-4">
           <div className="flex justify-between items-center mb-2">
             <CategoryBadge category={product.category.name} className="px-2 py-1 bg-neutral-100 rounded-full text-xs" />
@@ -177,11 +164,9 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
               <span className="text-sm font-medium text-primary-600 group-hover:text-primary-700">
                 View details
               </span>
-              {showDebug && (
-                <Badge variant="outline" className="bg-amber-50 border-amber-200">
-                  {featureCount} features
-                </Badge>
-              )}
+              <Badge variant="outline" className="bg-amber-50 border-amber-200">
+                {featureCount} features
+              </Badge>
             </div>
             <Button variant="ghost" size="icon" className="rounded-full text-neutral-400 hover:text-primary-500 hover:bg-primary-50"
               onClick={(e) => {
