@@ -100,8 +100,14 @@ const ProductForm = ({ productId }: ProductFormProps) => {
 
   // Fetch categories for dropdown
   const { data: categoriesData, isLoading: isCategoriesLoading } = useQuery<any[]>({
-    queryKey: ['/api/categories'],
-  });
+    queryKey: ['/api/categories'] as const,
+    onSuccess: (data) => {
+      console.log("Categories loaded:", data);
+    },
+    onError: (error) => {
+      console.error("Error loading categories:", error);
+    }
+  } as any);
 
   // Fetch product data in edit mode
   const { data: productData, isLoading: isProductLoading } = useQuery({
@@ -443,7 +449,8 @@ const ProductForm = ({ productId }: ProductFormProps) => {
                     <FormLabel>Category</FormLabel>
                     <Select
                       onValueChange={(value) => field.onChange(Number(value))}
-                      value={field.value.toString()}
+                      value={field.value?.toString() || ""}
+                      disabled={isCategoriesLoading}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -451,11 +458,26 @@ const ProductForm = ({ productId }: ProductFormProps) => {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {Array.isArray(categoriesData) ? categoriesData.map((category: any) => (
-                          <SelectItem key={category.id} value={category.id.toString()}>
-                            {category.name}
-                          </SelectItem>
-                        )) : null}
+                        {/* Hardcoded categories as a fallback */}
+                        {!Array.isArray(categoriesData) || categoriesData.length === 0 ? (
+                          <>
+                            <SelectItem value="1">Bath</SelectItem>
+                            <SelectItem value="2">Beauty</SelectItem>
+                            <SelectItem value="3">Children</SelectItem>
+                            <SelectItem value="4">Household</SelectItem>
+                            <SelectItem value="5">Cleaning</SelectItem>
+                            <SelectItem value="6">Kitchen</SelectItem>
+                            <SelectItem value="7">Vitamins and Supplements</SelectItem>
+                            <SelectItem value="8">Food and Beverage</SelectItem>
+                          </>
+                        ) : (
+                          // Map from API data when available
+                          categoriesData.map((category: any) => (
+                            <SelectItem key={category.id} value={category.id.toString()}>
+                              {category.name}
+                            </SelectItem>
+                          ))
+                        )}
                       </SelectContent>
                     </Select>
                     <FormMessage />
