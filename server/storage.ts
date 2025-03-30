@@ -1156,20 +1156,27 @@ export class DatabaseStorage implements IStorage {
       if (data.name !== undefined) updateData.name = data.name;
       if (data.description !== undefined) updateData.description = data.description;
       if (data.price !== undefined) updateData.price = data.price;
-      if (categoryId !== undefined) updateData.category_id = categoryId; // Use underscored column name
+      
+      // CRITICAL FIX: Use correct column name from the database schema
+      if (categoryId !== undefined) {
+        // The column in the database is actually 'categoryId', not 'category_id'
+        updateData.categoryId = categoryId;
+        console.log('SIMPLIFIED UPDATE: Setting categoryId to', categoryId);
+      }
+      
       if (data.image !== undefined) updateData.image = data.image;
-      if (data.whyRecommend !== undefined) updateData.why_recommend = data.whyRecommend;
-      if (data.affiliateLink !== undefined) updateData.affiliate_link = data.affiliateLink;
+      if (data.whyRecommend !== undefined) updateData.whyRecommend = data.whyRecommend;
+      if (data.affiliateLink !== undefined) updateData.affiliateLink = data.affiliateLink;
       
       // Feature flags - explicitly convert to boolean
       if (data.organic !== undefined) updateData.organic = !!data.organic;
-      if (data.bpaFree !== undefined) updateData.bpa_free = !!data.bpaFree;
-      if (data.phthalateFree !== undefined) updateData.phthalate_free = !!data.phthalateFree;
-      if (data.parabenFree !== undefined) updateData.paraben_free = !!data.parabenFree;
-      if (data.oxybenzoneFree !== undefined) updateData.oxybenzone_free = !!data.oxybenzoneFree;
-      if (data.formaldehydeFree !== undefined) updateData.formaldehyde_free = !!data.formaldehydeFree;
-      if (data.sulfatesFree !== undefined) updateData.sulfates_free = !!data.sulfatesFree;
-      if (data.fdcFree !== undefined) updateData.fdc_free = !!data.fdcFree;
+      if (data.bpaFree !== undefined) updateData.bpaFree = !!data.bpaFree;
+      if (data.phthalateFree !== undefined) updateData.phthalateFree = !!data.phthalateFree;
+      if (data.parabenFree !== undefined) updateData.parabenFree = !!data.parabenFree;
+      if (data.oxybenzoneFree !== undefined) updateData.oxybenzoneFree = !!data.oxybenzoneFree;
+      if (data.formaldehydeFree !== undefined) updateData.formaldehydeFree = !!data.formaldehydeFree;
+      if (data.sulfatesFree !== undefined) updateData.sulfatesFree = !!data.sulfatesFree;
+      if (data.fdcFree !== undefined) updateData.fdcFree = !!data.fdcFree;
       
       // Handle ingredients specially - always store as JSON string
       if (data.ingredients !== undefined) {
@@ -1179,9 +1186,21 @@ export class DatabaseStorage implements IStorage {
       }
       
       // Always update the timestamp
-      updateData.updated_at = new Date();
+      updateData.updatedAt = new Date();
       
       console.log('SIMPLIFIED UPDATE: Final update data:', updateData);
+      
+      // CRITICAL: First check the database schema
+      const productSchema = await db.query.products.findFirst({
+        where: eq(products.id, id),
+      });
+      
+      if (!productSchema) {
+        console.log('SIMPLIFIED UPDATE: Product not found');
+        return null;
+      }
+      
+      console.log('SIMPLIFIED UPDATE: Current product schema:', Object.keys(productSchema));
       
       // Perform a single atomic update operation with Drizzle
       const result = await db
@@ -1206,6 +1225,19 @@ export class DatabaseStorage implements IStorage {
         return null;
       }
       
+      // Log the product feature flags to verify they're updated correctly
+      console.log('STORAGE: Fresh product feature flags:', {
+        id: updatedProduct.id,
+        organic: updatedProduct.organic,
+        bpaFree: updatedProduct.bpaFree,
+        phthalateFree: updatedProduct.phthalateFree,
+        parabenFree: updatedProduct.parabenFree,
+        oxybenzoneFree: updatedProduct.oxybenzoneFree,
+        formaldehydeFree: updatedProduct.formaldehydeFree,
+        sulfatesFree: updatedProduct.sulfatesFree,
+        fdcFree: updatedProduct.fdcFree
+      });
+      
       console.log('SIMPLIFIED UPDATE: Successfully updated product');
       return updatedProduct;
     } catch (error) {
@@ -1227,9 +1259,21 @@ export class DatabaseStorage implements IStorage {
       // Convert to explicit number for consistency, unless null
       const categoryIdNumber = categoryId !== null ? Number(categoryId) : null;
       
+      // CRITICAL: First check the database schema
+      const productSchema = await db.query.products.findFirst({
+        where: eq(products.id, id),
+      });
+      
+      if (!productSchema) {
+        console.log('SIMPLE CATEGORY UPDATE: Product not found');
+        return null;
+      }
+      
+      console.log('SIMPLE CATEGORY UPDATE: Current product schema:', Object.keys(productSchema));
+      console.log('SIMPLE CATEGORY UPDATE: Current categoryId:', productSchema.categoryId, 'New categoryId:', categoryIdNumber);
+      
       // Single focused update operation just for the category
-      // Use categoryId (camelCase) which matches the Drizzle schema field name
-      // but will be mapped to category_id in the database (snake_case)
+      // Use categoryId (camelCase) which matches the column name in the schema
       const result = await db
         .update(products)
         .set({
