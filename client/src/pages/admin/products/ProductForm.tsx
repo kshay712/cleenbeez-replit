@@ -123,6 +123,8 @@ const ProductForm = ({ productId }: ProductFormProps) => {
         // TypeScript type assertion to access properties
         const typedProduct = productData as any;
         
+        console.log("Product data loaded:", typedProduct);
+        
         // Extract ingredients safely
         let ingredients: string[] = [];
         if (typedProduct.ingredients) {
@@ -142,12 +144,17 @@ const ProductForm = ({ productId }: ProductFormProps) => {
         // Set ingredients list
         setIngredientsList(ingredients);
         
+        // Extract the categoryId properly
+        const categoryId = typedProduct.categoryId !== undefined ? Number(typedProduct.categoryId) : 0;
+        
+        console.log("Setting categoryId in form:", categoryId, "Original value:", typedProduct.categoryId);
+        
         // Build the form data with safe fallbacks
         const formData = {
           name: typedProduct.name || '',
           description: typedProduct.description || '',
           price: typeof typedProduct.price === 'string' ? typedProduct.price : '0.00',
-          categoryId: Number(typedProduct.categoryId) || 0,
+          categoryId: categoryId,
           organic: Boolean(typedProduct.organic),
           bpaFree: Boolean(typedProduct.bpaFree),
           whyRecommend: typedProduct.whyRecommend || '',
@@ -155,6 +162,8 @@ const ProductForm = ({ productId }: ProductFormProps) => {
           affiliateLink: typedProduct.affiliateLink || '',
           image: undefined,
         };
+        
+        console.log("Form data prepared:", formData);
         
         // Reset form with the prepared data
         form.reset(formData);
@@ -180,6 +189,11 @@ const ProductForm = ({ productId }: ProductFormProps) => {
           // Ensure ingredients is always serialized as an array
           const ingredientsArray = Array.isArray(value) ? value : [];
           formData.append('ingredients', JSON.stringify(ingredientsArray));
+        } else if (key === 'categoryId') {
+          // Ensure categoryId is always a number and properly set
+          const categoryIdValue = Number(value);
+          console.log('Setting categoryId in FormData:', categoryIdValue);
+          formData.append('categoryId', categoryIdValue.toString());
         } else if (key !== 'image' && value !== undefined && value !== null) {
           formData.append(key, value.toString());
         }
@@ -248,12 +262,17 @@ const ProductForm = ({ productId }: ProductFormProps) => {
       ingredients: ingredientsList
     };
     
+    // Make sure categoryId is a number
+    if (typeof submitData.categoryId !== 'number') {
+      submitData.categoryId = Number(submitData.categoryId);
+    }
+    
     // Add image to values if provided
     if (imageFile) {
       (submitData as any).image = imageFile;
     }
     
-    console.log("Submitting product:", submitData);
+    console.log("Submitting product with data:", submitData);
     saveProductMutation.mutate(submitData as any);
   };
   

@@ -176,6 +176,9 @@ export const products = {
     try {
       const { id } = req.params;
       
+      // Debug log the incoming request
+      console.log('Update product request body:', req.body);
+      
       // Build product update data
       let productData: any = { ...req.body };
       
@@ -196,10 +199,16 @@ export const products = {
       
       // Parse numeric and boolean fields if they exist in the request
       if (productData.price) productData.price = productData.price.toString(); // Convert to string to match schema
-      if (productData.categoryId) productData.categoryId = parseInt(productData.categoryId);
+      if (productData.categoryId) {
+        console.log('Original categoryId:', productData.categoryId, 'Type:', typeof productData.categoryId);
+        productData.categoryId = parseInt(productData.categoryId);
+        console.log('Parsed categoryId:', productData.categoryId);
+      }
       if (productData.organic !== undefined) productData.organic = productData.organic === 'true';
       if (productData.bpaFree !== undefined) productData.bpaFree = productData.bpaFree === 'true';
       if (productData.featured !== undefined) productData.featured = productData.featured === 'true';
+      
+      console.log('Final productData to update:', productData);
       
       const product = await storage.updateProduct(Number(id), productData);
       

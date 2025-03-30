@@ -428,12 +428,30 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateProduct(id: number, product: Partial<InsertProduct>): Promise<Product | undefined> {
+    // Debug logging
+    console.log('Storage: updateProduct - ID:', id);
+    console.log('Storage: updateProduct - Product data:', JSON.stringify(product, null, 2));
+    
+    // Explicitly ensure categoryId is a number if present
+    const updateData: Partial<InsertProduct> = { ...product };
+    if (updateData.categoryId !== undefined) {
+      // Force conversion to number if it's coming in as a string
+      const numCategoryId = typeof updateData.categoryId === 'string' 
+        ? parseInt(updateData.categoryId) 
+        : updateData.categoryId;
+      
+      console.log('Storage: ensuring categoryId is a number:', numCategoryId);
+      updateData.categoryId = numCategoryId;
+    }
+    
+    // Perform update
     const [updatedProduct] = await db
       .update(products)
-      .set(product)
+      .set(updateData)
       .where(eq(products.id, id))
       .returning();
     
+    console.log('Storage: updateProduct - Result:', updatedProduct);
     return updatedProduct;
   }
 
