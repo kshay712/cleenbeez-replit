@@ -30,7 +30,7 @@ export interface ProductFeaturesProps {
 const ProductFeatures: React.FC<ProductFeaturesProps> = ({
   features,
   displayMode = 'badge',
-  maxDisplay = 2,
+  maxDisplay = 8, // Changed default from 2 to 8 to show all features by default
   showEmpty = false,
   small = false,
   className = '',
@@ -111,9 +111,8 @@ const ProductFeatures: React.FC<ProductFeaturesProps> = ({
   if (displayMode === 'compact' && featureMap.length > 0) {
     return (
       <div className={`flex items-center gap-1 ${className}`}>
-        <FeatureBadge type="features" small={small} />
-        <span className="text-xs text-neutral-600">
-          {featureMap.length}
+        <span className="text-xs text-neutral-600 bg-neutral-100 px-2 py-0.5 rounded-full">
+          {featureMap.length} features
         </span>
       </div>
     );
@@ -126,8 +125,9 @@ const ProductFeatures: React.FC<ProductFeaturesProps> = ({
         <Tooltip>
           <TooltipTrigger asChild>
             <div className={`flex items-center gap-1 cursor-help ${className}`}>
-              <FeatureBadge type="features" small={small} />
-              <span className="text-xs text-neutral-600">{featureMap.length}</span>
+              <div className="bg-neutral-100 text-neutral-800 hover:bg-neutral-200 h-5 px-2 rounded-full text-xs flex items-center">
+                Features: {featureMap.length}
+              </div>
             </div>
           </TooltipTrigger>
           <TooltipContent className="p-2">
@@ -135,7 +135,8 @@ const ProductFeatures: React.FC<ProductFeaturesProps> = ({
               {featureMap.map((feature) => (
                 <FeatureBadge 
                   key={feature.name} 
-                  type={feature.label as FeatureType} 
+                  type={feature.label as FeatureType}
+                  showIcon={false}
                 />
               ))}
             </div>
@@ -171,7 +172,8 @@ const ProductFeatures: React.FC<ProductFeaturesProps> = ({
             {featureMap.map((feature) => (
               <FeatureBadge 
                 key={feature.name} 
-                type={feature.label as FeatureType} 
+                type={feature.label as FeatureType}
+                showIcon={false}
                 small={small}
               />
             ))}
@@ -187,7 +189,8 @@ const ProductFeatures: React.FC<ProductFeaturesProps> = ({
       {featureMap.slice(0, maxDisplay).map((feature) => (
         <FeatureBadge 
           key={feature.name} 
-          type={feature.label as FeatureType} 
+          type={feature.label as FeatureType}
+          showIcon={false}
           small={small}
         />
       ))}

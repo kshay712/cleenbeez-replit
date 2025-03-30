@@ -61,7 +61,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           )}
         </div>
         
-        <div className="absolute top-2 right-2 flex flex-wrap gap-1 justify-end max-w-[80%]">
+        <div className="absolute top-0 right-0 flex flex-wrap gap-1 justify-end p-2 max-w-full bg-gradient-to-l from-white/90 to-transparent">
           <ProductFeatures 
             features={{
               organic: !!product.organic,

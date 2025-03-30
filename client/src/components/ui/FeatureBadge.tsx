@@ -80,16 +80,16 @@ const featureInfo = {
 const FeatureBadge: React.FC<FeatureBadgeProps> = ({ 
   type, 
   className = "", 
-  showIcon = false, // Default changed to false
+  showIcon = false, // Keep icons hidden by default
   small = false
 }) => {
   const info = featureInfo[type] || featureInfo["features"];
-  const Icon = info.icon;
+  
+  // Don't even get the icon to ensure it's never displayed
   
   if (small) {
     return (
       <Badge className={`${info.className} px-1.5 py-px text-xs font-normal ${className}`}>
-        {showIcon && <Icon className="mr-1 h-2.5 w-2.5" />}
         {info.label}
       </Badge>
     );
@@ -97,7 +97,6 @@ const FeatureBadge: React.FC<FeatureBadgeProps> = ({
   
   return (
     <Badge className={`${info.className} ${className}`}>
-      {showIcon && <Icon className="mr-1 h-3.5 w-3.5" />}
       {info.label}
     </Badge>
   );
