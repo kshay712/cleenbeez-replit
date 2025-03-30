@@ -84,6 +84,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/products/:id/vendors', products.getProductVendors);
   app.post('/api/products', products.createProduct);
   app.put('/api/products/:id', products.updateProduct);
+  app.patch('/api/products/:id/features', products.updateProductFeatures);
   app.delete('/api/products/:id', products.deleteProduct);
 
   // Category routes

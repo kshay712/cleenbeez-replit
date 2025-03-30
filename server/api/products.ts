@@ -472,6 +472,78 @@ export const products = {
     }
   }],
 
+  updateProductFeatures: [requireEditor, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      console.log('FEATURE UPDATE ONLY: Starting specialized feature flag update for product', id);
+      console.log('Request body:', req.body);
+      
+      // Extract boolean values directly
+      const organicVal = req.body.organic === 'true' || req.body.organic === true;
+      const bpaFreeVal = req.body.bpaFree === 'true' || req.body.bpaFree === true;
+      const phthalateFreeVal = req.body.phthalateFree === 'true' || req.body.phthalateFree === true;
+      const parabenFreeVal = req.body.parabenFree === 'true' || req.body.parabenFree === true;
+      const oxybenzoneFreeVal = req.body.oxybenzoneFree === 'true' || req.body.oxybenzoneFree === true;
+      const formaldehydeFreeVal = req.body.formaldehydeFree === 'true' || req.body.formaldehydeFree === true;
+      const sulfatesFreeVal = req.body.sulfatesFree === 'true' || req.body.sulfatesFree === true;
+      const fdcFreeVal = req.body.fdcFree === 'true' || req.body.fdcFree === true;
+      
+      console.log('FEATURE UPDATE ONLY: Values extracted:', {
+        organic: organicVal,
+        bpaFree: bpaFreeVal,
+        phthalateFree: phthalateFreeVal,
+        parabenFree: parabenFreeVal,
+        oxybenzoneFree: oxybenzoneFreeVal,
+        formaldehydeFree: formaldehydeFreeVal,
+        sulfatesFree: sulfatesFreeVal,
+        fdcFree: fdcFreeVal
+      });
+      
+      // Execute direct SQL update for just feature flags
+      const { db } = await import('../db');
+      const { sql } = await import('drizzle-orm');
+      
+      const result = await db.execute(sql`
+        UPDATE products 
+        SET organic = ${organicVal},
+            bpa_free = ${bpaFreeVal},
+            phthalate_free = ${phthalateFreeVal},
+            paraben_free = ${parabenFreeVal},
+            oxybenzone_free = ${oxybenzoneFreeVal},
+            formaldehyde_free = ${formaldehydeFreeVal},
+            sulfates_free = ${sulfatesFreeVal},
+            fdc_free = ${fdcFreeVal}
+        WHERE id = ${id}
+        RETURNING *
+      `);
+      
+      console.log('FEATURE UPDATE ONLY: Direct SQL update result:', result);
+      
+      // Re-fetch product to confirm update
+      const updatedProduct = await storage.getProductById(Number(id));
+      if (!updatedProduct) {
+        return res.status(404).json({ message: 'Product not found after update' });
+      }
+      
+      console.log('FEATURE UPDATE ONLY: Updated product:', {
+        id: updatedProduct.id,
+        organic: updatedProduct.organic,
+        bpaFree: updatedProduct.bpaFree,
+        phthalateFree: updatedProduct.phthalateFree,
+        parabenFree: updatedProduct.parabenFree,
+        oxybenzoneFree: updatedProduct.oxybenzoneFree,
+        formaldehydeFree: updatedProduct.formaldehydeFree,
+        sulfatesFree: updatedProduct.sulfatesFree,
+        fdcFree: updatedProduct.fdcFree
+      });
+      
+      res.json(updatedProduct);
+    } catch (error: any) {
+      console.error('FEATURE UPDATE ONLY: Error updating product features:', error);
+      res.status(500).json({ message: 'Failed to update product features', error: error.message });
+    }
+  }],
+  
   deleteProduct: [requireEditor, async (req: Request, res: Response) => {
     try {
       const { id } = req.params;

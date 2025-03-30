@@ -298,6 +298,37 @@ const ProductForm = ({ productId }: ProductFormProps) => {
     setImagePreview(null);
   };
 
+  // Create a separate feature update mutation
+  const featureUpdateMutation = useMutation({
+    mutationFn: async (features: any) => {
+      console.log('FEATURE UPDATE ONLY: Starting specialized feature update with data:', features);
+      
+      // Using direct fetch for this instead of apiRequest to keep it separate
+      const response = await fetch(`/api/products/${productId}/features`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('authToken') || ''}`
+        },
+        body: JSON.stringify(features)
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to update product features');
+      }
+      
+      return response.json();
+    },
+    onSuccess: (data) => {
+      console.log('FEATURE UPDATE ONLY: Success, updated product:', data);
+      // We don't need a toast here as the main mutation already shows one
+    },
+    onError: (error) => {
+      console.error('FEATURE UPDATE ONLY: Error updating features:', error);
+      // Don't show a toast for this since the main mutation will handle that
+    }
+  });
+
   // Submit form
   const onSubmit = (values: ProductFormValues) => {
     // Make sure ingredients are correctly set
@@ -313,16 +344,27 @@ const ProductForm = ({ productId }: ProductFormProps) => {
       submitData.categoryId = categoryId;
     }
     
-    // CRITICAL: Always include all feature flag fields, even if they're false
-    // This ensures that FormData will include all checkboxes, even unchecked ones
-    submitData.organic = Boolean(submitData.organic);
-    submitData.bpaFree = Boolean(submitData.bpaFree);
-    submitData.phthalateFree = Boolean(submitData.phthalateFree);
-    submitData.parabenFree = Boolean(submitData.parabenFree);
-    submitData.oxybenzoneFree = Boolean(submitData.oxybenzoneFree);
-    submitData.formaldehydeFree = Boolean(submitData.formaldehydeFree);
-    submitData.sulfatesFree = Boolean(submitData.sulfatesFree);
-    submitData.fdcFree = Boolean(submitData.fdcFree);
+    // CRITICAL: Extract feature flags into their own object for targeted update
+    const featureData = {
+      organic: Boolean(values.organic),
+      bpaFree: Boolean(values.bpaFree),
+      phthalateFree: Boolean(values.phthalateFree),
+      parabenFree: Boolean(values.parabenFree),
+      oxybenzoneFree: Boolean(values.oxybenzoneFree),
+      formaldehydeFree: Boolean(values.formaldehydeFree),
+      sulfatesFree: Boolean(values.sulfatesFree),
+      fdcFree: Boolean(values.fdcFree)
+    };
+    
+    // Also include in main form data
+    submitData.organic = featureData.organic;
+    submitData.bpaFree = featureData.bpaFree;
+    submitData.phthalateFree = featureData.phthalateFree;
+    submitData.parabenFree = featureData.parabenFree;
+    submitData.oxybenzoneFree = featureData.oxybenzoneFree;
+    submitData.formaldehydeFree = featureData.formaldehydeFree;
+    submitData.sulfatesFree = featureData.sulfatesFree;
+    submitData.fdcFree = featureData.fdcFree;
     
     // Add image to values if provided
     if (imageFile) {
@@ -330,6 +372,14 @@ const ProductForm = ({ productId }: ProductFormProps) => {
     }
     
     console.log("Submitting product with data:", submitData);
+    
+    // If editing, send a dedicated feature flags update BEFORE the main update
+    if (isEditMode && productId) {
+      console.log("FEATURE UPDATE ONLY: Sending dedicated feature update first");
+      featureUpdateMutation.mutate(featureData);
+    }
+    
+    // Then send the normal form update
     saveProductMutation.mutate(submitData as any);
   };
   
