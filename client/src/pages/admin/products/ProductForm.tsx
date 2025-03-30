@@ -210,15 +210,38 @@ const ProductForm = ({ productId }: ProductFormProps) => {
         ? Number(values.categoryId) 
         : 0;
       
-      console.log('CRITICAL FIX: Setting categoryId in FormData:', categoryIdValue);
+      console.log('\n=== CATEGORY ID DEBUG ===');
+      console.log('Setting categoryId in FormData. Value:', categoryIdValue, 'Type:', typeof categoryIdValue);
+      
+      // Use THREE different naming conventions to ensure at least one works
+      // 1. camelCase (JavaScript standard)
       formData.append('categoryId', categoryIdValue.toString());
+      console.log('Added to FormData as: categoryId =', categoryIdValue.toString());
       
-      // Add it a second time with a different name to ensure it gets through
+      // 2. snake_case (database column name)
       formData.append('category_id', categoryIdValue.toString());
-      formData.append('categoryId_number', categoryIdValue.toString());
+      console.log('Added to FormData as: category_id =', categoryIdValue.toString());
       
-      // CRITICAL FIX: Log the categoryId more prominently for debugging
-      console.log('IMPORTANT: Updating product category to ID:', categoryIdValue);
+      // 3. With _number suffix to indicate type
+      formData.append('categoryId_number', categoryIdValue.toString());
+      console.log('Added to FormData as: categoryId_number =', categoryIdValue.toString());
+      
+      // 4. Force numeric conversion on server with special field
+      formData.append('FORCE_CATEGORY_ID', categoryIdValue.toString());
+      console.log('Added to FormData as: FORCE_CATEGORY_ID =', categoryIdValue.toString());
+      
+      // 5. Add a field that includes both ID and name to help debugging
+      if (categories && categories.length > 0) {
+        const category = categories.find(c => c.id === categoryIdValue);
+        if (category) {
+          console.log('Category found:', category);
+          formData.append('categoryInfo', JSON.stringify(category));
+        } else {
+          console.log('WARNING: Category ID', categoryIdValue, 'not found in categories list.');
+        }
+      }
+      
+      console.log('=== END CATEGORY ID DEBUG ===\n');
 
       // CRITICAL FIX: Always include ALL boolean feature flags
       // This is the key problem - we need to ensure all these fields are in the formData

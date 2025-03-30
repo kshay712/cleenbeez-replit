@@ -315,27 +315,59 @@ export const products = {
       
       // Parse numeric and boolean fields if they exist in the request
       if (productData.price) productData.price = productData.price.toString(); // Convert to string to match schema
-      // CRITICAL FIX: Process categoryId correctly, including handling '0' as a valid category
-      if (productData.categoryId !== undefined && productData.categoryId !== null) {
-        // First log the raw value
-        console.log('Original categoryId (raw):', productData.categoryId, 'Type:', typeof productData.categoryId);
+      // CRITICAL DEBUGGING: Enhanced category ID handling
+      console.log('\n==== CRITICAL CATEGORY DEBUG ====');
+      console.log('All categoryId related fields in request:');
+      console.log('- categoryId:', productData.categoryId);
+      console.log('- category_id:', productData.category_id);
+      console.log('- categoryId_number:', productData.categoryId_number);
+      console.log('- category:', productData.category);
+      
+      // Check for ANY version of the category ID field
+      let categoryValue = null;
+      
+      // Priority order for categoryId field variants
+      if (productData.categoryId_number !== undefined && productData.categoryId_number !== null) {
+        categoryValue = productData.categoryId_number;
+        console.log('Using categoryId_number field:', categoryValue);
+      } else if (productData.categoryId !== undefined && productData.categoryId !== null) {
+        categoryValue = productData.categoryId;
+        console.log('Using categoryId field:', categoryValue);
+      } else if (productData.category_id !== undefined && productData.category_id !== null) {
+        categoryValue = productData.category_id;
+        console.log('Using category_id field:', categoryValue);
+      } else if (productData.category !== undefined && productData.category !== null) {
+        if (typeof productData.category === 'object' && productData.category.id) {
+          categoryValue = productData.category.id;
+          console.log('Using category.id field:', categoryValue);
+        } else {
+          categoryValue = productData.category;
+          console.log('Using category field:', categoryValue);
+        }
+      } else {
+        console.log('WARNING: No category ID found in ANY field of the request');
+      }
+      
+      // Process the category value if we found one
+      if (categoryValue !== null) {
+        // Convert to a number
+        const categoryIdNumber = Number(categoryValue);
         
-        // Convert to a number - handles both string and numeric values
-        const categoryIdNumber = Number(productData.categoryId);
-        
-        // CRITICAL: Check for NaN to avoid invalid values
+        // Check for validity
         if (isNaN(categoryIdNumber)) {
-          console.log('WARNING: categoryId could not be parsed as a number:', productData.categoryId);
-          // Set to null if we can't parse it
+          console.log('ERROR: categoryId could not be parsed as a number:', categoryValue);
           productData.categoryId = null;
         } else {
           // Valid number - use it
           productData.categoryId = categoryIdNumber;
-          console.log('Parsed categoryId as number:', categoryIdNumber);
+          console.log('SUCCESSFULLY parsed categoryId as number:', categoryIdNumber);
         }
       } else {
-        console.log('categoryId is undefined or null in request');
+        console.log('CRITICAL ERROR: No valid category ID found anywhere in request');
       }
+      
+      console.log('Final categoryId to be used for update:', productData.categoryId);
+      console.log('==== END CATEGORY DEBUG ====\n');
       // Convert all boolean fields
       console.log('Converting boolean fields:');
       if (productData.organic !== undefined) {
@@ -453,7 +485,25 @@ export const products = {
         if (categoryIdToUpdate !== null && categoryIdToUpdate !== undefined) {
           const categoryIdNumber = Number(categoryIdToUpdate);
           console.log('ADDING CATEGORY ID TO SQL UPDATE FIELDS:', categoryIdNumber, '(original value:', categoryIdToUpdate, ')');
+          
+          // CRITICAL FIX: Use the correct column name (categoryId in the schema)
+          // The SQL column name is 'category_id' (snake_case) but schema field is 'categoryId' (camelCase)
+          console.log('Using correct column name for SQL UPDATE: category_id');
           updateFields.push(sql`category_id = ${categoryIdNumber}`);
+          
+          // FOR URGENT DEBUGGING: Add additional direct SQL for just the category
+          try {
+            // Execute a simple standalone SQL update JUST for category_id
+            console.log('EXECUTING EMERGENCY DIRECT CATEGORY UPDATE SQL');
+            const emergencyCategoryUpdate = await db.execute(sql`
+              UPDATE products 
+              SET category_id = ${categoryIdNumber}
+              WHERE id = ${id}
+            `);
+            console.log('EMERGENCY CATEGORY UPDATE COMPLETED');
+          } catch (e) {
+            console.error('EMERGENCY CATEGORY UPDATE FAILED:', e);
+          }
         } else {
           console.log('NOT ADDING CATEGORY ID TO SQL UPDATE - categoryIdToUpdate is null or undefined');
         }
