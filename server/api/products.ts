@@ -517,17 +517,53 @@ export const products = {
       const { db } = await import('../db');
       const { sql } = await import('drizzle-orm');
       
+      // Get current feature values to check if they're actually changing
+      const currentFeatures = {
+        organic: productBeforeUpdate?.organic || false,
+        bpaFree: productBeforeUpdate?.bpaFree || false,
+        phthalateFree: productBeforeUpdate?.phthalateFree || false,
+        parabenFree: productBeforeUpdate?.parabenFree || false, 
+        oxybenzoneFree: productBeforeUpdate?.oxybenzoneFree || false,
+        formaldehydeFree: productBeforeUpdate?.formaldehydeFree || false,
+        sulfatesFree: productBeforeUpdate?.sulfatesFree || false,
+        fdcFree: productBeforeUpdate?.fdcFree || false
+      };
+      
+      const newFeatures = {
+        organic: !!organicVal,
+        bpaFree: !!bpaFreeVal,
+        phthalateFree: !!phthalateFreeVal,
+        parabenFree: !!parabenFreeVal,
+        oxybenzoneFree: !!oxybenzoneFreeVal,
+        formaldehydeFree: !!formaldehydeFreeVal,
+        sulfatesFree: !!sulfatesFreeVal,
+        fdcFree: !!fdcFreeVal
+      };
+      
+      // Log exactly what changed for debugging
+      console.log('FEATURE UPDATE ONLY: Changes:', {
+        organic: `${currentFeatures.organic} -> ${newFeatures.organic}`,
+        bpaFree: `${currentFeatures.bpaFree} -> ${newFeatures.bpaFree}`,
+        phthalateFree: `${currentFeatures.phthalateFree} -> ${newFeatures.phthalateFree}`,
+        parabenFree: `${currentFeatures.parabenFree} -> ${newFeatures.parabenFree}`,
+        oxybenzoneFree: `${currentFeatures.oxybenzoneFree} -> ${newFeatures.oxybenzoneFree}`,
+        formaldehydeFree: `${currentFeatures.formaldehydeFree} -> ${newFeatures.formaldehydeFree}`,
+        sulfatesFree: `${currentFeatures.sulfatesFree} -> ${newFeatures.sulfatesFree}`,
+        fdcFree: `${currentFeatures.fdcFree} -> ${newFeatures.fdcFree}`
+      });
+      
       // Force boolean type casting to ensure proper SQL handling
+      // Use ::boolean PostgreSQL type casting to ensure proper conversion
       const result = await db.execute(sql`
         UPDATE products 
-        SET organic = ${!!organicVal}::boolean,
-            bpa_free = ${!!bpaFreeVal}::boolean,
-            phthalate_free = ${!!phthalateFreeVal}::boolean,
-            paraben_free = ${!!parabenFreeVal}::boolean,
-            oxybenzone_free = ${!!oxybenzoneFreeVal}::boolean,
-            formaldehyde_free = ${!!formaldehydeFreeVal}::boolean,
-            sulfates_free = ${!!sulfatesFreeVal}::boolean,
-            fdc_free = ${!!fdcFreeVal}::boolean,
+        SET organic = ${newFeatures.organic}::boolean,
+            bpa_free = ${newFeatures.bpaFree}::boolean,
+            phthalate_free = ${newFeatures.phthalateFree}::boolean,
+            paraben_free = ${newFeatures.parabenFree}::boolean,
+            oxybenzone_free = ${newFeatures.oxybenzoneFree}::boolean,
+            formaldehyde_free = ${newFeatures.formaldehydeFree}::boolean,
+            sulfates_free = ${newFeatures.sulfatesFree}::boolean,
+            fdc_free = ${newFeatures.fdcFree}::boolean,
             updated_at = NOW()
         WHERE id = ${Number(id)}
         RETURNING *

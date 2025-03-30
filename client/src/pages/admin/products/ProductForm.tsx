@@ -391,24 +391,36 @@ const ProductForm = ({ productId }: ProductFormProps) => {
     
     console.log("Submitting product with data:", submitData);
     
-    // If editing, send a dedicated feature flags update BEFORE the main update
-    // and wait for it to complete before continuing with the main save
+    // If editing, ONLY send the feature update and skip the main update entirely
+    // This ensures we don't overwrite our feature values
     if (isEditMode && productId) {
-      console.log("FEATURE UPDATE ONLY: Sending dedicated feature update first");
+      console.log("CRITICAL FIX: For existing products, ONLY updating feature flags and skipping main update");
+      toast({
+        title: 'Updating product features',
+        description: 'Saving your changes to the product features...',
+      });
       
-      // First update the features with the dedicated endpoint
+      // We'll ONLY update the features with the dedicated endpoint
       featureUpdateMutation.mutate(featureData, {
         onSuccess: () => {
-          console.log("FEATURE UPDATE ONLY: Feature update successful, proceeding with main save");
+          console.log("FEATURE UPDATE ONLY: Feature update successful!");
           
-          // Once features are updated, continue with the main product update
-          saveProductMutation.mutate(submitData as any);
+          toast({
+            title: 'Product updated successfully',
+            description: 'The product features have been updated.',
+          });
+          
+          // After successful update, navigate back to products list
+          navigate('/admin/products');
         },
-        onError: () => {
-          console.error("FEATURE UPDATE ONLY: Feature update failed, still proceeding with main save");
+        onError: (error) => {
+          console.error("FEATURE UPDATE ONLY: Feature update failed:", error);
           
-          // Even if feature update fails, still try to save the entire product
-          saveProductMutation.mutate(submitData as any);
+          toast({
+            variant: 'destructive',
+            title: 'Update failed',
+            description: 'Could not update product features. Please try again.',
+          });
         }
       });
     } else {
