@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import { Heart } from "lucide-react";
+import { Heart, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import CategoryBadge from "@/components/ui/CategoryBadge";
@@ -56,6 +56,44 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   return (
     <Link href={`/products/${product.id}`} className="block group">
       <div className="group relative product-card bg-white rounded-lg shadow-sm overflow-hidden transition-all duration-300 hover:shadow-md hover:translate-y-[-4px]">
+        {showDebug && (
+          <div className="absolute top-0 left-0 right-0 z-10 bg-amber-100 text-amber-800 p-2 text-sm font-medium">
+            <div className="grid grid-cols-4 gap-2">
+              <div className="flex items-center gap-1">
+                {product.organic ? <Check className="w-4 h-4 text-green-600" /> : <X className="w-4 h-4 text-red-500" />}
+                <span>Organic</span>
+              </div>
+              <div className="flex items-center gap-1">
+                {product.bpaFree ? <Check className="w-4 h-4 text-green-600" /> : <X className="w-4 h-4 text-red-500" />}
+                <span>BPA-Free</span>
+              </div>
+              <div className="flex items-center gap-1">
+                {product.phthalateFree ? <Check className="w-4 h-4 text-green-600" /> : <X className="w-4 h-4 text-red-500" />}
+                <span>Phthalate-Free</span>
+              </div>
+              <div className="flex items-center gap-1">
+                {product.parabenFree ? <Check className="w-4 h-4 text-green-600" /> : <X className="w-4 h-4 text-red-500" />}
+                <span>Paraben-Free</span>
+              </div>
+              <div className="flex items-center gap-1">
+                {product.oxybenzoneFree ? <Check className="w-4 h-4 text-green-600" /> : <X className="w-4 h-4 text-red-500" />}
+                <span>Oxybenzone-Free</span>
+              </div>
+              <div className="flex items-center gap-1">
+                {product.formaldehydeFree ? <Check className="w-4 h-4 text-green-600" /> : <X className="w-4 h-4 text-red-500" />}
+                <span>Formaldehyde-Free</span>
+              </div>
+              <div className="flex items-center gap-1">
+                {product.sulfatesFree ? <Check className="w-4 h-4 text-green-600" /> : <X className="w-4 h-4 text-red-500" />}
+                <span>Sulfates-Free</span>
+              </div>
+              <div className="flex items-center gap-1">
+                {product.fdcFree ? <Check className="w-4 h-4 text-green-600" /> : <X className="w-4 h-4 text-red-500" />}
+                <span>FDC-Free</span>
+              </div>
+            </div>
+          </div>
+        )}
         <div className="w-full bg-neutral-100 aspect-w-16 aspect-h-9 overflow-hidden">
           {!imageLoaded && !imageError && <PlaceholderImage />}
           {!imageError ? (
