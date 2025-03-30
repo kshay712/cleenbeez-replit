@@ -303,19 +303,12 @@ const ProductForm = ({ productId }: ProductFormProps) => {
     mutationFn: async (features: any) => {
       console.log('FEATURE UPDATE ONLY: Starting specialized feature update with data:', features);
       
-      // Using direct fetch for this instead of apiRequest to keep it separate
-      const response = await fetch(`/api/products/${productId}/features`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('authToken') || ''}`
-        },
-        body: JSON.stringify(features)
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to update product features');
-      }
+      // Using apiRequest to ensure proper authentication
+      const response = await apiRequest(
+        'PATCH',
+        `/api/products/${productId}/features`,
+        features
+      );
       
       return response.json();
     },
