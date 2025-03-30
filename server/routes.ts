@@ -83,6 +83,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/products/:id', products.getProductById);
   app.get('/api/products/:id/vendors', products.getProductVendors);
   app.post('/api/products', products.createProduct);
+  
+  // ===== New simplified endpoints =====
+  // Original paths
+  app.put('/api/simple/products/:id', products.simplifiedUpdateProduct);  
+  app.patch('/api/simple/products/:id/category', products.simplifiedUpdateCategory);
+  
+  // New paths that match what our frontend is using
+  app.patch('/api/products/:id/simplified', products.simplifiedUpdateProduct);
+  
+  // ===== Legacy endpoints =====
   app.put('/api/products/:id', products.updateProduct);
   app.patch('/api/products/:id/features', products.updateProductFeatures);
   app.patch('/api/products/:id/category/:categoryId', products.updateProductCategory);

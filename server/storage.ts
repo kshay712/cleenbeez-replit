@@ -58,6 +58,9 @@ export interface IStorage {
   getRelatedProducts(productId: number, limit?: number): Promise<Product[]>;
   createProduct(product: InsertProduct): Promise<Product>;
   updateProduct(id: number, product: Partial<InsertProduct>): Promise<Product | undefined>;
+  // New simplified methods
+  simpleUpdateProduct(id: number, data: Partial<Product>): Promise<Product | null>;
+  simpleUpdateProductCategory(id: number, categoryId: number | null): Promise<Product | null>;
   deleteProduct(id: number): Promise<boolean>;
 
   // Category methods
@@ -1131,6 +1134,133 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(categories)
       .where(inArray(categories.id, categoryIds));
+  }
+
+  // New simplified product update methods - follows first principles design
+  async simpleUpdateProduct(id: number, data: Partial<Product>): Promise<Product | null> {
+    console.log('SIMPLIFIED UPDATE: Updating product', id, 'with data:', data);
+    
+    if (!id) {
+      console.log('SIMPLIFIED UPDATE: Invalid product ID');
+      return null;
+    }
+    
+    try {
+      // Basic type handling for category ID - explicit number conversion
+      const categoryId = data.categoryId !== undefined ? Number(data.categoryId) : undefined;
+      
+      // Build a clean update object - convert from Product format to the DB schema format
+      const updateData: any = {};
+      
+      // Only add fields that are present in the data object
+      if (data.name !== undefined) updateData.name = data.name;
+      if (data.description !== undefined) updateData.description = data.description;
+      if (data.price !== undefined) updateData.price = data.price;
+      if (categoryId !== undefined) updateData.category_id = categoryId; // Use underscored column name
+      if (data.image !== undefined) updateData.image = data.image;
+      if (data.whyRecommend !== undefined) updateData.why_recommend = data.whyRecommend;
+      if (data.affiliateLink !== undefined) updateData.affiliate_link = data.affiliateLink;
+      
+      // Feature flags - explicitly convert to boolean
+      if (data.organic !== undefined) updateData.organic = !!data.organic;
+      if (data.bpaFree !== undefined) updateData.bpa_free = !!data.bpaFree;
+      if (data.phthalateFree !== undefined) updateData.phthalate_free = !!data.phthalateFree;
+      if (data.parabenFree !== undefined) updateData.paraben_free = !!data.parabenFree;
+      if (data.oxybenzoneFree !== undefined) updateData.oxybenzone_free = !!data.oxybenzoneFree;
+      if (data.formaldehydeFree !== undefined) updateData.formaldehyde_free = !!data.formaldehydeFree;
+      if (data.sulfatesFree !== undefined) updateData.sulfates_free = !!data.sulfatesFree;
+      if (data.fdcFree !== undefined) updateData.fdc_free = !!data.fdcFree;
+      
+      // Handle ingredients specially - always store as JSON string
+      if (data.ingredients !== undefined) {
+        updateData.ingredients = Array.isArray(data.ingredients)
+          ? JSON.stringify(data.ingredients)
+          : data.ingredients;
+      }
+      
+      // Always update the timestamp
+      updateData.updated_at = new Date();
+      
+      console.log('SIMPLIFIED UPDATE: Final update data:', updateData);
+      
+      // Perform a single atomic update operation with Drizzle
+      const result = await db
+        .update(products)
+        .set(updateData)
+        .where(eq(products.id, id))
+        .returning();
+      
+      console.log('SIMPLIFIED UPDATE: Database update result:', result);
+      
+      if (!result || result.length === 0) {
+        console.log('SIMPLIFIED UPDATE: Product not found or update failed');
+        return null;
+      }
+      
+      // Fetch the complete updated product with related data
+      const updatedProduct = await this.getProductById(id);
+      
+      // Return null if product couldn't be found - unlikely but safe
+      if (!updatedProduct) {
+        console.log('SIMPLIFIED UPDATE: Failed to retrieve updated product');
+        return null;
+      }
+      
+      console.log('SIMPLIFIED UPDATE: Successfully updated product');
+      return updatedProduct;
+    } catch (error) {
+      console.error('SIMPLIFIED UPDATE: Error updating product:', error);
+      return null;
+    }
+  }
+  
+  // Dedicated method just for updating product category
+  async simpleUpdateProductCategory(id: number, categoryId: number | null): Promise<Product | null> {
+    console.log('SIMPLE CATEGORY UPDATE: Setting product', id, 'category to', categoryId);
+    
+    if (!id) {
+      console.log('SIMPLE CATEGORY UPDATE: Invalid product ID');
+      return null;
+    }
+    
+    try {
+      // Convert to explicit number for consistency, unless null
+      const categoryIdNumber = categoryId !== null ? Number(categoryId) : null;
+      
+      // Single focused update operation just for the category
+      // Use categoryId (camelCase) which matches the Drizzle schema field name
+      // but will be mapped to category_id in the database (snake_case)
+      const result = await db
+        .update(products)
+        .set({
+          categoryId: categoryIdNumber, 
+          updatedAt: new Date()
+        })
+        .where(eq(products.id, id))
+        .returning();
+      
+      console.log('SIMPLE CATEGORY UPDATE: Database update result:', result);
+      
+      if (!result || result.length === 0) {
+        console.log('SIMPLE CATEGORY UPDATE: Product not found or update failed');
+        return null;
+      }
+      
+      // Fetch the complete updated product with related data
+      const updatedProduct = await this.getProductById(id);
+      
+      // Return null if product couldn't be found - unlikely but safe
+      if (!updatedProduct) {
+        console.log('SIMPLE CATEGORY UPDATE: Failed to retrieve updated product');
+        return null;
+      }
+      
+      console.log('SIMPLE CATEGORY UPDATE: Successfully updated product category to', categoryIdNumber);
+      return updatedProduct;
+    } catch (error) {
+      console.error('SIMPLE CATEGORY UPDATE: Error updating product category:', error);
+      return null;
+    }
   }
 }
 

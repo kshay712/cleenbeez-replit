@@ -8,6 +8,9 @@ import { Loader2, X, ImagePlus, Plus, Trash2 } from 'lucide-react';
 import { useLocation } from 'wouter';
 import { apiRequest } from '@/lib/queryClient';
 
+// Flag to enable the simplified API endpoints for product updates
+const USE_SIMPLIFIED_API = true;
+
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -199,7 +202,7 @@ const ProductForm = ({ productId }: ProductFormProps) => {
     }
   }, [isEditMode, productData, form]);
 
-  // Save product mutation
+  // Standard product mutation (original approach)
   const saveProductMutation = useMutation({
     mutationFn: async (values: ProductFormValues & { image?: File }) => {
       const formData = new FormData();
@@ -287,6 +290,141 @@ const ProductForm = ({ productId }: ProductFormProps) => {
         variant: 'destructive',
         title: 'Error',
         description: error.message || `Failed to ${isEditMode ? 'update' : 'create'} product`,
+      });
+    },
+  });
+  
+  // New simplified product update mutation that uses the new simplified API
+  const simplifiedUpdateMutation = useMutation({
+    mutationFn: async (values: ProductFormValues & { image?: File }) => {
+      console.log('\n=== SIMPLIFIED UPDATE API ===');
+      console.log('Using new simplified product update endpoint');
+      
+      if (!isEditMode) {
+        // For new products, still use FormData to handle the image upload
+        const formData = new FormData();
+        
+        // Convert categoryId to number
+        const categoryIdValue = Number(values.categoryId) || 0;
+        formData.append('categoryId', categoryIdValue.toString());
+        
+        // Handle ingredients 
+        const ingredientsArray = Array.isArray(values.ingredients) ? values.ingredients : [];
+        formData.append('ingredients', JSON.stringify(ingredientsArray));
+        
+        // Add all other fields
+        Object.entries(values).forEach(([key, value]) => {
+          if (key !== 'categoryId' && key !== 'ingredients' && key !== 'image' && value !== undefined) {
+            formData.append(key, String(value));
+          }
+        });
+        
+        // Add image if provided
+        if (imageFile) {
+          formData.append('image', imageFile);
+        }
+        
+        console.log('Creating new product with FormData');
+        return apiRequest('POST', '/api/products', formData, true);
+      } else {
+        // For updates, we need to handle image uploads differently
+        if (imageFile) {
+          // If there's an image, we need to use FormData
+          console.log('Update with image: Using FormData approach');
+          
+          const formData = new FormData();
+          
+          // Convert categoryId to number
+          const categoryIdValue = Number(values.categoryId) || 0;
+          formData.append('categoryId', categoryIdValue.toString());
+          
+          // Handle boolean fields explicitly
+          const booleanFields = [
+            'organic', 'bpaFree', 'phthalateFree', 'parabenFree', 
+            'oxybenzoneFree', 'formaldehydeFree', 'sulfatesFree', 'fdcFree'
+          ];
+          
+          booleanFields.forEach(field => {
+            const boolValue = values[field as keyof ProductFormValues] === true;
+            formData.append(field, boolValue ? 'true' : 'false');
+          });
+          
+          // Handle ingredients 
+          const ingredientsArray = Array.isArray(values.ingredients) ? values.ingredients : [];
+          formData.append('ingredients', JSON.stringify(ingredientsArray));
+          
+          // Add all other fields
+          Object.entries(values).forEach(([key, value]) => {
+            if (!booleanFields.includes(key) && key !== 'categoryId' && key !== 'ingredients' && key !== 'image' && value !== undefined) {
+              formData.append(key, String(value));
+            }
+          });
+          
+          // Add the image
+          formData.append('image', imageFile);
+          
+          // Use the simplified update endpoint
+          return apiRequest('PATCH', `/api/products/${productId}/simplified`, formData, true);
+        } else {
+          // No image - we can use JSON for simpler handling
+          console.log('Update without image: Using JSON approach for cleaner data handling');
+          
+          // Create a clean data object
+          const updateData = {
+            ...values,
+            // Ensure categoryId is a number
+            categoryId: Number(values.categoryId) || 0,
+            // Ensure ingredients is an array
+            ingredients: Array.isArray(values.ingredients) ? values.ingredients : [],
+            // Make sure all boolean flags are actually booleans
+            organic: values.organic === true,
+            bpaFree: values.bpaFree === true,
+            phthalateFree: values.phthalateFree === true,
+            parabenFree: values.parabenFree === true,
+            oxybenzoneFree: values.oxybenzoneFree === true,
+            formaldehydeFree: values.formaldehydeFree === true,
+            sulfatesFree: values.sulfatesFree === true,
+            fdcFree: values.fdcFree === true
+          };
+          
+          // Remove the image field as we're not uploading one
+          delete updateData.image;
+          
+          console.log('Simplified update data:', updateData);
+          
+          // Use the simplified update endpoint with JSON data
+          return apiRequest('PATCH', `/api/products/${productId}/simplified`, updateData, false);
+        }
+      }
+    },
+    onSuccess: () => {
+      toast({
+        title: `Product ${isEditMode ? 'updated' : 'created'} successfully`,
+        description: `The product has been ${isEditMode ? 'updated' : 'created'} using the simplified API.`,
+      });
+      
+      // Invalidate ALL product-related cache entries to ensure fresh data
+      queryClient.invalidateQueries({ queryKey: ['/api/products/admin'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/products'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/products/featured'] });
+      
+      // Invalidate specific product cache if in edit mode
+      if (isEditMode && productId) {
+        queryClient.invalidateQueries({ queryKey: [`/api/products/${productId}`] });
+      }
+      
+      // Force immediate refetch of crucial data
+      queryClient.fetchQuery({ queryKey: ['/api/products'] });
+      
+      // Redirect to the products list
+      navigate('/admin/products');
+    },
+    onError: (error: any) => {
+      console.error("Simplified update error:", error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: error.message || `Failed to ${isEditMode ? 'update' : 'create'} product using simplified API`,
       });
     },
   });
@@ -500,48 +638,63 @@ const ProductForm = ({ productId }: ProductFormProps) => {
     console.log("Submitting product with data:", submitData);
     
     if (isEditMode && productId) {
-      console.log("Updating product with multi-stage approach");
-      
-      // RADICALLY SIMPLIFIED APPROACH: Just perform a single update with all the data
-      // No more multi-stage updates - just a single comprehensive update
-      saveProductMutation.mutate(submitData as any, {
-        onSuccess: () => {
-          console.log("Product update successful in single operation");
-          
-          toast({
-            title: 'Product updated successfully',
-            description: 'The product has been updated.',
-          });
-          
-          // Invalidate ALL product-related cache entries to ensure fresh data
-          queryClient.invalidateQueries({ queryKey: ['/api/products/admin'] });
-          queryClient.invalidateQueries({ queryKey: ['/api/products'] });
-          queryClient.invalidateQueries({ queryKey: ['/api/products/featured'] });
-          
-          // Invalidate specific product cache if in edit mode
-          if (isEditMode && productId) {
-            queryClient.invalidateQueries({ queryKey: [`/api/products/${productId}`] });
+      if (USE_SIMPLIFIED_API) {
+        console.log("Using SIMPLIFIED API for product update");
+        
+        // Use the new simplified update mutation
+        simplifiedUpdateMutation.mutate(submitData as any);
+      } else {
+        console.log("Using STANDARD API for product update");
+        
+        // RADICALLY SIMPLIFIED APPROACH: Just perform a single update with all the data
+        // No more multi-stage updates - just a single comprehensive update
+        saveProductMutation.mutate(submitData as any, {
+          onSuccess: () => {
+            console.log("Product update successful in single operation");
+            
+            toast({
+              title: 'Product updated successfully',
+              description: 'The product has been updated.',
+            });
+            
+            // Invalidate ALL product-related cache entries to ensure fresh data
+            queryClient.invalidateQueries({ queryKey: ['/api/products/admin'] });
+            queryClient.invalidateQueries({ queryKey: ['/api/products'] });
+            queryClient.invalidateQueries({ queryKey: ['/api/products/featured'] });
+            
+            // Invalidate specific product cache if in edit mode
+            if (isEditMode && productId) {
+              queryClient.invalidateQueries({ queryKey: [`/api/products/${productId}`] });
+            }
+            
+            // Force immediate refetch of crucial data
+            queryClient.fetchQuery({ queryKey: ['/api/products'] });
+            
+            // Navigate back to products list
+            navigate('/admin/products');
+          },
+          onError: (error) => {
+            console.error("Product update failed:", error);
+            
+            toast({
+              variant: 'destructive',
+              title: 'Update failed',
+              description: 'Could not update product. Please try again.',
+            });
           }
-          
-          // Force immediate refetch of crucial data
-          queryClient.fetchQuery({ queryKey: ['/api/products'] });
-          
-          // Navigate back to products list
-          navigate('/admin/products');
-        },
-        onError: (error) => {
-          console.error("Product update failed:", error);
-          
-          toast({
-            variant: 'destructive',
-            title: 'Update failed',
-            description: 'Could not update product. Please try again.',
-          });
-        }
-      });
+        });
+      }
     } else {
-      // For new products, just do the normal create
-      saveProductMutation.mutate(submitData as any);
+      // For new products
+      if (USE_SIMPLIFIED_API) {
+        console.log("Using SIMPLIFIED API for product creation");
+        // Use the simplified mutation for new products too
+        simplifiedUpdateMutation.mutate(submitData as any);
+      } else {
+        console.log("Using STANDARD API for product creation");
+        // Use the original mutation
+        saveProductMutation.mutate(submitData as any);
+      }
     }
   };
   
@@ -582,7 +735,11 @@ const ProductForm = ({ productId }: ProductFormProps) => {
     navigate('/admin/products');
   };
 
-  const isLoading = isCategoriesLoading || isProductLoading || saveProductMutation.isPending || categoryUpdateMutation.isPending || featureUpdateMutation.isPending;
+  const isLoading = isCategoriesLoading || isProductLoading || 
+    saveProductMutation.isPending || 
+    simplifiedUpdateMutation.isPending || 
+    categoryUpdateMutation.isPending || 
+    featureUpdateMutation.isPending;
 
   return (
     <div className="container mx-auto py-10">

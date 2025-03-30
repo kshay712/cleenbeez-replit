@@ -55,6 +55,100 @@ const performCategoryUpdate = async (productId: number, categoryId: number): Pro
 };
 
 export const products = {
+  // ========== NEW SIMPLIFIED PRODUCT ENDPOINTS ==========
+
+  // Simple atomic full product update
+  simplifiedUpdateProduct: [requireEditor, upload.single('image'), async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const productData = req.body;
+      
+      // Handle uploaded image if present
+      if (req.file) {
+        const imageUrl = getFileUrl(req.file.filename);
+        productData.image = imageUrl;
+        console.log('Simple update API: Added image URL:', imageUrl);
+      }
+      
+      // Convert boolean fields to proper booleans
+      const booleanFields = [
+        'organic', 'bpaFree', 'phthalateFree', 'parabenFree', 
+        'oxybenzoneFree', 'formaldehydeFree', 'sulfatesFree', 'fdcFree', 'featured'
+      ];
+      
+      booleanFields.forEach(field => {
+        if (field in productData) {
+          // Convert string 'true'/'false' to actual boolean values
+          if (productData[field] === 'true') {
+            productData[field] = true;
+          } else if (productData[field] === 'false') {
+            productData[field] = false;
+          }
+        }
+      });
+      
+      // Handle ingredients array
+      if (productData.ingredients && typeof productData.ingredients === 'string') {
+        try {
+          productData.ingredients = JSON.parse(productData.ingredients);
+        } catch (e) {
+          console.warn('Simple update API: Failed to parse ingredients JSON, using as-is');
+        }
+      }
+      
+      // Ensure categoryId is a number
+      if (productData.categoryId) {
+        productData.categoryId = Number(productData.categoryId);
+      }
+      
+      // Just use the updated data as is with proper validation
+      console.log('Simple update API: Updating product with data:', productData);
+
+      const updatedProduct = await storage.simpleUpdateProduct(Number(id), productData);
+      
+      if (!updatedProduct) {
+        return res.status(404).json({ message: 'Product not found or update failed' });
+      }
+      
+      res.json(updatedProduct);
+    } catch (error: any) {
+      console.error('Simple update API: Error updating product:', error);
+      res.status(500).json({ 
+        message: 'Failed to update product', 
+        error: error.message 
+      });
+    }
+  }],
+  
+  // Dedicated category update endpoint 
+  simplifiedUpdateCategory: [requireEditor, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const { categoryId } = req.body;
+      
+      console.log('Simple category update API: Updating product', id, 'category to', categoryId);
+      
+      // Use dedicated method for category updates
+      const updatedProduct = await storage.simpleUpdateProductCategory(
+        Number(id), 
+        categoryId !== undefined ? Number(categoryId) : null
+      );
+      
+      if (!updatedProduct) {
+        return res.status(404).json({ message: 'Product not found or category update failed' });
+      }
+      
+      res.json(updatedProduct);
+    } catch (error: any) {
+      console.error('Simple category update API: Error updating product category:', error);
+      res.status(500).json({ 
+        message: 'Failed to update product category', 
+        error: error.message 
+      });
+    }
+  }],
+  
+  // ========== EXISTING ENDPOINTS ==========
   // Public endpoints
   getProducts: async (req: Request, res: Response) => {
     try {
