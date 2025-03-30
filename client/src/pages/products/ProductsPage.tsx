@@ -168,6 +168,12 @@ interface Product {
   image: string;
   organic: boolean;
   bpaFree: boolean;
+  phthalateFree: boolean;
+  parabenFree: boolean;
+  oxybenzoneFree: boolean;
+  formaldehydeFree: boolean;
+  sulfatesFree: boolean;
+  fdcFree: boolean;
 }
 
 // Response interface for the products API
@@ -200,6 +206,12 @@ const ProductsPage = () => {
     categories: [] as string[],
     organic: false,
     bpaFree: false,
+    phthalateFree: false,
+    parabenFree: false,
+    oxybenzoneFree: false,
+    formaldehydeFree: false,
+    sulfatesFree: false,
+    fdcFree: false,
     minPrice: 0,
     maxPrice: 100,
   });
@@ -241,6 +253,12 @@ const ProductsPage = () => {
       categories: [],
       organic: false,
       bpaFree: false,
+      phthalateFree: false,
+      parabenFree: false,
+      oxybenzoneFree: false,
+      formaldehydeFree: false,
+      sulfatesFree: false,
+      fdcFree: false,
       minPrice: 0,
       maxPrice: 100,
     });
@@ -257,8 +275,18 @@ const ProductsPage = () => {
   const queryParams = new URLSearchParams();
   if (currentPage > 1) queryParams.set('page', currentPage.toString());
   if (sortBy !== 'recommended') queryParams.set('sort', sortBy);
+  
+  // Add all feature filters to query params
   if (filters.organic) queryParams.set('organic', 'true');
   if (filters.bpaFree) queryParams.set('bpaFree', 'true');
+  if (filters.phthalateFree) queryParams.set('phthalateFree', 'true');
+  if (filters.parabenFree) queryParams.set('parabenFree', 'true');
+  if (filters.oxybenzoneFree) queryParams.set('oxybenzoneFree', 'true');
+  if (filters.formaldehydeFree) queryParams.set('formaldehydeFree', 'true');
+  if (filters.sulfatesFree) queryParams.set('sulfatesFree', 'true');
+  if (filters.fdcFree) queryParams.set('fdcFree', 'true');
+  
+  // Add categories and price range
   if (filters.categories.length > 0) {
     filters.categories.forEach(cat => queryParams.append('category', cat));
   }
@@ -384,8 +412,19 @@ const ProductsPage = () => {
               </div>
               
               {/* Active filters */}
-              {(filters.categories.length > 0 || filters.organic || filters.bpaFree || filters.minPrice > 0 || filters.maxPrice < 100) && (
+              {(filters.categories.length > 0 || 
+                filters.organic || 
+                filters.bpaFree || 
+                filters.phthalateFree || 
+                filters.parabenFree || 
+                filters.oxybenzoneFree || 
+                filters.formaldehydeFree || 
+                filters.sulfatesFree || 
+                filters.fdcFree || 
+                filters.minPrice > 0 || 
+                filters.maxPrice < 100) && (
                 <div className="flex flex-wrap gap-2 mb-4">
+                  {/* Categories */}
                   {filters.categories.length > 0 && filters.categories.map(cat => (
                     <Badge key={cat} variant="secondary" className="bg-primary-50 text-primary-700 hover:bg-primary-100">
                       Category: {cat}
@@ -400,11 +439,13 @@ const ProductsPage = () => {
                       </button>
                     </Badge>
                   ))}
+                  
+                  {/* Feature filters */}
                   {filters.organic && (
-                    <Badge variant="secondary" className="bg-secondary-50 text-secondary-700 hover:bg-secondary-100">
+                    <Badge variant="secondary" className="bg-green-50 text-green-700 hover:bg-green-100">
                       Organic
                       <button 
-                        className="ml-1 text-secondary-500 hover:text-secondary-700" 
+                        className="ml-1 text-green-500 hover:text-green-700" 
                         onClick={() => handleFilterChange({...filters, organic: false})}
                       >
                         &times;
@@ -422,6 +463,74 @@ const ProductsPage = () => {
                       </button>
                     </Badge>
                   )}
+                  {filters.phthalateFree && (
+                    <Badge variant="secondary" className="bg-purple-50 text-purple-700 hover:bg-purple-100">
+                      Phthalate-Free
+                      <button 
+                        className="ml-1 text-purple-500 hover:text-purple-700" 
+                        onClick={() => handleFilterChange({...filters, phthalateFree: false})}
+                      >
+                        &times;
+                      </button>
+                    </Badge>
+                  )}
+                  {filters.parabenFree && (
+                    <Badge variant="secondary" className="bg-indigo-50 text-indigo-700 hover:bg-indigo-100">
+                      Paraben-Free
+                      <button 
+                        className="ml-1 text-indigo-500 hover:text-indigo-700" 
+                        onClick={() => handleFilterChange({...filters, parabenFree: false})}
+                      >
+                        &times;
+                      </button>
+                    </Badge>
+                  )}
+                  {filters.oxybenzoneFree && (
+                    <Badge variant="secondary" className="bg-pink-50 text-pink-700 hover:bg-pink-100">
+                      Oxybenzone-Free
+                      <button 
+                        className="ml-1 text-pink-500 hover:text-pink-700" 
+                        onClick={() => handleFilterChange({...filters, oxybenzoneFree: false})}
+                      >
+                        &times;
+                      </button>
+                    </Badge>
+                  )}
+                  {filters.formaldehydeFree && (
+                    <Badge variant="secondary" className="bg-red-50 text-red-700 hover:bg-red-100">
+                      Formaldehyde-Free
+                      <button 
+                        className="ml-1 text-red-500 hover:text-red-700" 
+                        onClick={() => handleFilterChange({...filters, formaldehydeFree: false})}
+                      >
+                        &times;
+                      </button>
+                    </Badge>
+                  )}
+                  {filters.sulfatesFree && (
+                    <Badge variant="secondary" className="bg-orange-50 text-orange-700 hover:bg-orange-100">
+                      Sulfates-Free
+                      <button 
+                        className="ml-1 text-orange-500 hover:text-orange-700" 
+                        onClick={() => handleFilterChange({...filters, sulfatesFree: false})}
+                      >
+                        &times;
+                      </button>
+                    </Badge>
+                  )}
+                  {filters.fdcFree && (
+                    <Badge variant="secondary" className="bg-yellow-50 text-yellow-700 hover:bg-yellow-100">
+                      FD&C-Free
+                      <button 
+                        className="ml-1 text-yellow-500 hover:text-yellow-700" 
+                        onClick={() => handleFilterChange({...filters, fdcFree: false})}
+                      >
+                        &times;
+                      </button>
+                    </Badge>
+                  )}
+                  
+                  {/* Price range */}
                   {(filters.minPrice > 0 || filters.maxPrice < 100) && (
                     <Badge variant="secondary" className="bg-neutral-50 text-neutral-700 hover:bg-neutral-100">
                       Price: ${filters.minPrice} - ${filters.maxPrice}

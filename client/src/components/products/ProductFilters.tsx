@@ -20,6 +20,12 @@ interface ProductFiltersProps {
     categories: string[];
     organic: boolean;
     bpaFree: boolean;
+    phthalateFree: boolean;
+    parabenFree: boolean;
+    oxybenzoneFree: boolean;
+    formaldehydeFree: boolean;
+    sulfatesFree: boolean;
+    fdcFree: boolean;
     minPrice: number;
     maxPrice: number;
   };
@@ -69,19 +75,11 @@ const ProductFilters = ({ filters, onChange }: ProductFiltersProps) => {
     });
   };
   
-  // Handle organic checkbox change
-  const handleOrganicChange = (checked: boolean) => {
+  // Feature filter change handler
+  const handleFeatureChange = (feature: string, checked: boolean) => {
     onChange({
       ...filters,
-      organic: checked
-    });
-  };
-  
-  // Handle BPA-free checkbox change
-  const handleBpaFreeChange = (checked: boolean) => {
-    onChange({
-      ...filters,
-      bpaFree: checked
+      [feature]: checked
     });
   };
   
@@ -91,6 +89,12 @@ const ProductFilters = ({ filters, onChange }: ProductFiltersProps) => {
       categories: [],
       organic: false,
       bpaFree: false,
+      phthalateFree: false,
+      parabenFree: false,
+      oxybenzoneFree: false,
+      formaldehydeFree: false,
+      sulfatesFree: false,
+      fdcFree: false,
       minPrice: 0,
       maxPrice: 100
     });
@@ -102,6 +106,12 @@ const ProductFilters = ({ filters, onChange }: ProductFiltersProps) => {
     filters.categories.length > 0 || 
     filters.organic || 
     filters.bpaFree || 
+    filters.phthalateFree || 
+    filters.parabenFree || 
+    filters.oxybenzoneFree || 
+    filters.formaldehydeFree || 
+    filters.sulfatesFree || 
+    filters.fdcFree || 
     filters.minPrice > 0 || 
     filters.maxPrice < 100;
   
@@ -194,7 +204,7 @@ const ProductFilters = ({ filters, onChange }: ProductFiltersProps) => {
                 <Checkbox 
                   id="organic" 
                   checked={filters.organic}
-                  onCheckedChange={(checked) => handleOrganicChange(checked as boolean)}
+                  onCheckedChange={(checked) => handleFeatureChange('organic', checked as boolean)}
                 />
                 <Label 
                   htmlFor="organic"
@@ -208,13 +218,97 @@ const ProductFilters = ({ filters, onChange }: ProductFiltersProps) => {
                 <Checkbox 
                   id="bpa-free" 
                   checked={filters.bpaFree}
-                  onCheckedChange={(checked) => handleBpaFreeChange(checked as boolean)}
+                  onCheckedChange={(checked) => handleFeatureChange('bpaFree', checked as boolean)}
                 />
                 <Label 
                   htmlFor="bpa-free"
                   className="text-sm cursor-pointer flex items-center"
                 >
                   <CircleDashed className="mr-1 h-4 w-4 text-blue-600" /> BPA-Free
+                </Label>
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <Checkbox 
+                  id="phthalate-free" 
+                  checked={filters.phthalateFree}
+                  onCheckedChange={(checked) => handleFeatureChange('phthalateFree', checked as boolean)}
+                />
+                <Label 
+                  htmlFor="phthalate-free"
+                  className="text-sm cursor-pointer flex items-center"
+                >
+                  <CircleDashed className="mr-1 h-4 w-4 text-purple-600" /> Phthalate-Free
+                </Label>
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <Checkbox 
+                  id="paraben-free" 
+                  checked={filters.parabenFree}
+                  onCheckedChange={(checked) => handleFeatureChange('parabenFree', checked as boolean)}
+                />
+                <Label 
+                  htmlFor="paraben-free"
+                  className="text-sm cursor-pointer flex items-center"
+                >
+                  <CircleDashed className="mr-1 h-4 w-4 text-red-600" /> Paraben-Free
+                </Label>
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <Checkbox 
+                  id="oxybenzone-free" 
+                  checked={filters.oxybenzoneFree}
+                  onCheckedChange={(checked) => handleFeatureChange('oxybenzoneFree', checked as boolean)}
+                />
+                <Label 
+                  htmlFor="oxybenzone-free"
+                  className="text-sm cursor-pointer flex items-center"
+                >
+                  <CircleDashed className="mr-1 h-4 w-4 text-yellow-600" /> Oxybenzone-Free
+                </Label>
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <Checkbox 
+                  id="formaldehyde-free" 
+                  checked={filters.formaldehydeFree}
+                  onCheckedChange={(checked) => handleFeatureChange('formaldehydeFree', checked as boolean)}
+                />
+                <Label 
+                  htmlFor="formaldehyde-free"
+                  className="text-sm cursor-pointer flex items-center"
+                >
+                  <CircleDashed className="mr-1 h-4 w-4 text-pink-600" /> Formaldehyde-Free
+                </Label>
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <Checkbox 
+                  id="sulfates-free" 
+                  checked={filters.sulfatesFree}
+                  onCheckedChange={(checked) => handleFeatureChange('sulfatesFree', checked as boolean)}
+                />
+                <Label 
+                  htmlFor="sulfates-free"
+                  className="text-sm cursor-pointer flex items-center"
+                >
+                  <CircleDashed className="mr-1 h-4 w-4 text-teal-600" /> Sulfates-Free
+                </Label>
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <Checkbox 
+                  id="fdc-free" 
+                  checked={filters.fdcFree}
+                  onCheckedChange={(checked) => handleFeatureChange('fdcFree', checked as boolean)}
+                />
+                <Label 
+                  htmlFor="fdc-free"
+                  className="text-sm cursor-pointer flex items-center"
+                >
+                  <CircleDashed className="mr-1 h-4 w-4 text-orange-600" /> FD&C-Free
                 </Label>
               </div>
             </div>

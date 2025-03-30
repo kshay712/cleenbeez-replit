@@ -13,7 +13,13 @@ export const products = {
         limit = 12, 
         category, 
         organic, 
-        bpaFree, 
+        bpaFree,
+        phthalateFree,
+        parabenFree,
+        oxybenzoneFree,
+        formaldehydeFree,
+        sulfatesFree,
+        fdcFree,
         minPrice, 
         maxPrice, 
         sortBy = 'recommended',
@@ -32,8 +38,16 @@ export const products = {
         page: Number(page),
         limit: Number(limit),
         category: categories,
+        // Boolean feature filters
         organic: organic === 'true',
         bpaFree: bpaFree === 'true',
+        phthalateFree: phthalateFree === 'true',
+        parabenFree: parabenFree === 'true',
+        oxybenzoneFree: oxybenzoneFree === 'true',
+        formaldehydeFree: formaldehydeFree === 'true',
+        sulfatesFree: sulfatesFree === 'true',
+        fdcFree: fdcFree === 'true',
+        // Price range filters
         minPrice: minPrice ? Number(minPrice) : undefined,
         maxPrice: maxPrice ? Number(maxPrice) : undefined,
         sortBy: sortBy as string,
@@ -154,8 +168,15 @@ export const products = {
         ...req.body,
         price: req.body.price.toString(), // Convert to string to match schema
         categoryId: parseInt(req.body.categoryId),
+        // Convert boolean fields
         organic: req.body.organic === 'true',
         bpaFree: req.body.bpaFree === 'true',
+        phthalateFree: req.body.phthalateFree === 'true',
+        parabenFree: req.body.parabenFree === 'true',
+        oxybenzoneFree: req.body.oxybenzoneFree === 'true',
+        formaldehydeFree: req.body.formaldehydeFree === 'true',
+        sulfatesFree: req.body.sulfatesFree === 'true',
+        fdcFree: req.body.fdcFree === 'true',
         featured: req.body.featured === 'true',
         ingredients,
         image
@@ -204,8 +225,15 @@ export const products = {
         productData.categoryId = parseInt(productData.categoryId);
         console.log('Parsed categoryId:', productData.categoryId);
       }
+      // Convert all boolean fields
       if (productData.organic !== undefined) productData.organic = productData.organic === 'true';
       if (productData.bpaFree !== undefined) productData.bpaFree = productData.bpaFree === 'true';
+      if (productData.phthalateFree !== undefined) productData.phthalateFree = productData.phthalateFree === 'true';
+      if (productData.parabenFree !== undefined) productData.parabenFree = productData.parabenFree === 'true';
+      if (productData.oxybenzoneFree !== undefined) productData.oxybenzoneFree = productData.oxybenzoneFree === 'true';
+      if (productData.formaldehydeFree !== undefined) productData.formaldehydeFree = productData.formaldehydeFree === 'true';
+      if (productData.sulfatesFree !== undefined) productData.sulfatesFree = productData.sulfatesFree === 'true';
+      if (productData.fdcFree !== undefined) productData.fdcFree = productData.fdcFree === 'true';
       if (productData.featured !== undefined) productData.featured = productData.featured === 'true';
       
       console.log('Final productData to update:', productData);

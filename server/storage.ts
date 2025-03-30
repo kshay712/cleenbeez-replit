@@ -196,6 +196,12 @@ export class DatabaseStorage implements IStorage {
     category?: string[];
     organic?: boolean;
     bpaFree?: boolean;
+    phthalateFree?: boolean;
+    parabenFree?: boolean;
+    oxybenzoneFree?: boolean;
+    formaldehydeFree?: boolean;
+    sulfatesFree?: boolean;
+    fdcFree?: boolean;
     minPrice?: number;
     maxPrice?: number;
     sortBy?: string;
@@ -207,6 +213,12 @@ export class DatabaseStorage implements IStorage {
       category,
       organic,
       bpaFree,
+      phthalateFree,
+      parabenFree,
+      oxybenzoneFree,
+      formaldehydeFree,
+      sulfatesFree,
+      fdcFree,
       minPrice,
       maxPrice,
       sortBy = 'newest',
@@ -223,12 +235,37 @@ export class DatabaseStorage implements IStorage {
       whereConditions.push(inArray(products.categoryId, categoryIds));
     }
     
+    // Add all feature filters
     if (organic) {
       whereConditions.push(eq(products.organic, true));
     }
     
     if (bpaFree) {
       whereConditions.push(eq(products.bpaFree, true));
+    }
+    
+    if (phthalateFree) {
+      whereConditions.push(eq(products.phthalateFree, true));
+    }
+    
+    if (parabenFree) {
+      whereConditions.push(eq(products.parabenFree, true));
+    }
+    
+    if (oxybenzoneFree) {
+      whereConditions.push(eq(products.oxybenzoneFree, true));
+    }
+    
+    if (formaldehydeFree) {
+      whereConditions.push(eq(products.formaldehydeFree, true));
+    }
+    
+    if (sulfatesFree) {
+      whereConditions.push(eq(products.sulfatesFree, true));
+    }
+    
+    if (fdcFree) {
+      whereConditions.push(eq(products.fdcFree, true));
     }
     
     if (minPrice !== undefined) {
