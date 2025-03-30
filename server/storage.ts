@@ -612,7 +612,7 @@ export class DatabaseStorage implements IStorage {
       page = 1,
       limit = 6,
       category,
-      published = true,
+      published,
       sortBy = 'newest',
       search
     } = options;
@@ -622,7 +622,9 @@ export class DatabaseStorage implements IStorage {
     // Build the where clause
     let whereConditions = [];
     
+    // Only filter by published if it's explicitly defined
     if (published !== undefined) {
+      console.log('[STORAGE] Filtering blog posts by published:', published);
       whereConditions.push(eq(blogPosts.published, published));
     }
     

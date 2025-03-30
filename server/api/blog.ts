@@ -8,17 +8,26 @@ export const blog = {
   // Public endpoints
   getPosts: async (req: Request, res: Response) => {
     try {
-      const { page = 1, limit = 10, category, published = true, sortBy = 'publishedAt', search } = req.query;
+      const { page = 1, limit = 10, category, published, sortBy = 'publishedAt', search } = req.query;
       
-      const options = {
+      const options: any = {
         page: Number(page),
         limit: Number(limit),
         category: category as string,
-        published: published === 'true' || published === true,
         sortBy: sortBy as string,
         search: search as string
       };
       
+      // Only filter by published status if explicitly specified
+      // This ensures all public queries default to published=true
+      if (published !== undefined) {
+        options.published = published === 'true' || published === true;
+      } else {
+        // Default to only published posts for public queries
+        options.published = true;
+      }
+      
+      console.log('[BLOG] Fetching blog posts with options:', options);
       const result = await storage.getBlogPosts(options);
       res.json(result);
     } catch (error: any) {
@@ -89,7 +98,8 @@ export const blog = {
   // Admin endpoints
   getAdminPosts: [requireEditor, async (req: Request, res: Response) => {
     try {
-      const result = await storage.getBlogPosts({ published: false });
+      // Admin should see all posts, regardless of published status
+      const result = await storage.getBlogPosts();
       res.json(result);
     } catch (error: any) {
       console.error('Error fetching admin blog posts:', error);
