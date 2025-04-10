@@ -71,10 +71,10 @@ const AdminUsersPage = () => {
   const [editUserDialogOpen, setEditUserDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<any | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [roleFilter, setRoleFilter] = useState<string | null>(null);
+  const [roleFilter, setRoleFilter] = useState<string>("all");
 
   // Fetch users data
-  const { data: users, isLoading } = useQuery({
+  const { data: users = [], isLoading } = useQuery<any[]>({
     queryKey: ['/api/users', searchQuery, roleFilter],
   });
 
@@ -160,7 +160,7 @@ const AdminUsersPage = () => {
   };
 
   // Apply filters
-  const filteredUsers = users?.filter((user: any) => {
+  const filteredUsers = users.filter((user: any) => {
     let matches = true;
     
     // Apply search filter
@@ -171,8 +171,8 @@ const AdminUsersPage = () => {
       matches = nameMatch || emailMatch;
     }
     
-    // Apply role filter
-    if (roleFilter && matches) {
+    // Apply role filter (skip if "all" is selected)
+    if (roleFilter && roleFilter !== "all" && matches) {
       matches = user.role === roleFilter;
     }
     
@@ -202,14 +202,14 @@ const AdminUsersPage = () => {
           />
         </div>
         <Select
-          value={roleFilter || ""}
-          onValueChange={(value) => setRoleFilter(value || null)}
+          value={roleFilter}
+          onValueChange={(value) => setRoleFilter(value)}
         >
           <SelectTrigger className="w-full sm:w-[180px]">
             <SelectValue placeholder="Filter by role" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All Roles</SelectItem>
+            <SelectItem value="all">All Roles</SelectItem>
             <SelectItem value="admin">Admin</SelectItem>
             <SelectItem value="editor">Editor</SelectItem>
             <SelectItem value="user">User</SelectItem>
