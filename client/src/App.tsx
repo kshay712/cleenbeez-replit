@@ -38,7 +38,7 @@ const ProtectedRoute = ({ component: Component, adminOnly = false, editorOnly = 
   adminOnly?: boolean;
   editorOnly?: boolean;
 }) => {
-  const { isAuthenticated, isAdmin, isEditor, isLoading } = useAuth();
+  const { isAuthenticated, isAdmin, isEditor, isLoading, emailVerified } = useAuth();
   const [location, navigate] = useLocation();
 
   // After authentication check is complete
@@ -53,6 +53,17 @@ const ProtectedRoute = ({ component: Component, adminOnly = false, editorOnly = 
         
         // Redirect to login
         navigate("/login");
+      } else if (!emailVerified) {
+        // User is authenticated but email is not verified
+        console.log("ProtectedRoute: Email not verified, redirecting to home");
+        
+        // Store the current location for later access after verification
+        sessionStorage.setItem('redirectAfterVerification', location);
+        
+        // Redirect to home page
+        if (location !== '/') {
+          navigate("/");
+        }
       } else if (adminOnly && !isAdmin) {
         console.log("ProtectedRoute: Admin access required, redirecting to home");
         navigate("/");
@@ -61,7 +72,7 @@ const ProtectedRoute = ({ component: Component, adminOnly = false, editorOnly = 
         navigate("/");
       }
     }
-  }, [isLoading, isAuthenticated, isAdmin, isEditor, location, navigate, adminOnly, editorOnly]);
+  }, [isLoading, isAuthenticated, emailVerified, isAdmin, isEditor, location, navigate, adminOnly, editorOnly]);
 
   if (isLoading) {
     return (
@@ -75,11 +86,11 @@ const ProtectedRoute = ({ component: Component, adminOnly = false, editorOnly = 
   }
 
   // Don't render anything during redirect
-  if (!isAuthenticated || (adminOnly && !isAdmin) || (editorOnly && !isEditor)) {
+  if (!isAuthenticated || !emailVerified || (adminOnly && !isAdmin) || (editorOnly && !isEditor)) {
     return null;
   }
 
-  // If we get here, the user is authenticated and has the right permissions
+  // If we get here, the user is authenticated, verified, and has the right permissions
   return <Component />;
 };
 

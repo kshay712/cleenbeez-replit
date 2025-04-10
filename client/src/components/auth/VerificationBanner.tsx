@@ -51,6 +51,10 @@ export function VerificationBanner({ email }: VerificationBannerProps) {
           We've sent a verification email to <strong>{email || 'your email address'}</strong>.
           Please check your inbox and click the verification link.
         </p>
+        <p className="text-sm mt-1">
+          <strong>Note:</strong> You can only access the home page until your email is verified. 
+          Once verified, you'll have full access to all features.
+        </p>
         <div className="mt-2">
           <Button 
             variant="outline" 
