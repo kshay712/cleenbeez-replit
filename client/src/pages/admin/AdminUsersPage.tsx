@@ -198,13 +198,25 @@ const AdminUsersPage = () => {
   const deleteUserMutation = useMutation({
     mutationFn: async (userId: number) => {
       console.log(`Attempting to delete user with ID: ${userId}`);
+      
+      // Get user from localStorage for auth
+      const devUser = localStorage.getItem('dev-user');
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json'
+      };
+      
+      if (devUser) {
+        const userData = JSON.parse(devUser);
+        if (userData && userData.firebaseUid) {
+          headers['Authorization'] = `Bearer ${userData.firebaseUid}`;
+        }
+      }
+      
       // Force a clean request with explicit credentials
       return await fetch(`/api/users/${userId}`, {
         method: 'DELETE',
         credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json'
-        }
+        headers
       }).then(async (response) => {
         // Handle the response here
         if (!response.ok) {
