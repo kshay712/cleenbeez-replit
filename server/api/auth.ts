@@ -205,55 +205,91 @@ export const requireEditor = async (req: Request, res: Response, next: NextFunct
 export const auth = {
   register: async (req: Request, res: Response) => {
     try {
-      const { email, password, username } = req.body;
+      console.log('[REGISTER] Request body:', JSON.stringify(req.body));
+      const { email, password, username, firebaseUid } = req.body;
       
-      if (!email || !password || !username) {
-        return res.status(400).json({ message: 'Email, password, and username are required' });
+      if (!email || !username) {
+        return res.status(400).json({ message: 'Email and username are required' });
+      }
+      
+      let uid = firebaseUid;
+      
+      // If we have an auth header, verify the token to get the Firebase UID
+      if (req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
+        try {
+          const token = req.headers.authorization.split('Bearer ')[1];
+          console.log('[REGISTER] Verifying Firebase token');
+          
+          // Verify Firebase token
+          const decodedToken = await admin.auth().verifyIdToken(token);
+          console.log('[REGISTER] Token verified:', decodedToken);
+          
+          // Use the UID from the token
+          uid = decodedToken.uid;
+        } catch (error) {
+          console.error('[REGISTER] Token verification error:', error);
+        }
+      }
+      
+      // Firebase UID is required - either from token or request body
+      if (!uid) {
+        return res.status(400).json({ message: 'Firebase UID is required' });
+      }
+      
+      // Check if user with this firebaseUid already exists
+      const existingUserById = await storage.getUserByFirebaseUid(uid);
+      if (existingUserById) {
+        console.log(`[REGISTER] User with firebaseUid ${uid} already exists`);
+        return res.status(400).json({ message: 'User already exists with this authentication' });
       }
       
       // Check if email exists
       const existingUserEmail = await storage.getUserByEmail(email);
       if (existingUserEmail) {
+        console.log(`[REGISTER] Email ${email} already in use`);
         return res.status(400).json({ message: 'Email already in use' });
       }
       
       // Check if username exists
       const existingUserName = await storage.getUserByUsername(username);
       if (existingUserName) {
+        console.log(`[REGISTER] Username ${username} already in use`);
         return res.status(400).json({ message: 'Username already in use' });
       }
       
-      try {
-        // Create user in Firebase Auth
-        const userRecord = await admin.auth().createUser({
-          email,
-          password,
-          displayName: username,
-        });
-        
-        // Create user in database
-        const userData = {
-          username,
-          email,
-          firebaseUid: userRecord.uid,
-          role: 'user' // Default role
-        };
-        
-        const validatedData = insertUserSchema.parse(userData);
-        const user = await storage.createUser(validatedData);
-        
-        res.status(201).json({
-          user: {
-            id: user.id,
-            username: user.username,
-            email: user.email,
-            role: user.role
-          }
-        });
-      } catch (error: any) {
-        console.error('Firebase user creation error:', error);
-        return res.status(400).json({ message: 'Failed to create user', error: error.message });
+      console.log(`[REGISTER] Creating new user ${username} with email ${email}`);
+      
+      // Create user in our database
+      const userData = {
+        username,
+        email,
+        password: password || `firebase-auth-${Date.now()}`, // Use provided password or generate one
+        firebaseUid: uid,
+        role: 'user' // Default role
+      };
+      
+      console.log('[REGISTER] User data:', { ...userData, password: '[REDACTED]' });
+      
+      const validatedData = insertUserSchema.parse(userData);
+      const user = await storage.createUser(validatedData);
+      
+      console.log(`[REGISTER] User created with ID: ${user.id}`);
+      
+      // Set session for future requests
+      if (req.session) {
+        req.session.userId = user.id;
+        console.log(`[REGISTER] Set session userId to ${user.id}`);
       }
+      
+      res.status(201).json({
+        user: {
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          role: user.role,
+          firebaseUid: user.firebaseUid
+        }
+      });
     } catch (error: any) {
       console.error('Registration error:', error);
       res.status(500).json({ message: 'Failed to register user', error: error.message });

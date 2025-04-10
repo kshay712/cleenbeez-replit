@@ -104,24 +104,53 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     try {
       setIsLoading(true);
       
-      // Create the user in Firebase
+      // Create the user in Firebase first
+      console.log("Creating Firebase user");
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const firebaseUser = userCredential.user;
       
+      console.log("Firebase user created:", firebaseUser.uid);
+      // Get the token for authentication
+      const idToken = await firebaseUser.getIdToken();
+      
       // Register the user in our database
-      const response = await apiRequest('POST', '/api/auth/register', {
-        username,
-        email,
-        firebaseUid: firebaseUser.uid
+      console.log("Registering user with backend");
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${idToken}`
+        },
+        body: JSON.stringify({
+          username,
+          email,
+          password, // We'll need this for our database schema
+          firebaseUid: firebaseUser.uid
+        })
       });
       
-      const userData = await response.json();
-      setUser(userData);
+      if (!response.ok) {
+        // If our backend registration fails, delete the Firebase user to avoid orphaned accounts
+        try {
+          await firebaseUser.delete();
+        } catch (deleteError) {
+          console.error("Could not delete Firebase user after failed registration:", deleteError);
+        }
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to register with server');
+      }
       
-      return userData;
+      const userData = await response.json();
+      console.log("Backend registration successful:", userData);
+      
+      // Store user data
+      setUser(userData.user);
+      localStorage.setItem('dev-user', JSON.stringify(userData.user));
+      
+      return userData.user;
     } catch (error: any) {
       console.error('Registration error:', error);
-      throw new Error(error.message || 'Failed to register');
+      throw error;
     } finally {
       setIsLoading(false);
     }
