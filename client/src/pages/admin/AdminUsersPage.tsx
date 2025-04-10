@@ -14,6 +14,9 @@ import {
   ShieldAlert,
   User as UserIcon,
   Loader2,
+  ArrowUpDown,
+  ChevronUp,
+  ChevronDown,
 } from "lucide-react";
 
 import {
@@ -67,11 +70,18 @@ const AdminUsersPage = () => {
   const [, navigate] = useLocation();
   const { toast } = useToast();
   
-  // State for dialog controls and filters
+  // State for dialog controls, filters and sorting
   const [editUserDialogOpen, setEditUserDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<any | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("all");
+  const [sortConfig, setSortConfig] = useState<{
+    key: string;
+    direction: 'ascending' | 'descending' | null;
+  }>({
+    key: '', 
+    direction: null
+  });
 
   // Fetch users data
   const { data: users = [], isLoading, refetch } = useQuery<any[]>({
@@ -165,7 +175,41 @@ const AdminUsersPage = () => {
     }
   };
 
-  // Apply filters
+  // Handle sorting
+  const handleSort = (key: string) => {
+    // If clicking on the same column, toggle direction or reset
+    if (sortConfig.key === key) {
+      if (sortConfig.direction === 'ascending') {
+        setSortConfig({ key, direction: 'descending' });
+      } else if (sortConfig.direction === 'descending') {
+        setSortConfig({ key: '', direction: null });  // Reset sorting
+      } else {
+        setSortConfig({ key, direction: 'ascending' });
+      }
+    } else {
+      // New column, start with ascending
+      setSortConfig({ key, direction: 'ascending' });
+    }
+  };
+
+  // Get sort icon based on current sort state
+  const getSortIcon = (key: string) => {
+    if (sortConfig.key !== key) {
+      return <ArrowUpDown className="h-4 w-4 ml-1" />;
+    }
+    
+    if (sortConfig.direction === 'ascending') {
+      return <ChevronUp className="h-4 w-4 ml-1" />;
+    }
+    
+    if (sortConfig.direction === 'descending') {
+      return <ChevronDown className="h-4 w-4 ml-1" />;
+    }
+    
+    return <ArrowUpDown className="h-4 w-4 ml-1" />;
+  };
+
+  // Apply filters and sorting
   const filteredUsers = users.filter((user: any) => {
     let matches = true;
     
@@ -183,6 +227,30 @@ const AdminUsersPage = () => {
     }
     
     return matches;
+  }).sort((a: any, b: any) => {
+    // If no sort config or direction is null, return original order
+    if (!sortConfig.key || sortConfig.direction === null) {
+      return 0;
+    }
+    
+    // Define how to compare each field type
+    let compareResult = 0;
+    
+    if (sortConfig.key === 'username') {
+      compareResult = a.username.localeCompare(b.username);
+    } else if (sortConfig.key === 'email') {
+      compareResult = a.email.localeCompare(b.email);
+    } else if (sortConfig.key === 'role') {
+      compareResult = a.role.localeCompare(b.role);
+    } else if (sortConfig.key === 'createdAt') {
+      // Handle date comparison, ensuring proper conversion from string to Date if needed
+      const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      compareResult = dateA - dateB;
+    }
+    
+    // Reverse the order for descending sort
+    return sortConfig.direction === 'ascending' ? compareResult : -compareResult;
   });
 
   // Check for admin role
@@ -237,10 +305,42 @@ const AdminUsersPage = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Username</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead>Joined</TableHead>
+                  <TableHead 
+                    className="cursor-pointer hover:bg-muted/50 transition-colors" 
+                    onClick={() => handleSort('username')}
+                  >
+                    <div className="flex items-center">
+                      Username
+                      {getSortIcon('username')}
+                    </div>
+                  </TableHead>
+                  <TableHead 
+                    className="cursor-pointer hover:bg-muted/50 transition-colors" 
+                    onClick={() => handleSort('email')}
+                  >
+                    <div className="flex items-center">
+                      Email
+                      {getSortIcon('email')}
+                    </div>
+                  </TableHead>
+                  <TableHead 
+                    className="cursor-pointer hover:bg-muted/50 transition-colors" 
+                    onClick={() => handleSort('role')}
+                  >
+                    <div className="flex items-center">
+                      Role
+                      {getSortIcon('role')}
+                    </div>
+                  </TableHead>
+                  <TableHead 
+                    className="cursor-pointer hover:bg-muted/50 transition-colors" 
+                    onClick={() => handleSort('createdAt')}
+                  >
+                    <div className="flex items-center">
+                      Joined
+                      {getSortIcon('createdAt')}
+                    </div>
+                  </TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
