@@ -87,11 +87,20 @@ const AdminUsersPage = () => {
   const { data: users = [], isLoading, refetch } = useQuery<any[]>({
     queryKey: ['/api/users', searchQuery, roleFilter],
     staleTime: 0, // Always refetch to get latest users
+    refetchOnMount: true, // Force refetch when component mounts
+    cacheTime: 0, // Don't cache the data
   });
   
   // Refetch on component mount to ensure we have the latest data
   useEffect(() => {
     refetch();
+    
+    // Also set up a polling interval to refresh the data periodically
+    const intervalId = setInterval(() => {
+      refetch();
+    }, 10000); // Refresh every 10 seconds
+    
+    return () => clearInterval(intervalId); // Cleanup on unmount
   }, [refetch]);
 
   // Role update mutation
