@@ -144,15 +144,56 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const register = async (email: string, password: string, username: string) => {
     try {
       setIsLoading(true);
+      let idToken: string;
+      let firebaseUser: FirebaseUser | null = null;
+      let firebaseUid: string | undefined;
       
-      // Create the user in Firebase first
-      console.log("Creating Firebase user");
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      const firebaseUser = userCredential.user;
+      // Check if we have pending Google registration data in session storage
+      const pendingRegData = window?.sessionStorage?.getItem('pendingRegistration');
       
-      console.log("Firebase user created:", firebaseUser.uid);
-      // Get the token for authentication
-      const idToken = await firebaseUser.getIdToken();
+      if (pendingRegData) {
+        try {
+          const pendingRegistration = JSON.parse(pendingRegData);
+          console.log("Found pending registration data:", pendingRegistration);
+          
+          // Use the data from pending registration
+          if (pendingRegistration.email && !email) {
+            email = pendingRegistration.email;
+          }
+          if (pendingRegistration.firebaseUid) {
+            firebaseUid = pendingRegistration.firebaseUid;
+            console.log("Using Firebase UID from pending registration:", firebaseUid);
+          }
+          
+          // Clear the pending registration data
+          sessionStorage.removeItem('pendingRegistration');
+        } catch (error) {
+          console.error("Error parsing pending registration data:", error);
+        }
+      }
+      
+      // If we don't have a Firebase UID from Google, create a new user
+      if (!firebaseUid) {
+        // Create the user in Firebase first
+        console.log("Creating new Firebase user");
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        firebaseUser = userCredential.user;
+        firebaseUid = firebaseUser.uid;
+        console.log("Firebase user created:", firebaseUid);
+        idToken = await firebaseUser.getIdToken();
+      } else {
+        // For Google sign-in flow, we need to get the token from current user
+        console.log("Using existing Firebase UID:", firebaseUid);
+        if (auth.currentUser) {
+          idToken = await auth.currentUser.getIdToken();
+          firebaseUser = auth.currentUser;
+        } else {
+          // This is an edge case where we have a firebaseUid but no current user
+          // Create a test token for development
+          idToken = `test-${firebaseUid}`;
+          console.log("Using test token for registration");
+        }
+      }
       
       // Register the user in our database
       console.log("Registering user with backend");
@@ -165,17 +206,20 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         body: JSON.stringify({
           username,
           email,
-          password, // We'll need this for our database schema
-          firebaseUid: firebaseUser.uid
+          password: password || `firebase-auth-${Date.now()}`, // Use password if available or generate one
+          firebaseUid: firebaseUid
         })
       });
       
       if (!response.ok) {
         // If our backend registration fails, delete the Firebase user to avoid orphaned accounts
-        try {
-          await firebaseUser.delete();
-        } catch (deleteError) {
-          console.error("Could not delete Firebase user after failed registration:", deleteError);
+        // But only if we created a new user (not for Google auth users)
+        if (firebaseUser && !pendingRegData) {
+          try {
+            await firebaseUser.delete();
+          } catch (deleteError) {
+            console.error("Could not delete Firebase user after failed registration:", deleteError);
+          }
         }
         const errorData = await response.json();
         throw new Error(errorData.message || 'Failed to register with server');
@@ -224,45 +268,28 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         console.log("User exists in database, continuing with normal flow");
         // The onAuthStateChanged listener will handle setting the user
       } else {
-        // User not found in our database, try to create them
-        console.log("User not found in database, creating account automatically");
+        // User not found in our database, needs explicit registration
+        console.log("User not found in database, requires explicit registration");
         
-        try {
-          // Create user in our database 
-          const createResponse = await fetch('/api/auth/google', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${idToken}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              email: firebaseUser.email,
-              firebaseUid: firebaseUser.uid,
-              username: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || `user_${firebaseUser.uid.substring(0, 8)}`
-            })
-          });
-          
-          if (createResponse.ok) {
-            const userData = await createResponse.json();
-            console.log("User created in our database:", userData);
-            
-            // Set the user data
-            setUser(userData.user);
-            localStorage.setItem('dev-user', JSON.stringify(userData.user));
-            
-            toast({
-              title: "Account Created",
-              description: "Your account has been set up in our system."
-            });
-          } else {
-            const errorData = await createResponse.json();
-            console.error("Failed to create user in database:", errorData);
-            throw new Error(errorData.message || "Failed to create user in our system");
-          }
-        } catch (createError: any) {
-          console.error("Error creating user in database:", createError);
-          throw new Error(createError.message || "Failed to register with our system");
+        // Sign out from Firebase since the user is not registered with our system
+        await signOut(auth);
+        
+        toast({
+          variant: "destructive",
+          title: "Registration Required",
+          description: "Please register an account first before logging in.",
+        });
+        
+        // Redirect to registration page
+        if (typeof window !== 'undefined') {
+          // Save email to prefill the registration form
+          sessionStorage.setItem('pendingRegistration', JSON.stringify({
+            email: firebaseUser.email
+          }));
+          window.location.href = '/register';
         }
+        
+        throw new Error("User not registered with our system");
       }
     } catch (error: any) {
       console.error('Login error:', error);
@@ -290,7 +317,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
             // Get the user's ID token to authenticate with our backend
             const idToken = await firebaseUser.getIdToken();
             
-            // Check if user exists in our database, if not, create them
+            // Check if user exists in our database
             const response = await fetch('/api/auth/google', {
               method: 'POST',
               headers: {
@@ -304,23 +331,48 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
               })
             });
             
-            if (!response.ok) {
-              throw new Error(`Google sign-in failed: ${response.status} ${response.statusText}`);
+            const responseData = await response.json();
+            
+            if (response.ok) {
+              console.log("Backend user data:", responseData);
+              
+              // Manually set the user to bypass Firebase auth flow issues
+              setUser(responseData.user);
+              
+              // Store in localStorage to persist login
+              localStorage.setItem('dev-user', JSON.stringify(responseData.user));
+              
+              toast({
+                title: "Success!",
+                description: "Signed in with Google successfully!",
+              });
+            } else if (response.status === 404 && responseData.needsRegistration) {
+              // User doesn't exist in our system yet, needs explicit registration
+              console.log("User not found in system, needs registration:", responseData);
+              
+              // Store the Firebase user details temporarily to use during registration
+              sessionStorage.setItem('pendingRegistration', JSON.stringify({
+                email: firebaseUser.email,
+                firebaseUid: firebaseUser.uid,
+                displayName: firebaseUser.displayName || null
+              }));
+              
+              // Sign out from Firebase since the user is not registered with our system
+              await signOut(auth);
+              
+              // Redirect to registration page
+              if (typeof window !== 'undefined') {
+                window.location.href = '/register?source=google';
+              }
+              
+              toast({
+                title: "Registration Required",
+                description: "Please complete your account setup to continue.",
+              });
+            } else {
+              // Some other error occurred
+              throw new Error(responseData.message || `Google sign-in failed: ${response.status} ${response.statusText}`);
             }
-            
-            const userData = await response.json();
-            console.log("Backend user data:", userData);
-            
-            // Manually set the user to bypass Firebase auth flow issues
-            setUser(userData.user);
-            
-            // Store in localStorage to persist login
-            localStorage.setItem('dev-user', JSON.stringify(userData.user));
-            
-            toast({
-              title: "Success!",
-              description: "Signed in with Google successfully!",
-            });
           } catch (err) {
             console.error("API error during Google auth:", err);
             toast({
@@ -362,8 +414,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         const firebaseUser = result.user;
         const idToken = await firebaseUser.getIdToken();
         
-        // Register with our backend
-        console.log("Registering with backend...");
+        // Try to authenticate with our backend
+        console.log("Authenticating with backend...");
         const response = await fetch('/api/auth/google', {
           method: 'POST',
           headers: {
@@ -377,23 +429,47 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           })
         });
         
-        if (!response.ok) {
-          throw new Error(`Google sign-in failed: ${response.status} ${response.statusText}`);
+        const responseData = await response.json();
+        
+        if (response.ok) {
+          console.log("Backend returned user data:", responseData);
+          
+          // Set the user in state
+          setUser(responseData.user);
+          
+          // Also store in localStorage as backup
+          localStorage.setItem('dev-user', JSON.stringify(responseData.user));
+          
+          toast({
+            title: "Success!",
+            description: "Signed in with Google successfully!",
+          });
+        } else if (response.status === 404 && responseData.needsRegistration) {
+          // User doesn't exist in our system yet, needs explicit registration
+          console.log("User not found in system, needs registration:", responseData);
+          
+          // Store the Firebase user details temporarily to use during registration
+          sessionStorage.setItem('pendingRegistration', JSON.stringify({
+            email: firebaseUser.email,
+            firebaseUid: firebaseUser.uid,
+            displayName: firebaseUser.displayName || null
+          }));
+          
+          // Redirect to registration page
+          if (typeof window !== 'undefined') {
+            window.location.href = '/register?source=google';
+          }
+          
+          toast({
+            title: "Registration Required",
+            description: "Please complete your account setup to continue.",
+          });
+          
+          return false; // Registration needed
+        } else {
+          // Some other error occurred
+          throw new Error(responseData.message || `Google sign-in failed: ${response.status} ${response.statusText}`);
         }
-        
-        const userData = await response.json();
-        console.log("Backend returned user data:", userData);
-        
-        // Set the user in state
-        setUser(userData.user);
-        
-        // Also store in localStorage as backup
-        localStorage.setItem('dev-user', JSON.stringify(userData.user));
-        
-        toast({
-          title: "Success!",
-          description: "Signed in with Google successfully!",
-        });
         
         return true; // Successfully logged in
       } catch (popupError) {
