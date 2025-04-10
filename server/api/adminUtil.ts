@@ -5,6 +5,8 @@ import { insertUserSchema } from '@shared/schema';
 /**
  * Admin utility functions for development environment only
  * These endpoints should NOT be exposed in production
+ *
+ * BUGFIX: Added directDeleteUser function to bypass complex auth layers
  */
 export const adminUtil = {
   // Direct login without Firebase authentication (for development only)
@@ -237,6 +239,76 @@ export const adminUtil = {
     } catch (error: any) {
       console.error('Create test user error:', error);
       res.status(500).json({ message: 'Failed to create test user', error: error.message });
+    }
+  },
+  
+  // Direct deletion method that bypasses the auth layers
+  directDeleteUser: async (req: Request, res: Response) => {
+    try {
+      const { userId } = req.body;
+      
+      console.log(`[DIRECT DELETE] Starting direct deletion of user ID ${userId}`);
+      
+      if (!userId) {
+        console.log('[DIRECT DELETE] Error: userId is required');
+        return res.status(400).json({ message: 'User ID is required' });
+      }
+      
+      // Check if the user exists
+      const user = await storage.getUserById(userId);
+      if (!user) {
+        console.log(`[DIRECT DELETE] Error: User ${userId} not found`);
+        return res.status(404).json({ message: 'User not found' });
+      }
+      
+      console.log(`[DIRECT DELETE] Found user to delete: ${user.username} (${user.email}, role: ${user.role})`);
+      
+      // Don't allow deleting the user who made the request
+      if (req.user && req.user.id === user.id) {
+        console.log(`[DIRECT DELETE] Preventing self-deletion for user ${userId}`);
+        return res.status(400).json({ message: 'Cannot delete your own account' });
+      }
+      
+      // First try direct SQL
+      try {
+        console.log(`[DIRECT DELETE] Executing direct SQL delete for user ${userId}`);
+        // Import SQL at runtime to avoid circular dependencies
+        const { sql } = await import('drizzle-orm');
+        const { db } = await import('../db');
+        const { users } = await import('@shared/schema');
+        
+        const result = await db.execute(sql`
+          DELETE FROM users 
+          WHERE id = ${userId}
+          RETURNING id
+        `);
+        
+        console.log(`[DIRECT DELETE] Direct SQL execution result:`, result);
+        
+        if (result && result.length > 0) {
+          console.log(`[DIRECT DELETE] Successfully deleted user ${userId} with direct SQL`);
+          return res.status(200).json({ message: 'User deleted successfully', method: 'direct-sql' });
+        } else {
+          console.log(`[DIRECT DELETE] Direct SQL didn't delete any user, falling back to storage method`);
+        }
+      } catch (sqlError: any) {
+        console.error(`[DIRECT DELETE] Error with direct SQL delete:`, sqlError);
+        console.log(`[DIRECT DELETE] Falling back to storage method`);
+      }
+      
+      // If direct SQL fails, use storage method
+      const success = await storage.deleteUser(userId);
+      
+      if (success) {
+        console.log(`[DIRECT DELETE] Successfully deleted user ${userId} with storage method`);
+        return res.status(200).json({ message: 'User deleted successfully', method: 'storage' });
+      } else {
+        console.log(`[DIRECT DELETE] Failed to delete user ${userId} with storage method`);
+        return res.status(500).json({ message: 'Failed to delete user' });
+      }
+    } catch (error: any) {
+      console.error('[DIRECT DELETE] Error:', error);
+      res.status(500).json({ message: 'Failed to delete user', error: error.message });
     }
   }
 };

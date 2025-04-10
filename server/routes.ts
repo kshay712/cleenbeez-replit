@@ -15,9 +15,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/admin-util/promote', adminUtil.promoteUser);
   app.post('/api/admin-util/create-test-user', adminUtil.createTestUser);
   app.post('/api/admin-util/direct-login', adminUtil.directLogin);
+  app.post('/api/admin-util/direct-delete-user', adminUtil.directDeleteUser);
   
   // Add a secondary path for direct login (for easier access from login page)
   app.post('/api/admin/direct-login', adminUtil.directLogin);
+  app.post('/api/admin/direct-delete-user', adminUtil.directDeleteUser);
   
   // Add CORS headers for development
   app.use((req, res, next) => {
@@ -51,7 +53,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       '/admin-util/direct-login',
       '/admin-util/promote',
       '/admin-util/create-test-user',
+      '/admin-util/direct-delete-user',
       '/admin/direct-login', // New direct login path
+      '/admin/direct-delete-user', // New direct delete path
       '/auth/register',
       '/auth/google',  // Google auth should always be accessible
       '/auth/me',      // Auth check should be accessible

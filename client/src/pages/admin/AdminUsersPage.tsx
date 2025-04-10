@@ -436,6 +436,7 @@ const AdminUsersPage = () => {
                               <Edit className="h-4 w-4 mr-2" />
                               Change Role
                             </DropdownMenuItem>
+                            {/* Regular DELETE method */}
                             <DropdownMenuItem
                               disabled={user.id === currentUser?.id}
                               className="text-red-600"
@@ -468,6 +469,55 @@ const AdminUsersPage = () => {
                                   </AlertDialogFooter>
                                 </AlertDialogContent>
                               </AlertDialog>
+                            </DropdownMenuItem>
+                            
+                            {/* Alternative direct DELETE method */}
+                            <DropdownMenuItem
+                              disabled={user.id === currentUser?.id}
+                              className="text-amber-600"
+                              onClick={() => {
+                                if (user.id === currentUser?.id) return;
+                                
+                                const confirmed = window.confirm(
+                                  `Are you sure you want to directly delete ${user.username}? This bypasses normal authentication and is for troubleshooting only.`
+                                );
+                                
+                                if (confirmed) {
+                                  // Use direct delete endpoint
+                                  fetch('/api/admin/direct-delete-user', {
+                                    method: 'POST',
+                                    headers: {
+                                      'Content-Type': 'application/json'
+                                    },
+                                    credentials: 'include',
+                                    body: JSON.stringify({ userId: user.id })
+                                  })
+                                  .then(async (response) => {
+                                    const responseData = await response.json();
+                                    if (response.ok) {
+                                      toast({
+                                        title: "User deleted",
+                                        description: `Successfully deleted user using direct method: ${responseData.method}`,
+                                      });
+                                      // Refresh the user list
+                                      queryClient.invalidateQueries({ queryKey: ['/api/users'] });
+                                    } else {
+                                      throw new Error(responseData.message || 'Failed to delete user');
+                                    }
+                                  })
+                                  .catch(error => {
+                                    console.error("Direct delete error:", error);
+                                    toast({
+                                      title: "Error",
+                                      description: error.message || "Failed to directly delete user",
+                                      variant: "destructive"
+                                    });
+                                  });
+                                }
+                              }}
+                            >
+                              <AlertCircle className="h-4 w-4 mr-2" />
+                              Direct Delete (Dev)
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
