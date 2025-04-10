@@ -6,7 +6,15 @@ export const users = {
   getUsers: [requireAdmin, async (req: Request, res: Response) => {
     try {
       const users = await storage.getAllUsers();
-      res.json(users);
+      
+      // Ensure lastLogin is properly formatted as ISO string for consistent client-side parsing
+      const formattedUsers = users.map(user => ({
+        ...user,
+        // If lastLogin exists, ensure it's a proper Date object and convert to ISO string
+        lastLogin: user.lastLogin ? new Date(user.lastLogin).toISOString() : null
+      }));
+      
+      res.json(formattedUsers);
     } catch (error: any) {
       console.error('Error fetching users:', error);
       res.status(500).json({ message: 'Failed to fetch users' });

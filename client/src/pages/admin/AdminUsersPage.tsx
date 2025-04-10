@@ -72,7 +72,7 @@ const AdminUsersPage = () => {
   
   // State for dialog controls, filters and sorting
   const [editUserDialogOpen, setEditUserDialogOpen] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<any | null>(null);
+  const [selectedUser, setSelectedUser] = useState<UserData | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("all");
   const [sortConfig, setSortConfig] = useState<{
@@ -83,12 +83,23 @@ const AdminUsersPage = () => {
     direction: null
   });
 
+  // Define user type to match expected API response
+  interface UserData {
+    id: number;
+    username: string;
+    email: string;
+    role: string;
+    createdAt: string;
+    lastLogin: string | null;
+    firebaseUid?: string;
+  }
+  
   // Fetch users data
-  const { data: users = [], isLoading, refetch } = useQuery<any[]>({
+  const { data: users = [], isLoading, refetch } = useQuery<UserData[]>({
     queryKey: ['/api/users', searchQuery, roleFilter],
     staleTime: 0, // Always refetch to get latest users
     refetchOnMount: true, // Force refetch when component mounts
-    cacheTime: 0, // Don't cache the data
+    gcTime: 0, // Don't cache the data (modern replacement for cacheTime)
   });
   
   // Refetch on component mount to ensure we have the latest data
@@ -155,7 +166,7 @@ const AdminUsersPage = () => {
   };
 
   // Open user edit dialog
-  const handleEditUser = (user: any) => {
+  const handleEditUser = (user: UserData) => {
     setSelectedUser(user);
     setEditUserDialogOpen(true);
   };
@@ -219,7 +230,7 @@ const AdminUsersPage = () => {
   };
 
   // Apply filters and sorting
-  const filteredUsers = users.filter((user: any) => {
+  const filteredUsers = users.filter((user: UserData) => {
     let matches = true;
     
     // Apply search filter
@@ -236,7 +247,7 @@ const AdminUsersPage = () => {
     }
     
     return matches;
-  }).sort((a: any, b: any) => {
+  }).sort((a: UserData, b: UserData) => {
     // If no sort config or direction is null, return original order
     if (!sortConfig.key || sortConfig.direction === null) {
       return 0;
@@ -369,7 +380,7 @@ const AdminUsersPage = () => {
               </TableHeader>
               <TableBody>
                 {filteredUsers?.length > 0 ? (
-                  filteredUsers.map((user: any) => (
+                  filteredUsers.map((user: UserData) => (
                     <TableRow key={user.id}>
                       <TableCell className="font-medium">{user.username}</TableCell>
                       <TableCell>{user.email}</TableCell>
