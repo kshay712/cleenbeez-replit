@@ -244,9 +244,51 @@ export const auth = {
   updateProfile: async (req: Request, res: Response) => {
     try {
       console.log('[UPDATE PROFILE] Request body:', JSON.stringify(req.body));
+      console.log('[UPDATE PROFILE] Auth header:', req.headers.authorization ? 'Present' : 'Not present');
+      console.log('[UPDATE PROFILE] Session user ID:', req.session?.userId);
+      
+      // If we don't have a user object yet, try to get it from the session
+      if (!req.user && req.session?.userId) {
+        console.log(`[UPDATE PROFILE] Attempting to get user from session ID ${req.session.userId}`);
+        const user = await storage.getUserById(req.session.userId);
+        if (user) {
+          console.log(`[UPDATE PROFILE] Found user from session: ${user.username}`);
+          req.user = user;
+        }
+      }
+      
+      // If still no user, try Firebase token
+      if (!req.user && req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
+        try {
+          console.log('[UPDATE PROFILE] Attempting to verify Firebase token');
+          const token = req.headers.authorization.split('Bearer ')[1];
+          
+          // Special case for test tokens
+          if (token.startsWith('test-')) {
+            console.log('[UPDATE PROFILE] Found test token');
+            const user = await storage.getUserByFirebaseUid(token);
+            if (user) {
+              console.log(`[UPDATE PROFILE] Found user with test token: ${user.username}`);
+              req.user = user;
+            }
+          } else {
+            // Regular Firebase token
+            const decodedToken = await admin.auth().verifyIdToken(token);
+            console.log(`[UPDATE PROFILE] Token verified, Firebase UID: ${decodedToken.uid}`);
+            const user = await storage.getUserByFirebaseUid(decodedToken.uid);
+            if (user) {
+              console.log(`[UPDATE PROFILE] Found user with Firebase token: ${user.username}`);
+              req.user = user;
+            }
+          }
+        } catch (error) {
+          console.error('[UPDATE PROFILE] Error verifying token:', error);
+        }
+      }
       
       // Check if user is authenticated
       if (!req.user) {
+        console.error('[UPDATE PROFILE] No user found in request, session, or token');
         return res.status(401).json({ message: 'Authentication required' });
       }
       
