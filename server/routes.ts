@@ -16,6 +16,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/admin-util/create-test-user', adminUtil.createTestUser);
   app.post('/api/admin-util/direct-login', adminUtil.directLogin);
   
+  // Add CORS headers for development
+  app.use((req, res, next) => {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+    if (req.method === 'OPTIONS') {
+      return res.sendStatus(200);
+    }
+    next();
+  });
+  
+  // Debug middleware to log all requests
+  app.use((req, res, next) => {
+    console.log(`[DEBUG] ${req.method} ${req.path}`);
+    console.log(`[DEBUG] Headers: ${JSON.stringify(req.headers)}`);
+    
+    if (req.method === 'POST' || req.method === 'PUT') {
+      console.log(`[DEBUG] Body: ${JSON.stringify(req.body)}`);
+    }
+    next();
+  });
+
   // Middleware to parse and validate auth token
   // Apply auth to all /api routes EXCEPT those exempt below
   app.use('/api', (req, res, next) => {
@@ -27,12 +49,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       '/admin-util/promote',
       '/admin-util/create-test-user',
       '/auth/register',
-      '/auth/google',
-      '/auth/me',     // Add this to public paths for initial loading
+      '/auth/google',  // Google auth should always be accessible
+      '/auth/me',      // Auth check should be accessible
       '/products',
       '/products/featured',
       '/products/related',
-      '/categories',  // Add this explicitly
+      '/categories',
       '/blog/posts',
       '/blog/featured',
       '/blog/categories',

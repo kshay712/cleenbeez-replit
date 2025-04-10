@@ -116,6 +116,12 @@ const LoginPage = () => {
               </div>
             </div>
 
+            <div className="mt-4 text-center">
+              <Link href="/dev-login" className="font-medium text-primary-600 hover:text-primary-500">
+                Use Development Login (for testing)
+              </Link>
+            </div>
+
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="mt-6 space-y-6">
                 <FormField

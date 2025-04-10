@@ -14,8 +14,8 @@ const DevLoginPage = () => {
   const [, navigate] = useLocation();
   const { setUser } = useAuth(); // We need to access setUser directly
   const { toast } = useToast();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [email, setEmail] = useState("testuser@cleanbee.com");
+  const [password, setPassword] = useState("password123");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -97,9 +97,10 @@ const DevLoginPage = () => {
           <CardContent>
             <Alert className="mb-6 bg-amber-50 border-amber-200">
               <AlertCircle className="h-4 w-4 text-amber-600" />
-              <AlertTitle className="text-amber-800">Development Only</AlertTitle>
+              <AlertTitle className="text-amber-800">Test Account Login</AlertTitle>
               <AlertDescription className="text-amber-700">
-                This login method should be removed in production.
+                <p>This test account is pre-filled with credentials for a regular user.</p>
+                <p className="mt-1">If you're having trouble with Google authentication, use this method instead.</p>
               </AlertDescription>
             </Alert>
             
