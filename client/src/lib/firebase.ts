@@ -1,5 +1,9 @@
 import { initializeApp } from "firebase/app";
-import { getAuth, setPersistence, browserSessionPersistence } from "firebase/auth";
+import { 
+  getAuth, 
+  setPersistence, 
+  browserSessionPersistence
+} from "firebase/auth";
 import { getStorage } from "firebase/storage";
 
 // Firebase configuration 

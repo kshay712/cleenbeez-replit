@@ -121,15 +121,68 @@ export default function ProfilePage() {
   const updatePasswordMutation = useMutation({
     mutationFn: async (data: PasswordFormValues) => {
       console.log('Updating password');
-      const response = await apiRequest('POST', '/api/auth/profile', {
-        currentPassword: data.currentPassword,
-        newPassword: data.newPassword,
-      });
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to update password');
+      
+      // First, check if this is a Firebase user
+      if (user?.firebaseUid && !user.firebaseUid.startsWith('test-')) {
+        console.log('Updating Firebase user password');
+        try {
+          // Import Firebase auth related functions
+          const { auth } = await import('@/lib/firebase');
+          const { 
+            EmailAuthProvider, 
+            reauthenticateWithCredential,
+            updatePassword
+          } = await import('firebase/auth');
+          
+          // We need to get the current user from Firebase
+          const currentUser = auth.currentUser;
+          if (!currentUser) {
+            throw new Error('No authenticated Firebase user found');
+          }
+          
+          // Re-authenticate the user with their current credentials
+          const credential = EmailAuthProvider.credential(
+            user.email,
+            data.currentPassword
+          );
+          
+          // Re-authenticate before changing password
+          await reauthenticateWithCredential(currentUser, credential);
+          
+          // Update the password in Firebase
+          await updatePassword(currentUser, data.newPassword);
+          
+          // Now also update in our database
+          const response = await apiRequest('POST', '/api/auth/profile', {
+            currentPassword: data.currentPassword,
+            newPassword: data.newPassword,
+          });
+          
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Failed to update password in database');
+          }
+          
+          return await response.json();
+        } catch (error: any) {
+          console.error('Firebase password update error:', error);
+          if (error.code === 'auth/wrong-password') {
+            throw new Error('Current password is incorrect');
+          }
+          throw new Error(error.message || 'Failed to update password in Firebase');
+        }
+      } else {
+        // Regular (non-Firebase) user password update
+        const response = await apiRequest('POST', '/api/auth/profile', {
+          currentPassword: data.currentPassword,
+          newPassword: data.newPassword,
+        });
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Failed to update password');
+        }
+        return await response.json();
       }
-      return await response.json();
     },
     onSuccess: () => {
       toast({
