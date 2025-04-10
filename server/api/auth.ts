@@ -555,6 +555,14 @@ export const auth = {
         console.log(`[GOOGLE AUTH] Set session userId to ${user.id}`);
       }
       
+      // Update last login timestamp
+      try {
+        await storage.updateLastLogin(user.id);
+        console.log(`[GOOGLE AUTH] Updated last login timestamp for user ${user.id}`);
+      } catch (error) {
+        console.error('[GOOGLE AUTH] Failed to update last login timestamp:', error);
+      }
+      
       res.status(200).json({
         user: {
           id: user.id,
