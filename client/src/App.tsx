@@ -21,6 +21,7 @@ import LoginPage from "./pages/auth/LoginPage";
 import RegisterPage from "./pages/auth/RegisterPage";
 import DevLoginPage from "./pages/auth/DevLoginPage";
 import AdminUtilPage from "./pages/auth/AdminUtilPage";
+import ProfilePage from "./pages/profile/ProfilePage";
 import AdminProductsPage from "./pages/admin/products/AdminProductsPage";
 import NewProductPage from "./pages/admin/products/NewProductPage";
 import EditProductPage from "./pages/admin/products/EditProductPage";
@@ -84,6 +85,10 @@ function Router() {
           <Route path="/register" component={RegisterPage} />
           <Route path="/dev-login" component={DevLoginPage} />
           <Route path="/admin-util" component={AdminUtilPage} />
+          {/* Protected user routes */}
+          <Route path="/profile">
+            <ProtectedRoute component={ProfilePage} />
+          </Route>
           {/* Admin routes that require admin privileges */}
           <Route path="/admin/users">
             <ProtectedRoute component={AdminUsersPage} adminOnly={true} />

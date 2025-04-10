@@ -107,6 +107,12 @@ const Header = () => {
                       <div className="font-semibold">{user.username || user.email}</div>
                       <div className="text-xs text-neutral-500 mt-1">{user.email}</div>
                     </div>
+                    <DropdownMenuItem asChild>
+                      <Link href="/profile" className="flex items-center">
+                        <User className="h-4 w-4 mr-2" />
+                        Profile Settings
+                      </Link>
+                    </DropdownMenuItem>
                     <DropdownMenuItem onClick={handleSignOut} className="text-red-600 focus:text-red-600">
                       <LogOut className="h-4 w-4 mr-2" />
                       Sign out
