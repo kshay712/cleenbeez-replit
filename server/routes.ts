@@ -52,6 +52,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       '/auth/google',  // Google auth should always be accessible
       '/auth/me',      // Auth check should be accessible
       '/auth/profile', // Profile update endpoint is checked internally
+      '/auth/logout',  // Logout should always be accessible
       '/products',
       '/products/featured',
       '/products/related',
@@ -98,6 +99,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/auth/google', auth.googleAuth);
   app.get('/api/auth/me', auth.getCurrentUser);
   app.post('/api/auth/profile', auth.updateProfile);
+  
+  // Logout endpoint
+  app.post('/api/auth/logout', (req, res) => {
+    console.log('[AUTH] Logout requested');
+    
+    // Clear the session
+    if (req.session) {
+      console.log('[AUTH] Destroying session');
+      req.session.destroy((err) => {
+        if (err) {
+          console.error('[AUTH] Error destroying session:', err);
+          return res.status(500).json({ message: 'Failed to logout' });
+        }
+        
+        console.log('[AUTH] Session destroyed successfully');
+        // Clear the session cookie
+        res.clearCookie('connect.sid');
+        return res.status(200).json({ message: 'Logged out successfully' });
+      });
+    } else {
+      console.log('[AUTH] No session found to destroy');
+      return res.status(200).json({ message: 'No active session' });
+    }
+  });
 
   // Product-related routes
   app.get('/api/products', products.getProducts);

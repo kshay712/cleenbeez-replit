@@ -13,18 +13,23 @@ const SimpleHeader = () => {
 
   const handleSignOut = async () => {
     try {
-      // Force remove the localStorage item before calling logout
-      localStorage.removeItem('dev-user');
+      console.log("Starting logout from SimpleHeader component");
       
-      // Then call the regular logout function
+      // Call the logout function which handles everything now
       await logout();
       
-      // Redirect to home page 
+      // Redirect to home page (fallback in case the current page requires auth)
+      console.log("Logout successful, redirecting to home page");
       window.location.href = '/';
     } catch (error) {
       console.error('Error during sign out:', error);
-      // Fallback: force clear everything
+      
+      // Fallback: force clear local storage and reload
+      console.log("Error during logout, using fallback cleanup");
+      localStorage.removeItem('dev-user');
       localStorage.clear();
+      
+      // Force reload to go back to unauthenticated state
       window.location.reload();
     }
   };
