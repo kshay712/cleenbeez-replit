@@ -49,7 +49,7 @@ export const users = {
       const userId = Number(id);
       
       console.log(`[DELETE USER] Attempt to delete user ID: ${userId}`);
-      console.log(`[DELETE USER] Current user is: ${req.user?.username} (ID: ${req.user?.id}, Role: ${req.user?.role})`);
+      console.log(`[DELETE USER] Current user is: ${req.user?.username} (ID: ${req.user?.id}, Role: ${req.user?.role}, Email: ${req.user?.email})`);
       
       // Prevent self-deletion
       if (req.user && req.user.id === userId) {
@@ -66,10 +66,11 @@ export const users = {
       
       console.log(`[DELETE USER] Found user to delete: ${userToDelete.username} (Role: ${userToDelete.role})`);
       
-      // Special handling to prevent deleting other admins
+      // Special handling for deleting admin users
+      // Only admin3@cleanbee.com can delete other admin users
       if (userToDelete.role === 'admin' && req.user?.email !== 'admin3@cleanbee.com') {
         console.log(`[DELETE USER] Attempted to delete admin user by non-admin3 account`);
-        return res.status(403).json({ message: 'Only the super admin can delete other admins' });
+        return res.status(403).json({ message: 'Only the super admin can delete other admin accounts' });
       }
       
       console.log(`[DELETE USER] Deleting user ID: ${userId}`);

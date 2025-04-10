@@ -154,8 +154,8 @@ const AdminUsersPage = () => {
       let errorMessage = error.message || "Failed to delete user";
       
       // Handle special cases
-      if (errorMessage.includes("Only the super admin can delete other admins")) {
-        errorMessage = "Only the super admin (admin3@cleanbee.com) can delete other admin accounts.";
+      if (errorMessage.includes("Only the super admin can delete other admin")) {
+        errorMessage = "Only the super admin (admin3@cleanbee.com) can delete other admin accounts. You can still delete regular user accounts.";
       } else if (errorMessage.includes("Cannot delete your own account")) {
         errorMessage = "You cannot delete your own account.";
       }
