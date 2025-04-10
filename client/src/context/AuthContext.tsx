@@ -30,7 +30,7 @@ interface AuthContextType {
   isEditor: boolean;
   register: (email: string, password: string, username: string) => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
-  loginWithGoogle: () => Promise<void>;
+  loginWithGoogle: () => Promise<boolean | void>;
   logout: () => Promise<void>;
   setUser: (user: User | null) => void; // Added for direct login
 }
@@ -223,11 +223,58 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       provider.addScope('profile');
       provider.addScope('email');
       
-      // Use redirect method instead of popup for better compatibility
-      await signInWithRedirect(auth, provider);
-      
-      // The result will be handled in the useEffect above when the page reloads
-      // No need to set anything here as the page will refresh
+      // Try popup first as it has better compatibility on most platforms
+      try {
+        console.log("Attempting Google sign-in with popup...");
+        const result = await signInWithPopup(auth, provider);
+        console.log("Popup sign-in successful:", result);
+        
+        // Extract user info
+        const firebaseUser = result.user;
+        const idToken = await firebaseUser.getIdToken();
+        
+        // Register with our backend
+        console.log("Registering with backend...");
+        const response = await fetch('/api/auth/google', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${idToken}`
+          },
+          body: JSON.stringify({
+            email: firebaseUser.email,
+            firebaseUid: firebaseUser.uid,
+            username: firebaseUser.displayName || `user_${firebaseUser.uid.substring(0, 8)}`
+          })
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Google sign-in failed: ${response.status} ${response.statusText}`);
+        }
+        
+        const userData = await response.json();
+        console.log("Backend returned user data:", userData);
+        
+        // Set the user in state
+        setUser(userData.user);
+        
+        // Also store in localStorage as backup
+        localStorage.setItem('dev-user', JSON.stringify(userData.user));
+        
+        toast({
+          title: "Success!",
+          description: "Signed in with Google successfully!",
+        });
+        
+        return true; // Successfully logged in
+      } catch (popupError) {
+        console.error("Popup sign-in failed, falling back to redirect:", popupError);
+        
+        // Fall back to redirect if popup fails
+        // This will cause a page reload and the redirect result will be handled by the useEffect
+        await signInWithRedirect(auth, provider);
+        return false; // Redirect initiated, no result yet
+      }
     } catch (error: any) {
       console.error('Google login error:', error);
       toast({
@@ -237,6 +284,12 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       });
       setIsLoading(false);
       throw error;
+    } finally {
+      // Only set loading to false if we're not doing a redirect
+      // (redirect will reload the page anyway)
+      if (typeof window !== 'undefined' && window.location.href === document.referrer) {
+        setIsLoading(false);
+      }
     }
   };
   
