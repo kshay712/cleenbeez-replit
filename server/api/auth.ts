@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { storage } from '../storage';
 import { insertUserSchema } from '@shared/schema';
 import admin from 'firebase-admin';
+import { UserRecord } from 'firebase-admin/auth';
 
 // Initialize Firebase Admin SDK if not already initialized
 try {
