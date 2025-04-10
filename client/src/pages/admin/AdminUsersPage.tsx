@@ -247,6 +247,11 @@ const AdminUsersPage = () => {
       const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
       const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
       compareResult = dateA - dateB;
+    } else if (sortConfig.key === 'lastLogin') {
+      // Sort lastLogin dates, treating null values as oldest (smallest timestamp)
+      const dateA = a.lastLogin ? new Date(a.lastLogin).getTime() : 0;
+      const dateB = b.lastLogin ? new Date(b.lastLogin).getTime() : 0;
+      compareResult = dateA - dateB;
     }
     
     // Reverse the order for descending sort
@@ -341,6 +346,15 @@ const AdminUsersPage = () => {
                       {getSortIcon('createdAt')}
                     </div>
                   </TableHead>
+                  <TableHead 
+                    className="cursor-pointer hover:bg-muted/50 transition-colors" 
+                    onClick={() => handleSort('lastLogin')}
+                  >
+                    <div className="flex items-center">
+                      Last Login
+                      {getSortIcon('lastLogin')}
+                    </div>
+                  </TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -358,6 +372,9 @@ const AdminUsersPage = () => {
                       </TableCell>
                       <TableCell>
                         {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}
+                      </TableCell>
+                      <TableCell>
+                        {user.lastLogin ? new Date(user.lastLogin).toLocaleString() : 'Never'}
                       </TableCell>
                       <TableCell className="text-right">
                         <DropdownMenu>
@@ -411,7 +428,7 @@ const AdminUsersPage = () => {
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center h-24">
+                    <TableCell colSpan={6} className="text-center h-24">
                       {searchQuery || roleFilter ? "No users match your search criteria." : "No users found."}
                     </TableCell>
                   </TableRow>
