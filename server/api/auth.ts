@@ -112,25 +112,18 @@ export const requireAuth = async (req: Request, res: Response, next: NextFunctio
   console.log('[AUTH CHECK] Auth header:', req.headers.authorization);
   console.log('[AUTH CHECK] Dev user ID header:', req.headers['x-dev-user-id']);
   
-  // TEMPORARY OVERRIDE: Always skip authentication for now
-  if (true) {
-    console.log('[AUTH CHECK] DEVELOPMENT MODE: Bypassing authentication');
-    
-    // If we have a userId in the header, look up the user and set req.user
-    const devUserId = req.headers['x-dev-user-id'];
-    if (devUserId) {
-      try {
-        const user = await storage.getUserById(Number(devUserId));
-        if (user) {
-          console.log(`[AUTH CHECK] Setting req.user from header to ${user.username} (${user.role})`);
-          req.user = user;
-        }
-      } catch (error) {
-        console.error('[AUTH CHECK] Error fetching user from devUserId:', error);
+  // Check if we have a development user ID in the header
+  const devUserId = req.headers['x-dev-user-id'];
+  if (devUserId) {
+    try {
+      const user = await storage.getUserById(Number(devUserId));
+      if (user) {
+        console.log(`[AUTH CHECK] Setting req.user from header to ${user.username} (${user.role})`);
+        req.user = user;
       }
+    } catch (error) {
+      console.error('[AUTH CHECK] Error fetching user from devUserId:', error);
     }
-    
-    return next();
   }
   
   if (!req.user) {
@@ -147,32 +140,25 @@ export const requireAdmin = async (req: Request, res: Response, next: NextFuncti
   console.log('[ADMIN CHECK] Auth header:', req.headers.authorization);
   console.log('[ADMIN CHECK] Dev user ID header:', req.headers['x-dev-user-id']);
   
-  // TEMPORARY OVERRIDE: Always skip authentication for now
-  if (true) {
-    console.log('[ADMIN CHECK] DEVELOPMENT MODE: Bypassing authentication');
-    
-    // If we have a userId in the header, look up the user and set req.user
-    const devUserId = req.headers['x-dev-user-id'];
-    if (devUserId) {
-      try {
-        const user = await storage.getUserById(Number(devUserId));
-        if (user) {
-          console.log(`[ADMIN CHECK] Setting req.user from header to ${user.username} (${user.role})`);
-          req.user = user;
-        }
-      } catch (error) {
-        console.error('[ADMIN CHECK] Error fetching user from devUserId:', error);
+  // Check if we have a development user ID in the header
+  const devUserId = req.headers['x-dev-user-id'];
+  if (devUserId) {
+    try {
+      const user = await storage.getUserById(Number(devUserId));
+      if (user) {
+        console.log(`[ADMIN CHECK] Setting req.user from header to ${user.username} (${user.role})`);
+        req.user = user;
       }
+    } catch (error) {
+      console.error('[ADMIN CHECK] Error fetching user from devUserId:', error);
     }
-    
-    return next();
   }
   
   if (!req.user) {
     return res.status(401).json({ message: 'Authentication required' });
   }
   
-  if (req.user.role !== 'admin') {
+  if (!req.user || req.user.role !== 'admin') {
     return res.status(403).json({ message: 'Admin access required' });
   }
   
@@ -190,26 +176,18 @@ export const requireEditor = async (req: Request, res: Response, next: NextFunct
   // TEMPORARY DEBUG: Log session
   console.log('[EDITOR CHECK] Session userId:', req.session?.userId);
   
-  // TEMPORARY OVERRIDE: Always skip authentication for now
-  // This will bypass all authentication checks but let us diagnose the issue
-  if (true) {
-    console.log('[EDITOR CHECK] DEVELOPMENT MODE: Bypassing authentication');
-    
-    // If we have a userId in the header, look up the user and set req.user
-    const devUserId = req.headers['x-dev-user-id'];
-    if (devUserId) {
-      try {
-        const user = await storage.getUserById(Number(devUserId));
-        if (user) {
-          console.log(`[EDITOR CHECK] Setting req.user from header to ${user.username} (${user.role})`);
-          req.user = user;
-        }
-      } catch (error) {
-        console.error('[EDITOR CHECK] Error fetching user from devUserId:', error);
+  // Check if we have a development user ID in the header
+  const devUserId = req.headers['x-dev-user-id'];
+  if (devUserId) {
+    try {
+      const user = await storage.getUserById(Number(devUserId));
+      if (user) {
+        console.log(`[EDITOR CHECK] Setting req.user from header to ${user.username} (${user.role})`);
+        req.user = user;
       }
+    } catch (error) {
+      console.error('[EDITOR CHECK] Error fetching user from devUserId:', error);
     }
-    
-    return next();
   }
   
   // Normal production checks
@@ -217,7 +195,7 @@ export const requireEditor = async (req: Request, res: Response, next: NextFunct
     return res.status(401).json({ message: 'Authentication required' });
   }
   
-  if (req.user.role !== 'editor' && req.user.role !== 'admin') {
+  if (!req.user || (req.user.role !== 'editor' && req.user.role !== 'admin')) {
     return res.status(403).json({ message: 'Editor access required' });
   }
   
