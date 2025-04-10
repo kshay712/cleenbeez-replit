@@ -660,8 +660,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         await signOut(auth);
       }
       
-      // Always manually clear the user state
+      // Always manually clear the user state and reset verification status
       setUser(null);
+      setEmailVerified(false);
       
       console.log("Logout complete");
     } catch (error: any) {
@@ -670,6 +671,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       // Even if there's an error, try to clean up as much as possible
       localStorage.removeItem('dev-user');
       setUser(null);
+      setEmailVerified(false);
       
       // Re-throw for UI error handling
       throw new Error(error.message || 'Failed to logout');

@@ -6,6 +6,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
+import { VerificationBanner, VerificationSuccess } from '@/components/auth/VerificationBanner';
 
 import {
   Card,
@@ -66,7 +67,7 @@ type ProfileFormValues = z.infer<typeof profileFormSchema>;
 type PasswordFormValues = z.infer<typeof passwordFormSchema>;
 
 export default function ProfilePage() {
-  const { user } = useAuth();
+  const { user, emailVerified } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('account');
@@ -236,6 +237,15 @@ export default function ProfilePage() {
             Manage your account settings and set profile preferences.
           </p>
         </div>
+        
+        {/* Email verification status */}
+        {user.email && !emailVerified && (
+          <VerificationBanner email={user.email} />
+        )}
+        {user.email && emailVerified && (
+          <VerificationSuccess />
+        )}
+        
         <Separator />
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
