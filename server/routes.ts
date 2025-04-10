@@ -110,6 +110,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/auth/me', auth.getCurrentUser);
   app.post('/api/auth/profile', auth.updateProfile);
   app.post('/api/auth/cleanup-firebase', auth.cleanupFirebaseUser);
+  app.post('/api/auth/public-cleanup-firebase', auth.publicCleanupFirebaseUser);
   
   // Logout endpoint
   app.post('/api/auth/logout', (req, res) => {

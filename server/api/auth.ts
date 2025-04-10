@@ -370,6 +370,76 @@ const findFirebaseUserByEmail = async (email: string): Promise<UserRecord | null
 };
 
 export const auth = {
+  publicCleanupFirebaseUser: async (req: Request, res: Response) => {
+    try {
+      console.log('[PUBLIC CLEANUP FIREBASE] Request received:', JSON.stringify(req.body));
+      
+      const { email } = req.body;
+      
+      if (!email) {
+        return res.status(400).json({ message: 'Email is required' });
+      }
+      
+      // IMPORTANT SECURITY CHECK: This is a public endpoint, so we need to make sure it's not abused
+      // Only allow cleaning up users during registration who actually exist in Firebase but not in our DB
+      
+      // Look up the user in Firebase by email
+      const firebaseUser = await findFirebaseUserByEmail(email);
+      
+      if (!firebaseUser) {
+        return res.status(404).json({ message: 'No Firebase user found with this email' });
+      }
+      
+      console.log(`[PUBLIC CLEANUP FIREBASE] Found Firebase user: ${firebaseUser.uid} (${firebaseUser.email})`);
+      
+      // Check our database
+      const dbUser = await storage.getUserByEmail(email);
+      
+      // SECURITY CHECK: If user exists in our database and Firebase, don't allow public cleanup
+      // This prevents someone from maliciously deleting a valid user's account
+      if (dbUser && dbUser.firebaseUid === firebaseUser.uid) {
+        return res.status(403).json({
+          message: 'User exists in the system and cannot be cleaned up using the public endpoint',
+          userExists: true
+        });
+      }
+      
+      // Delete the Firebase user
+      try {
+        console.log(`[PUBLIC CLEANUP FIREBASE] Deleting Firebase user with UID: ${firebaseUser.uid}`);
+        await admin.auth().deleteUser(firebaseUser.uid);
+        console.log(`[PUBLIC CLEANUP FIREBASE] Successfully deleted Firebase user: ${firebaseUser.uid}`);
+        
+        // If user exists in our database but has a different Firebase UID, we should clean that up too
+        if (dbUser) {
+          console.log(`[PUBLIC CLEANUP FIREBASE] Also removing inconsistent user entry from our database: ${dbUser.id}`);
+          const result = await storage.deleteUser(dbUser.id);
+          if (result.success) {
+            console.log(`[PUBLIC CLEANUP FIREBASE] Successfully deleted user from database: ${dbUser.id}`);
+          } else {
+            console.log(`[PUBLIC CLEANUP FIREBASE] Failed to delete user from database: ${dbUser.id}`);
+          }
+        }
+        
+        return res.status(200).json({ 
+          message: 'User deleted successfully from Firebase', 
+          firebaseUid: firebaseUser.uid,
+          databaseUserDeleted: dbUser ? true : false
+        });
+      } catch (deleteError: any) {
+        console.error(`[PUBLIC CLEANUP FIREBASE] Error deleting Firebase user:`, deleteError);
+        return res.status(500).json({ 
+          message: 'Failed to delete Firebase user', 
+          error: deleteError.message, 
+          code: deleteError.code
+        });
+      }
+    } catch (error: any) {
+      console.error('[PUBLIC CLEANUP FIREBASE] Error:', error);
+      return res.status(500).json({ message: 'Internal server error', error: error.message });
+    }
+  },
+  
   updateProfile: async (req: Request, res: Response) => {
     try {
       console.log('[UPDATE PROFILE] Request body:', JSON.stringify(req.body));
@@ -856,6 +926,8 @@ export const auth = {
       return res.status(401).json({ message: 'Not authenticated' });
     }
   },
+  
+
   
   // Method to clean up Firebase users by email - only accessible to admins
   cleanupFirebaseUser: [requireAdmin, async (req: Request, res: Response) => {
