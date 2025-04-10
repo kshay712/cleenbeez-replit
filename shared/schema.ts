@@ -12,6 +12,7 @@ export const users = pgTable("users", {
   firebaseUid: text("firebase_uid").unique(),
   role: text("role", { enum: ["user", "editor", "admin"] }).default("user").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  lastLogin: timestamp("last_login"),
 });
 
 export const usersRelations = relations(users, ({ many }) => ({
@@ -122,7 +123,7 @@ export const blogPostsToCategoriesRelations = relations(blogPostsToCategories, (
 
 // Insert Schemas
 export const insertUserSchema = createInsertSchema(users)
-  .omit({ id: true, createdAt: true });
+  .omit({ id: true, createdAt: true, lastLogin: true });
 
 export const insertCategorySchema = createInsertSchema(categories)
   .omit({ id: true });
