@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -180,10 +180,11 @@ const AdminUsersPage = () => {
   });
 
   // Check for admin role
-  if (!isAdmin) {
-    navigate("/");
-    return null;
-  }
+  useEffect(() => {
+    if (!isAdmin) {
+      navigate("/");
+    }
+  }, [isAdmin, navigate]);
 
   return (
     <div className="container mx-auto py-10 max-w-7xl">
