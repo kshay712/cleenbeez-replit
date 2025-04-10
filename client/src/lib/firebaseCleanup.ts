@@ -7,12 +7,18 @@
 
 /**
  * Attempts to clean up a Firebase user by email
- * Only administrators can use this functionality
+ * This function works in two modes:
+ * 1. Admin-authenticated mode (when user is logged in as admin)
+ * 2. Public registration mode (specifically for auth/email-already-in-use errors)
  * 
  * @param email The email of the Firebase user to clean up
+ * @param isRegistrationFlow Whether this is being called from registration (allows using public endpoint)
  * @returns A Promise that resolves to the cleanup result
  */
-export async function cleanupFirebaseUser(email: string): Promise<{
+export async function cleanupFirebaseUser(
+  email: string, 
+  isRegistrationFlow: boolean = false
+): Promise<{
   success: boolean;
   message: string;
   firebaseUid?: string;
@@ -20,30 +26,41 @@ export async function cleanupFirebaseUser(email: string): Promise<{
   error?: string;
 }> {
   try {
-    // Get the admin token from localStorage
-    const devUserJson = localStorage.getItem('dev-user');
-    if (!devUserJson) {
-      return {
-        success: false,
-        message: 'No authentication token available. You must be logged in as an admin.'
-      };
-    }
+    let endpoint = '/api/auth/cleanup-firebase';
+    let headers: Record<string, string> = {
+      'Content-Type': 'application/json'
+    };
+    
+    // Check if we're in registration mode or admin mode
+    if (isRegistrationFlow) {
+      // Use the public registration endpoint that doesn't require admin auth
+      endpoint = '/api/auth/public-cleanup-firebase';
+    } else {
+      // Get the admin token from localStorage for admin-only operations
+      const devUserJson = localStorage.getItem('dev-user');
+      if (!devUserJson) {
+        return {
+          success: false,
+          message: 'No authentication token available. You must be logged in as an admin.'
+        };
+      }
 
-    const devUser = JSON.parse(devUserJson);
-    if (!devUser || !devUser.firebaseUid || devUser.role !== 'admin') {
-      return {
-        success: false,
-        message: 'You must be an admin to clean up Firebase users.'
-      };
+      const devUser = JSON.parse(devUserJson);
+      if (!devUser || !devUser.firebaseUid || devUser.role !== 'admin') {
+        return {
+          success: false,
+          message: 'You must be an admin to clean up Firebase users.'
+        };
+      }
+      
+      // Add authentication header for admin-only endpoint
+      headers['Authorization'] = `Bearer ${devUser.firebaseUid}`;
     }
 
     // Make API request to clean up the Firebase user
-    const response = await fetch('/api/auth/cleanup-firebase', {
+    const response = await fetch(endpoint, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${devUser.firebaseUid}`
-      },
+      headers,
       body: JSON.stringify({ email })
     });
 
@@ -96,7 +113,8 @@ export async function recoverFromFirebaseError(
   if (error.code === 'auth/email-already-in-use') {
     console.log(`Email ${email} is already in use. Attempting cleanup...`);
     
-    const cleanupResult = await cleanupFirebaseUser(email);
+    // Pass true to indicate this is a registration flow (uses public endpoint)
+    const cleanupResult = await cleanupFirebaseUser(email, true);
     
     if (cleanupResult.success) {
       return {

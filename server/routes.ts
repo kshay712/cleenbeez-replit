@@ -62,6 +62,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       '/auth/profile', // Profile update endpoint is checked internally
       '/auth/logout',  // Logout should always be accessible
       '/auth/cleanup-firebase', // Cleanup endpoint has its own auth checks
+      '/auth/public-cleanup-firebase', // Public cleanup for registration flows
       '/products',
       '/products/featured',
       '/products/related',
