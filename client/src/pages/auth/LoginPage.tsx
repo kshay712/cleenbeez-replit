@@ -139,10 +139,23 @@ const LoginPage = () => {
               </div>
             </div>
 
-            <div className="mt-4 text-center">
+            <div className="mt-4 flex flex-col space-y-2 text-center">
               <Link href="/dev-login" className="font-medium text-primary-600 hover:text-primary-500">
                 Use Development Login (for testing)
               </Link>
+              
+              <p className="text-sm text-gray-500">
+                Having trouble with Firebase login? Try these credentials:
+              </p>
+              
+              <div className="mt-2 text-xs text-gray-500 bg-gray-50 p-2 rounded border">
+                <div><strong>Email:</strong> admin@cleanbee.com</div>
+                <div><strong>Password:</strong> password123</div>
+              </div>
+              
+              <div className="mt-2 text-xs text-gray-500">
+                New users are automatically registered on first login
+              </div>
             </div>
 
             <Form {...form}>

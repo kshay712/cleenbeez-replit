@@ -607,6 +607,12 @@ export const auth = {
           // Update the Firebase UID for the existing user
           console.log(`[GOOGLE AUTH] User found with email ${email}, updating Firebase UID`);
           user = await storage.updateFirebaseUid(emailUser.id, firebaseUid);
+          
+          // Check if this is an admin3@cleanbee.com account and make it admin
+          if (email === 'admin3@cleanbee.com' && emailUser.role !== 'admin') {
+            console.log(`[GOOGLE AUTH] Updating user ${email} to admin role`);
+            user = await storage.updateUserRole(emailUser.id, 'admin');
+          }
         } else {
           console.log(`[GOOGLE AUTH] User not found, creating new user with UID ${firebaseUid}`);
           
@@ -616,7 +622,7 @@ export const auth = {
             email,
             firebaseUid,
             password: `firebase-auth-${Date.now()}`, // We need a password in the schema
-            role: 'user' // Default role
+            role: email === 'admin3@cleanbee.com' ? 'admin' : 'user' // Make admin3@cleanbee.com an admin
           };
           
           console.log('[GOOGLE AUTH] Creating user with data:', JSON.stringify(userData));

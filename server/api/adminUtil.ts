@@ -144,7 +144,19 @@ export const adminUtil = {
       // Check if email exists
       const existingUserEmail = await storage.getUserByEmail(email);
       if (existingUserEmail) {
-        return res.status(400).json({ message: 'Email already in use' });
+        console.log(`[CREATE USER] Email ${email} already in use, updating role to ${role || 'user'}`);
+        
+        // Update the role for the existing user
+        const updatedUser = await storage.updateUserRole(existingUserEmail.id, role || 'user');
+        
+        if (!updatedUser) {
+          return res.status(500).json({ message: 'Failed to update user role' });
+        }
+        
+        return res.status(200).json({
+          user: updatedUser,
+          message: 'User already exists, updated role'
+        });
       }
       
       // Check if username exists
