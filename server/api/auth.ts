@@ -176,26 +176,64 @@ export const requireEditor = async (req: Request, res: Response, next: NextFunct
   // TEMPORARY DEBUG: Log session
   console.log('[EDITOR CHECK] Session userId:', req.session?.userId);
   
-  // Check if we have a development user ID in the header
-  const devUserId = req.headers['x-dev-user-id'];
-  if (devUserId) {
-    try {
-      const user = await storage.getUserById(Number(devUserId));
-      if (user) {
-        console.log(`[EDITOR CHECK] Setting req.user from header to ${user.username} (${user.role})`);
-        req.user = user;
-      }
-    } catch (error) {
-      console.error('[EDITOR CHECK] Error fetching user from devUserId:', error);
+  // First, check if we have a user in the session
+  if (req.session && req.session.userId) {
+    console.log(`[EDITOR CHECK] Found userId in session: ${req.session.userId}`);
+    const user = await storage.getUserById(req.session.userId);
+    if (user) {
+      console.log(`[EDITOR CHECK] Session user found: ${user.username} (${user.role})`);
+      req.user = user;
     }
   }
   
-  // Normal production checks
+  // If no user yet, check for Firebase token
+  if (!req.user && req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
+    const token = req.headers.authorization.split('Bearer ')[1];
+    try {
+      console.log('[EDITOR CHECK] Verifying Firebase token');
+      const decodedToken = await admin.auth().verifyIdToken(token);
+      const firebaseUid = decodedToken.uid;
+      console.log(`[EDITOR CHECK] Token verified, Firebase UID: ${firebaseUid}`);
+      
+      // Get user from database by Firebase UID
+      const user = await storage.getUserByFirebaseUid(firebaseUid);
+      if (user) {
+        console.log(`[EDITOR CHECK] Firebase user found: ${user.username} (${user.role})`);
+        req.user = user;
+        
+        // Set in session for future requests
+        if (req.session) {
+          req.session.userId = user.id;
+          console.log(`[EDITOR CHECK] Set session userId to ${user.id}`);
+        }
+      }
+    } catch (error) {
+      console.error('[EDITOR CHECK] Firebase token verification error:', error);
+    }
+  }
+  
+  // Check if we have a development user ID in the header (fallback)
+  if (!req.user) {
+    const devUserId = req.headers['x-dev-user-id'];
+    if (devUserId) {
+      try {
+        const user = await storage.getUserById(Number(devUserId));
+        if (user) {
+          console.log(`[EDITOR CHECK] Setting req.user from header to ${user.username} (${user.role})`);
+          req.user = user;
+        }
+      } catch (error) {
+        console.error('[EDITOR CHECK] Error fetching user from devUserId:', error);
+      }
+    }
+  }
+  
+  // Final permission check
   if (!req.user) {
     return res.status(401).json({ message: 'Authentication required' });
   }
   
-  if (!req.user || (req.user.role !== 'editor' && req.user.role !== 'admin')) {
+  if (req.user.role !== 'editor' && req.user.role !== 'admin') {
     return res.status(403).json({ message: 'Editor access required' });
   }
   
