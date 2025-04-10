@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from "./context/AuthContext";
 import { useAuth } from "./hooks/useAuth";
 import { Loader2 } from "lucide-react";
+import { useEffect } from "react";
 
 // Layouts
 import Header from "./components/layout/Header";
@@ -38,34 +39,47 @@ const ProtectedRoute = ({ component: Component, adminOnly = false, editorOnly = 
   editorOnly?: boolean;
 }) => {
   const { isAuthenticated, isAdmin, isEditor, isLoading } = useAuth();
-  const [, navigate] = useLocation();
+  const [location, navigate] = useLocation();
+
+  // After authentication check is complete
+  useEffect(() => {
+    if (!isLoading) {
+      if (!isAuthenticated) {
+        // User not logged in, redirect to login with return path
+        console.log(`ProtectedRoute: User not authenticated, redirecting to login from ${location}`);
+        
+        // Store the path they were trying to access
+        sessionStorage.setItem('redirectAfterLogin', location);
+        
+        // Redirect to login
+        navigate("/login");
+      } else if (adminOnly && !isAdmin) {
+        console.log("ProtectedRoute: Admin access required, redirecting to home");
+        navigate("/");
+      } else if (editorOnly && !isEditor) {
+        console.log("ProtectedRoute: Editor access required, redirecting to home");
+        navigate("/");
+      }
+    }
+  }, [isLoading, isAuthenticated, isAdmin, isEditor, location, navigate, adminOnly, editorOnly]);
 
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-border" />
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin text-amber-500 mx-auto" />
+          <p className="mt-4 text-gray-600">Checking authentication...</p>
+        </div>
       </div>
     );
   }
 
-  if (!isAuthenticated) {
-    // User not logged in, redirect to login
-    navigate("/login");
+  // Don't render anything during redirect
+  if (!isAuthenticated || (adminOnly && !isAdmin) || (editorOnly && !isEditor)) {
     return null;
   }
 
-  if (adminOnly && !isAdmin) {
-    // User is not an admin, redirect to home page
-    navigate("/");
-    return null;
-  }
-
-  if (editorOnly && !isEditor) {
-    // User is not an editor or admin, redirect to home page
-    navigate("/");
-    return null;
-  }
-
+  // If we get here, the user is authenticated and has the right permissions
   return <Component />;
 };
 

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation, Link } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, ArrowLeft } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const loginSchema = z.object({
@@ -28,10 +28,28 @@ const loginSchema = z.object({
 type LoginFormValues = z.infer<typeof loginSchema>;
 
 const LoginPage = () => {
-  const [, navigate] = useLocation();
-  const { login, loginWithGoogle, setUser } = useAuth();
+  const [location, navigate] = useLocation();
+  const { login, loginWithGoogle, setUser, isAuthenticated } = useAuth();
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [redirectPath, setRedirectPath] = useState<string | null>(null);
+  
+  // Check if there's a redirect path stored in session storage
+  useEffect(() => {
+    const storedPath = sessionStorage.getItem('redirectAfterLogin');
+    if (storedPath && storedPath !== '/login') {
+      setRedirectPath(storedPath);
+    }
+    
+    // If user is already authenticated, redirect to stored path or home
+    if (isAuthenticated) {
+      const navigateTo = redirectPath || '/';
+      console.log(`User already authenticated, redirecting to ${navigateTo}`);
+      navigate(navigateTo);
+      // Clear the redirect path from session storage
+      sessionStorage.removeItem('redirectAfterLogin');
+    }
+  }, [isAuthenticated, navigate, redirectPath]);
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -66,7 +84,15 @@ const LoginPage = () => {
           console.log("Direct login successful:", userData);
           
           setUser(userData);
-          navigate("/");
+          
+          // Navigate to the redirect path if available, otherwise go to home
+          const navigateTo = redirectPath || '/';
+          console.log(`Direct login successful, redirecting to ${navigateTo}`);
+          
+          // Clear the redirect path from session storage
+          sessionStorage.removeItem('redirectAfterLogin');
+          
+          navigate(navigateTo);
           return;
         } else {
           console.log("Direct login failed, trying Firebase login");
@@ -78,7 +104,15 @@ const LoginPage = () => {
       
       // Fall back to regular Firebase login
       await login(data.email, data.password);
-      navigate("/");
+      
+      // Navigate to the redirect path if available, otherwise go to home
+      const navigateTo = redirectPath || '/';
+      console.log(`Firebase login successful, redirecting to ${navigateTo}`);
+      
+      // Clear the redirect path from session storage
+      sessionStorage.removeItem('redirectAfterLogin');
+      
+      navigate(navigateTo);
     } catch (err: any) {
       setError(err.message || "Failed to login. Please try again.");
     } finally {
