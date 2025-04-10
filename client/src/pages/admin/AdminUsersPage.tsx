@@ -101,6 +101,37 @@ const AdminUsersPage = () => {
     staleTime: 0, // Always refetch to get latest users
     refetchOnMount: true, // Force refetch when component mounts
     gcTime: 0, // Don't cache the data (modern replacement for cacheTime)
+    queryFn: async ({ queryKey }) => {
+      try {
+        // Get user from localStorage for auth
+        const devUser = localStorage.getItem('dev-user');
+        const headers: HeadersInit = {
+          'Content-Type': 'application/json'
+        };
+        
+        if (devUser) {
+          const userData = JSON.parse(devUser);
+          if (userData && userData.firebaseUid) {
+            headers['Authorization'] = `Bearer ${userData.firebaseUid}`;
+          }
+        }
+        
+        // Make request with auth headers
+        const response = await fetch(queryKey[0] as string, {
+          headers,
+          credentials: 'include'
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Failed to fetch users: ${response.status}`);
+        }
+        
+        return await response.json();
+      } catch (error) {
+        console.error("Error fetching users:", error);
+        throw error;
+      }
+    }
   });
   
   // Refetch on component mount to ensure we have the latest data
@@ -118,7 +149,32 @@ const AdminUsersPage = () => {
   // Role update mutation
   const updateUserRoleMutation = useMutation({
     mutationFn: async ({ userId, role }: { userId: number; role: string }) => {
-      return await apiRequest("PATCH", `/api/users/${userId}/role`, { role });
+      // Get user from localStorage for auth
+      const devUser = localStorage.getItem('dev-user');
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json'
+      };
+      
+      if (devUser) {
+        const userData = JSON.parse(devUser);
+        if (userData && userData.firebaseUid) {
+          headers['Authorization'] = `Bearer ${userData.firebaseUid}`;
+        }
+      }
+      
+      const response = await fetch(`/api/users/${userId}/role`, {
+        method: 'PATCH',
+        headers,
+        credentials: 'include',
+        body: JSON.stringify({ role })
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || response.statusText);
+      }
+      
+      return response;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/users'] });
@@ -484,12 +540,23 @@ const AdminUsersPage = () => {
                                 );
                                 
                                 if (confirmed) {
+                                  // Get user from localStorage for auth
+                                  const devUser = localStorage.getItem('dev-user');
+                                  const headers: HeadersInit = {
+                                    'Content-Type': 'application/json'
+                                  };
+                                  
+                                  if (devUser) {
+                                    const userData = JSON.parse(devUser);
+                                    if (userData && userData.firebaseUid) {
+                                      headers['Authorization'] = `Bearer ${userData.firebaseUid}`;
+                                    }
+                                  }
+                                  
                                   // Use direct delete endpoint
                                   fetch('/api/admin/direct-delete-user', {
                                     method: 'POST',
-                                    headers: {
-                                      'Content-Type': 'application/json'
-                                    },
+                                    headers,
                                     credentials: 'include',
                                     body: JSON.stringify({ userId: user.id })
                                   })

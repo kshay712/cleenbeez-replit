@@ -83,6 +83,9 @@ const LoginPage = () => {
           const userData = await response.json();
           console.log("Direct login successful:", userData);
           
+          // Save user in localStorage for dev session persistence
+          localStorage.setItem('dev-user', JSON.stringify(userData));
+          
           setUser(userData);
           
           // Navigate to the redirect path if available, otherwise go to home
