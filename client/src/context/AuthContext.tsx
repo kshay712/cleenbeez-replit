@@ -1,4 +1,4 @@
-import { createContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useState, useEffect, ReactNode, useRef } from 'react';
 import { 
   User as FirebaseUser,
   createUserWithEmailAndPassword, 
@@ -10,7 +10,8 @@ import {
   signInWithRedirect,
   getRedirectResult,
   AuthError,
-  sendEmailVerification
+  sendEmailVerification,
+  reload
 } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { apiRequest } from '@/lib/queryClient';
