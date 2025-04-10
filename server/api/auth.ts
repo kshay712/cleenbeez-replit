@@ -452,15 +452,54 @@ export const auth = {
       // Check if user with this firebaseUid already exists
       const existingUserById = await storage.getUserByFirebaseUid(uid);
       if (existingUserById) {
-        console.log(`[REGISTER] User with firebaseUid ${uid} already exists`);
-        return res.status(400).json({ message: 'User already exists with this authentication' });
+        console.log(`[REGISTER] User with firebaseUid ${uid} already exists, returning existing user`);
+        
+        // Set session for the existing user
+        if (req.session) {
+          req.session.userId = existingUserById.id;
+          console.log(`[REGISTER] Set session userId to ${existingUserById.id} for existing user`);
+        }
+        
+        return res.status(200).json({
+          user: {
+            id: existingUserById.id,
+            username: existingUserById.username,
+            email: existingUserById.email,
+            role: existingUserById.role,
+            firebaseUid: existingUserById.firebaseUid
+          },
+          message: 'User already exists, login successful'
+        });
       }
       
-      // Check if email exists
+      // Check if email exists and update the Firebase UID if it does
       const existingUserEmail = await storage.getUserByEmail(email);
       if (existingUserEmail) {
-        console.log(`[REGISTER] Email ${email} already in use`);
-        return res.status(400).json({ message: 'Email already in use' });
+        console.log(`[REGISTER] Email ${email} already in use, updating Firebase UID`);
+        
+        // Update the Firebase UID for the existing user
+        const updatedUser = await storage.updateFirebaseUid(existingUserEmail.id, uid);
+        
+        if (!updatedUser) {
+          return res.status(500).json({ message: 'Failed to update user with new Firebase UID' });
+        }
+        
+        // Set session for the existing user
+        if (req.session) {
+          req.session.userId = updatedUser.id;
+          console.log(`[REGISTER] Set session userId to ${updatedUser.id} for existing user`);
+        }
+        
+        return res.status(200).json({
+          user: {
+            id: updatedUser.id,
+            username: updatedUser.username,
+            email: updatedUser.email,
+            role: updatedUser.role,
+            firebaseUid: updatedUser.firebaseUid
+          },
+          message: 'User already exists, updated with new authentication'
+        });
       }
       
       // Check if username exists
