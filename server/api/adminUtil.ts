@@ -41,25 +41,24 @@ export const adminUtil = {
         hasFirebaseUid: !!user.firebaseUid 
       });
       
-      // Make sure we have a test firebaseUid for development login
-      if (!user.firebaseUid || !user.firebaseUid.startsWith('test-')) {
-        // Update the user with a test firebaseUid if it doesn't exist
+      // If the user has a Firebase UID that doesn't start with 'test-', 
+      // we'll preserve it instead of replacing it with a test UID
+      // This allows users created with real Firebase auth to still use direct login
+      if (!user.firebaseUid) {
+        // Only generate a test UID if one doesn't exist at all
         const testUid = `test-${Date.now()}`;
-        console.log('[DEV LOGIN] User needs test firebaseUid, creating:', testUid);
+        console.log('[DEV LOGIN] User has no firebaseUid, creating:', testUid);
         
         try {
-          // This is a simplified update - in a real system you'd use a proper update method
-          const updatedUser = await storage.updateUserRole(user.id, user.role); 
-          // We're reusing updateUserRole as a way to touch the user record
-          if (updatedUser) {
-            // Now add the firebaseUid directly
-            await storage.updateFirebaseUid(user.id, testUid);
-            user = await storage.getUserById(user.id); // Get fresh user data
-            console.log('[DEV LOGIN] Updated user with test firebaseUid:', testUid);
-          }
+          // Update the user with a test firebaseUid
+          await storage.updateFirebaseUid(user.id, testUid);
+          user = await storage.getUserById(user.id); // Get fresh user data
+          console.log('[DEV LOGIN] Updated user with test firebaseUid:', testUid);
         } catch (err) {
           console.error('[DEV LOGIN] Failed to update test firebaseUid:', err);
         }
+      } else {
+        console.log('[DEV LOGIN] User already has firebaseUid:', user.firebaseUid, '- keeping it');
       }
       
       // Set the user in the session for authentication
