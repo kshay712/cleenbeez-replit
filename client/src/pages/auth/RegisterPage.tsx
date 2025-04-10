@@ -268,7 +268,7 @@ const RegisterPage = () => {
                           {...field} 
                           type="email" 
                           autoComplete="email"
-                          disabled={isLoading || (isGoogleRegistration && pendingData?.email)}
+                          disabled={isLoading || Boolean(isGoogleRegistration && pendingData?.email)}
                           required={!isGoogleRegistration}
                         />
                       </FormControl>
