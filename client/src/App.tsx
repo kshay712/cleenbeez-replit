@@ -75,20 +75,37 @@ function Router() {
       <Header />
       <main className="flex-grow pt-16">
         <Switch>
+          {/* Public routes */}
           <Route path="/" component={HomePage} />
-          <Route path="/products" component={ProductsPage} />
-          <Route path="/products/:id" component={ProductDetailPage} />
-          <Route path="/blog" component={BlogPage} />
-          <Route path="/blog/:slug" component={BlogPostPage} />
-          <Route path="/learn" component={LearnPage} />
           <Route path="/login" component={LoginPage} />
           <Route path="/register" component={RegisterPage} />
           <Route path="/dev-login" component={DevLoginPage} />
-          <Route path="/admin-util" component={AdminUtilPage} />
+          
+          {/* Protected general routes - require login */}
+          <Route path="/products">
+            <ProtectedRoute component={ProductsPage} />
+          </Route>
+          <Route path="/products/:id">
+            <ProtectedRoute component={ProductDetailPage} />
+          </Route>
+          <Route path="/blog">
+            <ProtectedRoute component={BlogPage} />
+          </Route>
+          <Route path="/blog/:slug">
+            <ProtectedRoute component={BlogPostPage} />
+          </Route>
+          <Route path="/learn">
+            <ProtectedRoute component={LearnPage} />
+          </Route>
+          <Route path="/admin-util">
+            <ProtectedRoute component={AdminUtilPage} />
+          </Route>
+          
           {/* Protected user routes */}
           <Route path="/profile">
             <ProtectedRoute component={ProfilePage} />
           </Route>
+          
           {/* Admin routes that require admin privileges */}
           <Route path="/admin/users">
             <ProtectedRoute component={AdminUsersPage} adminOnly={true} />
