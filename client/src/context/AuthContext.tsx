@@ -151,22 +151,55 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         const result = await getRedirectResult(auth);
         
         if (result) {
+          console.log("Got redirect result:", result);
+          
           // User successfully signed in with redirect
           const firebaseUser = result.user;
+          console.log("Firebase user:", firebaseUser);
           
-          // Check if user exists in our database, if not, create them
-          await apiRequest('POST', '/api/auth/google', {
-            email: firebaseUser.email,
-            firebaseUid: firebaseUser.uid,
-            username: firebaseUser.displayName || `user_${firebaseUser.uid.substring(0, 8)}`
-          });
-          
-          toast({
-            title: "Success!",
-            description: "Signed in with Google successfully!",
-          });
-          
-          // The onAuthStateChanged listener will handle setting the user
+          try {
+            // Get the user's ID token to authenticate with our backend
+            const idToken = await firebaseUser.getIdToken();
+            
+            // Check if user exists in our database, if not, create them
+            const response = await fetch('/api/auth/google', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${idToken}`
+              },
+              body: JSON.stringify({
+                email: firebaseUser.email,
+                firebaseUid: firebaseUser.uid,
+                username: firebaseUser.displayName || `user_${firebaseUser.uid.substring(0, 8)}`
+              })
+            });
+            
+            if (!response.ok) {
+              throw new Error(`Google sign-in failed: ${response.status} ${response.statusText}`);
+            }
+            
+            const userData = await response.json();
+            console.log("Backend user data:", userData);
+            
+            // Manually set the user to bypass Firebase auth flow issues
+            setUser(userData.user);
+            
+            // Store in localStorage to persist login
+            localStorage.setItem('dev-user', JSON.stringify(userData.user));
+            
+            toast({
+              title: "Success!",
+              description: "Signed in with Google successfully!",
+            });
+          } catch (err) {
+            console.error("API error during Google auth:", err);
+            toast({
+              variant: "destructive",
+              title: "Authentication Error",
+              description: "Failed to complete Google authentication with our server"
+            });
+          }
         }
       } catch (error: any) {
         console.error("Google auth redirect error:", error);

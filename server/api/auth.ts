@@ -277,23 +277,18 @@ export const auth = {
       let user = await storage.getUserByFirebaseUid(firebaseUid);
       
       if (!user) {
-        // Get user details from Firebase
-        const firebaseUser = await admin.auth().getUser(firebaseUid);
-        
-        if (!firebaseUser.email) {
-          return res.status(400).json({ message: 'User email not found' });
-        }
-        
-        // Generate a username from email if not available
-        const username = firebaseUser.displayName || firebaseUser.email.split('@')[0];
+        console.log(`[GOOGLE AUTH] User with UID ${firebaseUid} not found, creating new user`);
         
         // Create new user in database
         const userData = {
-          username,
-          email: firebaseUser.email,
+          username: username || email.split('@')[0],
+          email,
           firebaseUid,
+          password: `firebase-auth-${Date.now()}`, // We need a password in the schema
           role: 'user' // Default role
         };
+        
+        console.log('[GOOGLE AUTH] Creating user with data:', JSON.stringify(userData));
         
         const validatedData = insertUserSchema.parse(userData);
         user = await storage.createUser(validatedData);
