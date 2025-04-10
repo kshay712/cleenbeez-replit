@@ -31,6 +31,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isAdmin: boolean;
   isEditor: boolean;
+  emailVerified: boolean;
   register: (email: string, password: string, username: string, firebaseUid?: string) => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
   loginWithGoogle: () => Promise<boolean | void>;
@@ -47,6 +48,7 @@ interface AuthProviderProps {
 export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [emailVerified, setEmailVerified] = useState(false);
   const { toast } = useToast();
   
   useEffect(() => {
@@ -57,6 +59,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         const devUser = JSON.parse(devUserJson);
         console.log("Found development user in localStorage:", devUser);
         setUser(devUser);
+        // For development users, assume email is verified
+        setEmailVerified(true);
         setIsLoading(false);
         return () => {}; // No cleanup needed for localStorage
       } catch (error) {
@@ -69,6 +73,12 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         try {
+          // Check email verification status
+          setEmailVerified(
+            firebaseUser.emailVerified || 
+            firebaseUser.providerData.some(provider => provider.providerId === 'google.com')
+          );
+          
           // Get the user's ID token
           const idToken = await firebaseUser.getIdToken();
           
@@ -136,6 +146,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         }
       } else {
         setUser(null);
+        setEmailVerified(false);
       }
       
       setIsLoading(false);
@@ -677,6 +688,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     isAuthenticated,
     isAdmin,
     isEditor,
+    emailVerified,
     register,
     login,
     loginWithGoogle,
