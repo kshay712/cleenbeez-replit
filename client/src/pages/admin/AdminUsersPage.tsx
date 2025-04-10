@@ -74,9 +74,15 @@ const AdminUsersPage = () => {
   const [roleFilter, setRoleFilter] = useState<string>("all");
 
   // Fetch users data
-  const { data: users = [], isLoading } = useQuery<any[]>({
+  const { data: users = [], isLoading, refetch } = useQuery<any[]>({
     queryKey: ['/api/users', searchQuery, roleFilter],
+    staleTime: 0, // Always refetch to get latest users
   });
+  
+  // Refetch on component mount to ensure we have the latest data
+  useEffect(() => {
+    refetch();
+  }, [refetch]);
 
   // Role update mutation
   const updateUserRoleMutation = useMutation({
@@ -251,7 +257,7 @@ const AdminUsersPage = () => {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        {new Date(user.createdAt).toLocaleDateString()}
+                        {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}
                       </TableCell>
                       <TableCell className="text-right">
                         <DropdownMenu>
