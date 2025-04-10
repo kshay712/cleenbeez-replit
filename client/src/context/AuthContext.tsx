@@ -8,11 +8,13 @@ import {
   GoogleAuthProvider,
   signInWithPopup,
   signInWithRedirect,
-  getRedirectResult
+  getRedirectResult,
+  AuthError
 } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from "@/hooks/use-toast";
+import { recoverFromFirebaseError } from '@/lib/firebaseCleanup';
 
 interface User {
   id: number;
@@ -235,6 +237,28 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       return userData.user;
     } catch (error: any) {
       console.error('Registration error:', error);
+      
+      // Check if this is a Firebase auth error
+      if (error.code && error.code.startsWith('auth/')) {
+        console.log(`Handling Firebase error: ${error.code}`);
+        // Try to recover from the error
+        const recovery = await recoverFromFirebaseError(error, email);
+        
+        if (recovery.recovered) {
+          // If we successfully cleaned up the account, let the user know
+          toast({
+            title: "Account Cleanup",
+            description: recovery.message,
+          });
+          
+          // Don't rethrow the error since we've handled it
+          return;
+        } else {
+          // If we couldn't recover, include the recovery message in the error
+          error.message = recovery.message || error.message;
+        }
+      }
+      
       throw error;
     } finally {
       setIsLoading(false);
@@ -293,6 +317,26 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       }
     } catch (error: any) {
       console.error('Login error:', error);
+      
+      // Special handling for Firebase auth errors
+      if (error.code && error.code.startsWith('auth/')) {
+        console.log(`Handling Firebase login error: ${error.code}`);
+        
+        // Handle email-already-in-use errors specifically
+        if (error.code === 'auth/email-already-in-use') {
+          const recovery = await recoverFromFirebaseError(error, email);
+          
+          if (recovery.recovered) {
+            toast({
+              title: "Account Cleanup",
+              description: recovery.message,
+            });
+            // Don't throw, the user can try again
+            return;
+          }
+        }
+      }
+      
       throw new Error(error.message || 'Failed to login');
     } finally {
       setIsLoading(false);
@@ -384,6 +428,27 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         }
       } catch (error: any) {
         console.error("Google auth redirect error:", error);
+        
+        // Handle Firebase auth errors during redirect
+        if (error.code && error.code.startsWith('auth/')) {
+          console.log(`Handling Firebase error during Google redirect: ${error.code}`);
+          
+          // Get email from error or use a placeholder
+          const email = error.customData?.email || "your account";
+          
+          if (error.code === 'auth/email-already-in-use') {
+            const recovery = await recoverFromFirebaseError(error, email);
+            
+            if (recovery.recovered) {
+              toast({
+                title: "Account Cleanup",
+                description: recovery.message,
+              });
+              return; // Let the user try again
+            }
+          }
+        }
+        
         toast({
           variant: "destructive",
           title: "Authentication Error",
@@ -482,6 +547,28 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       }
     } catch (error: any) {
       console.error('Google login error:', error);
+      
+      // Handle Firebase auth errors in Google auth flow
+      if (error.code && error.code.startsWith('auth/')) {
+        console.log(`Handling Firebase error during Google login: ${error.code}`);
+        
+        // Get email from error or just use a placeholder for messaging
+        const email = error.customData?.email || "your account";
+        
+        if (error.code === 'auth/email-already-in-use') {
+          const recovery = await recoverFromFirebaseError(error, email);
+          
+          if (recovery.recovered) {
+            toast({
+              title: "Account Cleanup",
+              description: recovery.message,
+            });
+            setIsLoading(false);
+            return false; // User can try again
+          }
+        }
+      }
+      
       toast({
         variant: "destructive",
         title: "Authentication Error",
