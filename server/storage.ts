@@ -39,7 +39,7 @@ export interface IStorage {
   updateUserRole(id: number, role: string): Promise<User | undefined>;
   updateFirebaseUid(id: number, firebaseUid: string): Promise<User | undefined>;
   getAllUsers(): Promise<User[]>;
-  deleteUser(id: number): Promise<boolean>;
+  deleteUser(id: number): Promise<{success: boolean, firebaseUid?: string}>;
 
   // Product methods
   getProductById(id: number): Promise<Product | undefined>;
@@ -183,22 +183,33 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(users);
   }
 
-  async deleteUser(id: number): Promise<boolean> {
+  async deleteUser(id: number): Promise<{success: boolean, firebaseUid?: string}> {
     console.log(`[STORAGE] Attempting to delete user with ID: ${id}`);
     try {
+      // First get the user to retrieve their firebaseUid
+      const user = await this.getUserById(id);
+      if (!user) {
+        console.log(`[STORAGE] User ${id} not found.`);
+        return { success: false };
+      }
+      
+      // Store the firebaseUid for Firebase deletion
+      const firebaseUid = user.firebaseUid;
+      
+      // Delete the user from the database
       const result = await db.delete(users).where(eq(users.id, id)).returning();
       console.log(`[STORAGE] Delete result:`, result);
       
       if (result.length > 0) {
         console.log(`[STORAGE] Successfully deleted user ${id}`);
-        return true;
+        return { success: true, firebaseUid };
       } else {
         console.log(`[STORAGE] No user was deleted. User ${id} might not exist.`);
-        return false;
+        return { success: false };
       }
     } catch (error) {
       console.error(`[STORAGE] Error deleting user ${id}:`, error);
-      return false;
+      return { success: false };
     }
   }
 

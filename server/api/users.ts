@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import type { NextFunction } from 'express';
 import { storage } from '../storage';
 import { requireAdmin } from './auth';
+import * as admin from 'firebase-admin';
 
 // Special middleware for admin users endpoint - handles direct login tokens
 const adminUserCheck = async (req: Request, res: Response, next: NextFunction) => {
@@ -125,11 +126,28 @@ export const users = {
       }
       
       console.log(`[DELETE USER] Deleting user ID: ${userId}`);
-      const success = await storage.deleteUser(userId);
+      const result = await storage.deleteUser(userId);
       
-      if (!success) {
+      if (!result.success) {
         console.log(`[DELETE USER] Database delete operation failed for user ID: ${userId}`);
         return res.status(500).json({ message: 'Failed to delete user from database' });
+      }
+      
+      // If the user had a Firebase account, also delete it
+      if (result.firebaseUid) {
+        try {
+          console.log(`[DELETE USER] Attempting to delete Firebase user with UID: ${result.firebaseUid}`);
+          await admin.auth().deleteUser(result.firebaseUid);
+          console.log(`[DELETE USER] Firebase user deleted: ${result.firebaseUid}`);
+        } catch (firebaseError: any) {
+          // If we get a user-not-found error, that's okay - it means the user doesn't exist in Firebase anymore
+          if (firebaseError.code === 'auth/user-not-found') {
+            console.log(`[DELETE USER] Firebase user ${result.firebaseUid} already doesn't exist`);
+          } else {
+            // For other errors, just log them but continue (we already deleted from our DB)
+            console.error(`[DELETE USER] Error deleting Firebase user: ${firebaseError.message}`, firebaseError);
+          }
+        }
       }
       
       console.log(`[DELETE USER] User ID ${userId} deleted successfully`);
