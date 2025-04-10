@@ -85,9 +85,15 @@ export const adminUtil = {
       if (user) {
         req.user = user;
         console.log('[DEV LOGIN] Set req.user to:', user.username);
-      }
-      
-      if (user) {
+        
+        // Update last login timestamp
+        try {
+          await storage.updateLastLogin(user.id);
+          console.log(`[DEV LOGIN] Updated last login timestamp for user ${user.id}`);
+        } catch (error) {
+          console.error('[DEV LOGIN] Failed to update last login timestamp:', error);
+        }
+        
         console.log('[DEV LOGIN] Successfully logged in user:', user.username, 'with role:', user.role);
         console.log('[DEV LOGIN] Sending user data back to client');
         res.status(200).json(user);
