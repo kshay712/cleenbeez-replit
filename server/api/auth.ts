@@ -262,15 +262,16 @@ export const auth = {
 
   googleAuth: async (req: Request, res: Response) => {
     try {
-      const { idToken } = req.body;
+      console.log('[GOOGLE AUTH] Request body:', JSON.stringify(req.body));
       
-      if (!idToken) {
-        return res.status(400).json({ message: 'ID token is required' });
+      const { email, firebaseUid, username } = req.body;
+      
+      if (!email || !firebaseUid) {
+        console.log('[GOOGLE AUTH] Missing email or firebaseUid');
+        return res.status(400).json({ message: 'Email and Firebase UID are required' });
       }
       
-      // Verify ID token
-      const decodedToken = await admin.auth().verifyIdToken(idToken);
-      const firebaseUid = decodedToken.uid;
+      console.log(`[GOOGLE AUTH] Processing login for ${email} with UID ${firebaseUid}`);
       
       // Check if user exists in database
       let user = await storage.getUserByFirebaseUid(firebaseUid);
