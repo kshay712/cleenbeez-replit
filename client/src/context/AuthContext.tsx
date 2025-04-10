@@ -9,7 +9,8 @@ import {
   signInWithPopup,
   signInWithRedirect,
   getRedirectResult,
-  AuthError
+  AuthError,
+  sendEmailVerification
 } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { apiRequest } from '@/lib/queryClient';
@@ -182,6 +183,16 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         firebaseUser = userCredential.user;
         firebaseUid = firebaseUser.uid;
         console.log("Firebase user created:", firebaseUid);
+        
+        // Send email verification
+        console.log("Sending email verification");
+        await sendEmailVerification(firebaseUser);
+        
+        toast({
+          title: "Verification Email Sent",
+          description: "Please check your email to verify your account.",
+        });
+        
         idToken = await firebaseUser.getIdToken();
       } else {
         // For Google sign-in flow, we need to get the token from current user
@@ -278,6 +289,25 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       console.log("Signing in with Firebase:", email);
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const firebaseUser = userCredential.user;
+      
+      // Check if email is verified for email/password users
+      if (!firebaseUser.emailVerified && !firebaseUser.providerData.some(provider => provider.providerId === 'google.com')) {
+        console.log("Email not verified, sending verification email");
+        
+        // Send verification email
+        await sendEmailVerification(firebaseUser);
+        
+        // Sign out the user
+        await signOut(auth);
+        
+        toast({
+          variant: "destructive",
+          title: "Email Verification Required",
+          description: "Please check your email to verify your account. A new verification email has been sent.",
+        });
+        
+        throw new Error("Email verification required");
+      }
       
       // Get token for verification with backend
       console.log("Firebase login successful, getting ID token");
