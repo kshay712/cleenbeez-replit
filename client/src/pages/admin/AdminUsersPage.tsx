@@ -489,42 +489,7 @@ const AdminUsersPage = () => {
                               <Edit className="h-4 w-4 mr-2" />
                               Change Role
                             </DropdownMenuItem>
-                            {/* Regular DELETE method */}
-                            <DropdownMenuItem
-                              disabled={user.id === currentUser?.id}
-                              className="text-red-600"
-                            >
-                              <AlertDialog>
-                                <AlertDialogTrigger className="flex items-center w-full" disabled={user.id === currentUser?.id}>
-                                  <Trash2 className="h-4 w-4 mr-2" />
-                                  Delete User
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                  <AlertDialogHeader>
-                                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                      This action cannot be undone. This will permanently delete the user
-                                      account and remove all associated data.
-                                    </AlertDialogDescription>
-                                  </AlertDialogHeader>
-                                  <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                    <AlertDialogAction
-                                      onClick={() => deleteUserMutation.mutate(user.id)}
-                                      className="bg-red-600 hover:bg-red-700"
-                                    >
-                                      {deleteUserMutation.isPending ? (
-                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                      ) : (
-                                        "Delete"
-                                      )}
-                                    </AlertDialogAction>
-                                  </AlertDialogFooter>
-                                </AlertDialogContent>
-                              </AlertDialog>
-                            </DropdownMenuItem>
-                            
-                            {/* Alternative direct DELETE method */}
+                            {/* Delete User button using direct delete method */}
                             <DropdownMenuItem
                               disabled={user.id === currentUser?.id}
                               className="text-amber-600"
