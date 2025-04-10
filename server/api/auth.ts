@@ -810,7 +810,13 @@ export const auth = {
       const tokenUser = await storage.getUserByFirebaseUid(firebaseUid);
       
       if (!tokenUser) {
-        return res.status(401).json({ message: 'User not found in database' });
+        console.log(`[AUTH] Firebase user ${firebaseUid} found but not registered in our database`);
+        return res.status(404).json({ 
+          message: 'User needs registration', 
+          needsRegistration: true,
+          firebaseUid,
+          email: decodedToken.email
+        });
       }
       
       // Set in session for future requests

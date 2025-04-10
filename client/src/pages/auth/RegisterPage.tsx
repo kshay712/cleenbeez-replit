@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation, Link } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -17,10 +17,12 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, Info } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useToast } from "@/hooks/use-toast";
 
-const registerSchema = z.object({
+// Schema for normal registration
+const normalRegisterSchema = z.object({
   username: z.string().min(3, { message: "Username must be at least 3 characters" }),
   email: z.string().email({ message: "Please enter a valid email address" }),
   password: z.string().min(6, { message: "Password must be at least 6 characters" }),
@@ -30,31 +32,132 @@ const registerSchema = z.object({
   path: ["confirmPassword"],
 });
 
-type RegisterFormValues = z.infer<typeof registerSchema>;
+// Special schema for Google registration (no password required)
+const googleRegisterSchema = z.object({
+  username: z.string().min(3, { message: "Username must be at least 3 characters" }),
+  email: z.string().email({ message: "Please enter a valid email address" }).optional(),
+});
+
+type NormalRegisterFormValues = z.infer<typeof normalRegisterSchema>;
+type GoogleRegisterFormValues = z.infer<typeof googleRegisterSchema>;
 
 const RegisterPage = () => {
   const [, navigate] = useLocation();
   const { register, loginWithGoogle } = useAuth();
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-
-  const form = useForm<RegisterFormValues>({
-    resolver: zodResolver(registerSchema),
+  const [isGoogleRegistration, setIsGoogleRegistration] = useState(false);
+  const [pendingData, setPendingData] = useState<{
+    email?: string;
+    firebaseUid?: string;
+    displayName?: string | null;
+  } | null>(null);
+  const { toast } = useToast();
+  
+  // Check for Google registration data in session storage
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const isFromGoogle = params.get('source') === 'google';
+    
+    if (isFromGoogle) {
+      setIsGoogleRegistration(true);
+    }
+    
+    const pendingRegData = window?.sessionStorage?.getItem('pendingRegistration');
+    if (pendingRegData) {
+      try {
+        const data = JSON.parse(pendingRegData);
+        setPendingData(data);
+        
+        // Pre-fill the form with the pending data
+        form.setValue('email', data.email || '');
+        if (data.displayName) {
+          const suggestedUsername = data.displayName.replace(/\s+/g, '') || 
+            data.email?.split('@')[0] || '';
+          form.setValue('username', suggestedUsername);
+        }
+      } catch (error) {
+        console.error("Error parsing pending registration data:", error);
+      }
+    }
+  }, []);
+  
+  // Use the appropriate schema based on registration type
+  const schema = isGoogleRegistration ? googleRegisterSchema : normalRegisterSchema;
+  
+  // Initialize form after useState declaration
+  const [formState] = useState({
     defaultValues: {
       username: "",
       email: "",
       password: "",
       confirmPassword: "",
-    },
+    }
   });
+  
+  const form = useForm<NormalRegisterFormValues | GoogleRegisterFormValues>({
+    resolver: zodResolver(schema as any), // Type cast to fix TypeScript issues
+    defaultValues: formState.defaultValues,
+  });
+  
+  useEffect(() => {
+    // This needs to be in useEffect to ensure it runs after form is initialized
+    const params = new URLSearchParams(window.location.search);
+    const isFromGoogle = params.get('source') === 'google';
+    
+    if (isFromGoogle) {
+      setIsGoogleRegistration(true);
+    }
+    
+    const pendingRegData = window?.sessionStorage?.getItem('pendingRegistration');
+    if (pendingRegData) {
+      try {
+        const data = JSON.parse(pendingRegData);
+        setPendingData(data);
+        
+        // Pre-fill the form with the pending data
+        if (data.email) {
+          form.setValue('email', data.email);
+        }
+        if (data.displayName) {
+          const suggestedUsername = data.displayName.replace(/\s+/g, '') || 
+            data.email?.split('@')[0] || '';
+          form.setValue('username', suggestedUsername);
+        }
+      } catch (error) {
+        console.error("Error parsing pending registration data:", error);
+      }
+    }
+  }, [form]);
 
-  const onSubmit = async (data: RegisterFormValues) => {
+  const onSubmit = async (data: NormalRegisterFormValues | GoogleRegisterFormValues) => {
     try {
       setIsLoading(true);
       setError(null);
       
-      await register(data.email, data.password, data.username);
-      navigate("/");
+      if (isGoogleRegistration && pendingData?.firebaseUid) {
+        // For Google registration, we already have Firebase auth, just register with our backend
+        const email = pendingData.email || '';
+        
+        // We need to pass all required parameters
+        const username = data.username;
+        await register(email, '', username, pendingData.firebaseUid);
+        
+        // Clear the pending registration data
+        sessionStorage.removeItem('pendingRegistration');
+        
+        toast({
+          title: "Registration successful!",
+          description: "Your Google account has been linked with Clean Bee.",
+        });
+        
+        navigate("/");
+      } else {
+        // For normal registration, make sure we have the right type
+        const typedData = data as NormalRegisterFormValues;
+        await register(typedData.email, typedData.password, typedData.username);
+        navigate("/");
+      }
     } catch (err: any) {
       setError(err.message || "Failed to register. Please try again.");
     } finally {
@@ -123,6 +226,16 @@ const RegisterPage = () => {
               </div>
             </div>
 
+            {isGoogleRegistration && pendingData && (
+              <Alert className="mb-6">
+                <Info className="h-4 w-4" />
+                <AlertTitle>Complete Your Registration</AlertTitle>
+                <AlertDescription>
+                  Please create a username to complete your registration with Google.
+                </AlertDescription>
+              </Alert>
+            )}
+
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="mt-6 space-y-6">
                 <FormField
@@ -136,6 +249,7 @@ const RegisterPage = () => {
                           {...field} 
                           autoComplete="username"
                           disabled={isLoading}
+                          required
                         />
                       </FormControl>
                       <FormMessage />
@@ -154,58 +268,70 @@ const RegisterPage = () => {
                           {...field} 
                           type="email" 
                           autoComplete="email"
-                          disabled={isLoading}
+                          disabled={isLoading || (isGoogleRegistration && pendingData?.email)}
+                          required={!isGoogleRegistration}
                         />
                       </FormControl>
                       <FormMessage />
+                      {isGoogleRegistration && pendingData?.email && (
+                        <FormDescription>
+                          Email from your Google account
+                        </FormDescription>
+                      )}
                     </FormItem>
                   )}
                 />
 
-                <FormField
-                  control={form.control}
-                  name="password"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Password</FormLabel>
-                      <FormControl>
-                        <Input 
-                          {...field} 
-                          type="password" 
-                          autoComplete="new-password"
-                          disabled={isLoading}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                {!isGoogleRegistration && (
+                  <>
+                    <FormField
+                      control={form.control}
+                      name="password"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Password</FormLabel>
+                          <FormControl>
+                            <Input 
+                              {...field} 
+                              type="password" 
+                              autoComplete="new-password"
+                              disabled={isLoading}
+                              required
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
 
-                <FormField
-                  control={form.control}
-                  name="confirmPassword"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Confirm Password</FormLabel>
-                      <FormControl>
-                        <Input 
-                          {...field} 
-                          type="password" 
-                          autoComplete="new-password"
-                          disabled={isLoading}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                    <FormField
+                      control={form.control}
+                      name="confirmPassword"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Confirm Password</FormLabel>
+                          <FormControl>
+                            <Input 
+                              {...field} 
+                              type="password" 
+                              autoComplete="new-password"
+                              disabled={isLoading}
+                              required
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </>
+                )}
 
                 <Button
                   type="submit"
                   className="w-full"
                   disabled={isLoading}
                 >
-                  {isLoading ? 'Creating account...' : 'Create account'}
+                  {isLoading ? 'Creating account...' : isGoogleRegistration ? 'Complete registration' : 'Create account'}
                 </Button>
               </form>
             </Form>

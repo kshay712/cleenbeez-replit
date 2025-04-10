@@ -141,7 +141,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     return () => unsubscribe();
   }, []);
   
-  const register = async (email: string, password: string, username: string) => {
+  const register = async (email: string, password: string, username: string, firebaseUid?: string) => {
     try {
       setIsLoading(true);
       let idToken: string;
