@@ -12,7 +12,21 @@ const SimpleHeader = () => {
   const { user, isAdmin, isEditor, logout } = useAuth();
 
   const handleSignOut = async () => {
-    await logout();
+    try {
+      // Force remove the localStorage item before calling logout
+      localStorage.removeItem('dev-user');
+      
+      // Then call the regular logout function
+      await logout();
+      
+      // Redirect to home page 
+      window.location.href = '/';
+    } catch (error) {
+      console.error('Error during sign out:', error);
+      // Fallback: force clear everything
+      localStorage.clear();
+      window.location.reload();
+    }
   };
 
   return (
