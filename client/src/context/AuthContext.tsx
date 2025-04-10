@@ -38,6 +38,7 @@ interface AuthContextType {
   loginWithGoogle: () => Promise<boolean | void>;
   logout: () => Promise<void>;
   setUser: (user: User | null) => void; // Added for direct login
+  checkEmailVerificationStatus: () => Promise<boolean>; // Added for manual verification checks
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -685,6 +686,124 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const isAdmin = user?.role === 'admin';
   const isEditor = user?.role === 'editor' || isAdmin;
   
+  // Add email verification polling
+  const verificationTimerRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Periodically check if email has been verified
+  useEffect(() => {
+    // Only poll if user is logged in but email is not verified
+    if (user && !emailVerified && auth.currentUser && !auth.currentUser.emailVerified) {
+      console.log("Starting email verification polling...");
+      
+      const checkEmailVerification = async () => {
+        try {
+          console.log("Checking for email verification status...");
+          // Reload the user to get fresh metadata from Firebase
+          if (auth.currentUser) {
+            await reload(auth.currentUser);
+            
+            // Check if email is now verified
+            if (auth.currentUser.emailVerified) {
+              console.log("Email has been verified!");
+              setEmailVerified(true);
+              
+              // Show success message
+              toast({
+                title: "Email Verified!",
+                description: "Your email has been verified. You now have full access to all features.",
+                variant: "default",
+              });
+              
+              // Stop polling
+              if (verificationTimerRef.current) {
+                clearInterval(verificationTimerRef.current);
+                verificationTimerRef.current = null;
+              }
+              
+              // Check if there's a redirect route stored
+              const intendedRoute = sessionStorage.getItem('intendedRoute');
+              if (intendedRoute) {
+                console.log(`Redirecting to intended route: ${intendedRoute}`);
+                sessionStorage.removeItem('intendedRoute');
+                
+                // Small delay to ensure toast is visible
+                setTimeout(() => {
+                  if (typeof window !== 'undefined') {
+                    window.location.href = intendedRoute;
+                  }
+                }, 1500);
+              }
+            }
+          }
+        } catch (error) {
+          console.error("Error checking email verification:", error);
+        }
+      };
+      
+      // Poll every 5 seconds
+      verificationTimerRef.current = setInterval(checkEmailVerification, 5000);
+      
+      // Also check immediately
+      checkEmailVerification();
+      
+      return () => {
+        if (verificationTimerRef.current) {
+          clearInterval(verificationTimerRef.current);
+          verificationTimerRef.current = null;
+        }
+      };
+    } else if (emailVerified || !user) {
+      // Clean up timer if user becomes verified or logs out
+      if (verificationTimerRef.current) {
+        clearInterval(verificationTimerRef.current);
+        verificationTimerRef.current = null;
+      }
+    }
+  }, [user, emailVerified]);
+  
+  // Manual check method for email verification
+  const checkEmailVerificationStatus = async () => {
+    if (auth.currentUser) {
+      try {
+        console.log("Manually checking email verification status...");
+        await reload(auth.currentUser);
+        
+        // Check if email is now verified
+        if (auth.currentUser.emailVerified) {
+          console.log("Email verified during manual check!");
+          setEmailVerified(true);
+          
+          toast({
+            title: "Email Verified!",
+            description: "Your email has been verified. You now have full access to all features.",
+            variant: "default",
+          });
+          
+          // Check if there's a redirect route stored
+          const intendedRoute = sessionStorage.getItem('intendedRoute');
+          if (intendedRoute) {
+            console.log(`Redirecting to intended route: ${intendedRoute}`);
+            sessionStorage.removeItem('intendedRoute');
+            
+            // Small delay to ensure toast is visible
+            setTimeout(() => {
+              if (typeof window !== 'undefined') {
+                window.location.href = intendedRoute;
+              }
+            }, 1500);
+          }
+          
+          return true;
+        }
+        return false;
+      } catch (error) {
+        console.error("Error during manual verification check:", error);
+        return false;
+      }
+    }
+    return false;
+  };
+  
   const value = {
     user,
     isLoading,
@@ -696,7 +815,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     login,
     loginWithGoogle,
     logout,
-    setUser  // Expose setUser for direct login
+    setUser,  // Expose setUser for direct login
+    checkEmailVerificationStatus // Add manual verification check
   };
   
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

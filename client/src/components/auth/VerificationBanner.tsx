@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { AlertCircle, CheckCircle2 } from 'lucide-react';
+import { AlertCircle, CheckCircle2, RefreshCw } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { auth } from '@/lib/firebase';
 import { sendEmailVerification } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
 
 interface VerificationBannerProps {
   email?: string | null;
@@ -12,7 +13,9 @@ interface VerificationBannerProps {
 
 export function VerificationBanner({ email }: VerificationBannerProps) {
   const { toast } = useToast();
+  const { checkEmailVerificationStatus } = useAuth();
   const [isSending, setIsSending] = useState(false);
+  const [isChecking, setIsChecking] = useState(false);
   
   const handleResendEmail = async () => {
     if (!auth.currentUser) {
@@ -41,6 +44,30 @@ export function VerificationBanner({ email }: VerificationBannerProps) {
       setIsSending(false);
     }
   };
+
+  const handleCheckVerification = async () => {
+    setIsChecking(true);
+    try {
+      const isVerified = await checkEmailVerificationStatus();
+      if (!isVerified) {
+        toast({
+          title: "Not Verified Yet",
+          description: "Your email is not verified yet. Please check your inbox and click the verification link.",
+          variant: "default",
+        });
+      }
+      // If verified, the auth context will handle showing success toast and redirecting
+    } catch (error) {
+      console.error("Error checking verification:", error);
+      toast({
+        variant: "destructive",
+        title: "Verification Check Failed",
+        description: "Could not check verification status. Please try again.",
+      });
+    } finally {
+      setIsChecking(false);
+    }
+  };
   
   return (
     <Alert variant="destructive" className="mb-6">
@@ -55,7 +82,7 @@ export function VerificationBanner({ email }: VerificationBannerProps) {
           <strong>Note:</strong> You can only access the home page until your email is verified. 
           Once verified, you'll have full access to all features.
         </p>
-        <div className="mt-2">
+        <div className="flex flex-wrap gap-2 mt-2">
           <Button 
             variant="outline" 
             size="sm" 
@@ -63,6 +90,20 @@ export function VerificationBanner({ email }: VerificationBannerProps) {
             disabled={isSending}
           >
             {isSending ? 'Sending...' : 'Resend Verification Email'}
+          </Button>
+          
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleCheckVerification}
+            disabled={isChecking}
+          >
+            {isChecking ? 'Checking...' : (
+              <>
+                <RefreshCw className="mr-1 h-3 w-3" />
+                I've Verified My Email
+              </>
+            )}
           </Button>
         </div>
       </AlertDescription>
