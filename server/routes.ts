@@ -51,6 +51,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       '/auth/register',
       '/auth/google',  // Google auth should always be accessible
       '/auth/me',      // Auth check should be accessible
+      '/auth/profile', // Profile update endpoint is checked internally
       '/products',
       '/products/featured',
       '/products/related',

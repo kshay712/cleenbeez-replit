@@ -92,6 +92,7 @@ export default function ProfilePage() {
   // Handle profile update mutation
   const updateProfileMutation = useMutation({
     mutationFn: async (data: ProfileFormValues) => {
+      console.log('Updating profile with data:', data);
       const response = await apiRequest('POST', '/api/auth/profile', data);
       if (!response.ok) {
         const errorData = await response.json();
@@ -107,6 +108,7 @@ export default function ProfilePage() {
       queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
     },
     onError: (error: Error) => {
+      console.error('Profile update error:', error);
       toast({
         title: 'Failed to update profile',
         description: error.message,
@@ -118,6 +120,7 @@ export default function ProfilePage() {
   // Handle password update mutation
   const updatePasswordMutation = useMutation({
     mutationFn: async (data: PasswordFormValues) => {
+      console.log('Updating password');
       const response = await apiRequest('POST', '/api/auth/profile', {
         currentPassword: data.currentPassword,
         newPassword: data.newPassword,
