@@ -675,27 +675,20 @@ export const auth = {
           console.log(`[GOOGLE AUTH] User found with email ${email}, updating Firebase UID`);
           user = await storage.updateFirebaseUid(emailUser.id, firebaseUid);
           
-          // Check if this is an admin3@cleanbee.com account and make it admin
-          if (email === 'admin3@cleanbee.com' && emailUser.role !== 'admin') {
+          // Check if this is an admin@cleanbee.com account and make it admin
+          if (email === 'admin@cleanbee.com' && emailUser.role !== 'admin') {
             console.log(`[GOOGLE AUTH] Updating user ${email} to admin role`);
             user = await storage.updateUserRole(emailUser.id, 'admin');
           }
         } else {
-          console.log(`[GOOGLE AUTH] User not found, creating new user with UID ${firebaseUid}`);
-          
-          // Create new user in database
-          const userData = {
-            username: username || email.split('@')[0],
+          // User doesn't exist - instead of automatically creating, return a not found response
+          console.log(`[GOOGLE AUTH] User not found with UID ${firebaseUid} or email ${email}`);
+          return res.status(404).json({ 
+            message: 'User not found',
+            needsRegistration: true,
             email,
-            firebaseUid,
-            password: `firebase-auth-${Date.now()}`, // We need a password in the schema
-            role: email === 'admin3@cleanbee.com' ? 'admin' : 'user' // Make admin3@cleanbee.com an admin
-          };
-          
-          console.log('[GOOGLE AUTH] Creating user with data:', JSON.stringify(userData));
-          
-          const validatedData = insertUserSchema.parse(userData);
-          user = await storage.createUser(validatedData);
+            firebaseUid
+          });
         }
       }
       
