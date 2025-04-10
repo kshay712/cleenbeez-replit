@@ -179,7 +179,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // User management
   app.get('/api/users', users.getUsers);
   app.patch('/api/users/:id/role', users.updateUserRole);
-  app.delete('/api/users/:id', users.deleteUser);
+  
+  // Direct endpoint for better debugging
+  app.delete('/api/users/:id', (req: Request, res: Response) => {
+    console.log(`[DIRECT DELETE USER] User deletion request for ID: ${req.params.id}`);
+    console.log(`[DIRECT DELETE USER] Authenticated user:`, req.user);
+    console.log(`[DIRECT DELETE USER] Session info:`, req.session);
+    
+    // Check the user is authenticated first
+    if (!req.user) {
+      console.log(`[DIRECT DELETE USER] User not authenticated`);
+      return res.status(401).json({ message: 'You must be logged in to perform this action' });
+    }
+    
+    // Ensure user is an admin
+    if (req.user.role !== 'admin') {
+      console.log(`[DIRECT DELETE USER] User ${req.user.username} is not an admin (${req.user.role})`);
+      return res.status(403).json({ message: 'Admin privileges required' });
+    }
+    
+    // Call the deleteUser function directly
+    users.deleteUser(req, res);
+  });
   
   // Debug endpoint to check admin status (temporary)
   app.get('/api/admin-check', [requireAdmin, (req: Request, res: Response) => {

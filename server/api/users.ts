@@ -43,7 +43,7 @@ export const users = {
     }
   }],
 
-  deleteUser: [requireAdmin, async (req: Request, res: Response) => {
+  deleteUser: async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       const userId = Number(id);
@@ -87,5 +87,5 @@ export const users = {
       console.error('Error deleting user:', error);
       res.status(500).json({ message: 'Failed to delete user', error: error.message });
     }
-  }],
+  }
 };

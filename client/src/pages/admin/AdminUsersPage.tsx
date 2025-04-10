@@ -140,7 +140,23 @@ const AdminUsersPage = () => {
   // Delete user mutation
   const deleteUserMutation = useMutation({
     mutationFn: async (userId: number) => {
-      return await apiRequest("DELETE", `/api/users/${userId}`, undefined);
+      console.log(`Attempting to delete user with ID: ${userId}`);
+      // Force a clean request with explicit credentials
+      return await fetch(`/api/users/${userId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      }).then(async (response) => {
+        // Handle the response here
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error(`Error deleting user ${userId}:`, errorText);
+          throw new Error(errorText || response.statusText);
+        }
+        return response;
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/users'] });

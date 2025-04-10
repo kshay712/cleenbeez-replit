@@ -184,8 +184,22 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteUser(id: number): Promise<boolean> {
-    const result = await db.delete(users).where(eq(users.id, id)).returning();
-    return result.length > 0;
+    console.log(`[STORAGE] Attempting to delete user with ID: ${id}`);
+    try {
+      const result = await db.delete(users).where(eq(users.id, id)).returning();
+      console.log(`[STORAGE] Delete result:`, result);
+      
+      if (result.length > 0) {
+        console.log(`[STORAGE] Successfully deleted user ${id}`);
+        return true;
+      } else {
+        console.log(`[STORAGE] No user was deleted. User ${id} might not exist.`);
+        return false;
+      }
+    } catch (error) {
+      console.error(`[STORAGE] Error deleting user ${id}:`, error);
+      return false;
+    }
   }
 
   // Product methods
