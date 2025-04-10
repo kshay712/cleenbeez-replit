@@ -117,6 +117,13 @@ export async function recoverFromFirebaseError(
     const cleanupResult = await cleanupFirebaseUser(email, true);
     
     if (cleanupResult.success) {
+      console.log("Cleanup successful, adding cleanupPerformed flag to error object");
+      
+      // Set this property on the error object so the RegisterPage can retry after cleanup
+      if (error) {
+        error.cleanupPerformed = true;
+      }
+      
       return {
         recovered: true,
         message: `Firebase user for ${email} was cleaned up successfully. You can try registering again.`,

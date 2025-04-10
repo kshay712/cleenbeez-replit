@@ -155,10 +155,36 @@ const RegisterPage = () => {
       } else {
         // For normal registration, make sure we have the right type
         const typedData = data as NormalRegisterFormValues;
-        await register(typedData.email, typedData.password, typedData.username);
-        navigate("/");
+        
+        // We need to try again if the registration process runs into a recoverable error
+        // like "auth/email-already-in-use" which gets automatically cleaned up
+        let tryCount = 0;
+        let success = false;
+        
+        while (tryCount < 2 && !success) {
+          try {
+            console.log(`Registration attempt ${tryCount + 1} for ${typedData.email}`);
+            await register(typedData.email, typedData.password, typedData.username);
+            success = true;
+            navigate("/");
+          } catch (regError: any) {
+            console.log("Registration error:", regError);
+            
+            // If this error indicates a successful cleanup was performed, try again
+            if (regError.cleanupPerformed) {
+              console.log("Cleanup was performed, retrying registration");
+              tryCount++;
+              // Small delay before retrying
+              await new Promise(resolve => setTimeout(resolve, 1000));
+            } else {
+              // This is an unrecoverable error, throw it to be caught by outer catch
+              throw regError;
+            }
+          }
+        }
       }
     } catch (err: any) {
+      console.error("Registration failed:", err);
       setError(err.message || "Failed to register. Please try again.");
     } finally {
       setIsLoading(false);

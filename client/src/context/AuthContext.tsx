@@ -251,8 +251,13 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
             description: recovery.message,
           });
           
+          // Add cleanupPerformed property to the error object to allow registration page to retry
+          if (recovery.cleanupPerformed) {
+            error.cleanupPerformed = true;
+          }
+          
           // Don't rethrow the error since we've handled it
-          return;
+          throw error; // Changed from return to throw, so RegisterPage can catch and retry
         } else {
           // If we couldn't recover, include the recovery message in the error
           error.message = recovery.message || error.message;
