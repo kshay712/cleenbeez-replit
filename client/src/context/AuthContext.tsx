@@ -79,12 +79,53 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           
           if (response.ok) {
             const userData = await response.json();
-            setUser(userData);
+            console.log("User found in database:", userData);
+            setUser(userData.user);
           } else {
-            // If the user doesn't exist in our database,
-            // we'll sign them out from Firebase
-            await signOut(auth);
-            setUser(null);
+            // If the user doesn't exist in our database, try to create them
+            console.log("User not found in database, attempting to auto-create an account");
+            try {
+              // Call the Google auth endpoint which will create a user if needed
+              const createResponse = await fetch('/api/auth/google', {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${idToken}`,
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                  email: firebaseUser.email,
+                  firebaseUid: firebaseUser.uid,
+                  username: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || `user_${firebaseUser.uid.substring(0, 8)}`
+                })
+              });
+              
+              if (createResponse.ok) {
+                const newUserData = await createResponse.json();
+                console.log("User created successfully:", newUserData);
+                setUser(newUserData.user);
+                toast({
+                  title: "Account Created",
+                  description: "Your account has been automatically created.",
+                });
+              } else {
+                console.error("Failed to create user account");
+                const errorData = await createResponse.json();
+                console.error(errorData);
+                
+                // If we can't create the user, sign them out
+                await signOut(auth);
+                setUser(null);
+                toast({
+                  variant: "destructive",
+                  title: "Authentication Error",
+                  description: errorData.message || "Could not create user account",
+                });
+              }
+            } catch (error) {
+              console.error("Error creating user:", error);
+              await signOut(auth);
+              setUser(null);
+            }
           }
         } catch (error) {
           console.error('Error verifying authentication:', error);
@@ -161,9 +202,68 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       setIsLoading(true);
       
       // Sign in with Firebase
-      await signInWithEmailAndPassword(auth, email, password);
+      console.log("Signing in with Firebase:", email);
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const firebaseUser = userCredential.user;
       
-      // The onAuthStateChanged listener will handle setting the user
+      // Get token for verification with backend
+      console.log("Firebase login successful, getting ID token");
+      const idToken = await firebaseUser.getIdToken();
+      
+      // Check if user exists in our database
+      console.log("Checking if user exists in our database");
+      const response = await fetch('/api/auth/me', {
+        headers: {
+          'Authorization': `Bearer ${idToken}`
+        },
+        credentials: 'include',
+      });
+      
+      if (response.ok) {
+        // User found in database, use onAuthStateChanged flow
+        console.log("User exists in database, continuing with normal flow");
+        // The onAuthStateChanged listener will handle setting the user
+      } else {
+        // User not found in our database, try to create them
+        console.log("User not found in database, creating account automatically");
+        
+        try {
+          // Create user in our database 
+          const createResponse = await fetch('/api/auth/google', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${idToken}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              email: firebaseUser.email,
+              firebaseUid: firebaseUser.uid,
+              username: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || `user_${firebaseUser.uid.substring(0, 8)}`
+            })
+          });
+          
+          if (createResponse.ok) {
+            const userData = await createResponse.json();
+            console.log("User created in our database:", userData);
+            
+            // Set the user data
+            setUser(userData.user);
+            localStorage.setItem('dev-user', JSON.stringify(userData.user));
+            
+            toast({
+              title: "Account Created",
+              description: "Your account has been set up in our system."
+            });
+          } else {
+            const errorData = await createResponse.json();
+            console.error("Failed to create user in database:", errorData);
+            throw new Error(errorData.message || "Failed to create user in our system");
+          }
+        } catch (createError: any) {
+          console.error("Error creating user in database:", createError);
+          throw new Error(createError.message || "Failed to register with our system");
+        }
+      }
     } catch (error: any) {
       console.error('Login error:', error);
       throw new Error(error.message || 'Failed to login');
