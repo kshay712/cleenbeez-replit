@@ -425,19 +425,44 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const logout = async () => {
     try {
       setIsLoading(true);
+      console.log("Starting logout process");
       
-      // Check if we have a development user
-      if (localStorage.getItem('dev-user')) {
-        // Clear the development user from localStorage
-        localStorage.removeItem('dev-user');
-        setUser(null);
-      } else {
-        // Sign out from Firebase
-        await signOut(auth);
-        // The onAuthStateChanged listener will handle clearing the user
+      // Always call the backend logout endpoint to clear server session
+      try {
+        await fetch('/api/auth/logout', {
+          method: 'POST',
+          credentials: 'include',
+        });
+        console.log("Server session cleared successfully");
+      } catch (error) {
+        console.error("Error clearing server session:", error);
+        // Continue with client-side logout even if server logout fails
       }
+      
+      // Check if we have a development user in localStorage
+      if (localStorage.getItem('dev-user')) {
+        console.log("Found development user, clearing from localStorage");
+        localStorage.removeItem('dev-user');
+      }
+      
+      // If the user is authenticated with Firebase, sign them out
+      if (auth.currentUser) {
+        console.log("Signing out from Firebase");
+        await signOut(auth);
+      }
+      
+      // Always manually clear the user state
+      setUser(null);
+      
+      console.log("Logout complete");
     } catch (error: any) {
       console.error('Logout error:', error);
+      
+      // Even if there's an error, try to clean up as much as possible
+      localStorage.removeItem('dev-user');
+      setUser(null);
+      
+      // Re-throw for UI error handling
       throw new Error(error.message || 'Failed to logout');
     } finally {
       setIsLoading(false);
