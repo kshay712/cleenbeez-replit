@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import type { NextFunction } from 'express';
 import { storage } from '../storage';
 import { requireAdmin } from './auth';
 
@@ -71,7 +72,7 @@ export const users = {
     }
   }],
 
-  updateUserRole: [requireAdmin, async (req: Request, res: Response) => {
+  updateUserRole: [adminUserCheck, async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       const { role } = req.body;
