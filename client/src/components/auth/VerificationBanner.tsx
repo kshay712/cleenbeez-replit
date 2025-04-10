@@ -48,15 +48,38 @@ export function VerificationBanner({ email }: VerificationBannerProps) {
   const handleCheckVerification = async () => {
     setIsChecking(true);
     try {
-      const isVerified = await checkEmailVerificationStatus();
-      if (!isVerified) {
+      console.log("Manual verification check initiated from banner");
+      
+      // Force the current user to reload to update the verification status
+      if (auth.currentUser) {
+        // Get new token to force refresh
+        await auth.currentUser.getIdToken(true);
+        
+        // Then reload the user
+        await auth.currentUser.reload();
+        
+        console.log("After manual reload - Is verified:", auth.currentUser.emailVerified);
+        
+        if (auth.currentUser.emailVerified) {
+          // The user is verified according to Firebase
+          // Call the context method to update the app state and handle redirects
+          await checkEmailVerificationStatus();
+          
+          // Success is handled by the auth context method
+        } else {
+          toast({
+            title: "Not Verified Yet",
+            description: "Your email is not verified yet. Please check your inbox and click the verification link.",
+            variant: "default",
+          });
+        }
+      } else {
         toast({
-          title: "Not Verified Yet",
-          description: "Your email is not verified yet. Please check your inbox and click the verification link.",
-          variant: "default",
+          variant: "destructive",
+          title: "Authentication Issue",
+          description: "You must be logged in to verify your email. Please refresh the page or log in again.",
         });
       }
-      // If verified, the auth context will handle showing success toast and redirecting
     } catch (error) {
       console.error("Error checking verification:", error);
       toast({

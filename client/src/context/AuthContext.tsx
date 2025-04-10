@@ -75,13 +75,21 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         try {
-          // Check email verification status
+          // Force refresh the token to get latest claims (especially email_verified claim)
+          await firebaseUser.getIdToken(true);
+          
+          // Force reload to get latest user metadata - critical for email verification status
+          await reload(firebaseUser);
+          
+          console.log("Auth state changed - Email verification status:", firebaseUser.emailVerified);
+          
+          // Check email verification status - consider Google auth users automatically verified
           setEmailVerified(
             firebaseUser.emailVerified || 
             firebaseUser.providerData.some(provider => provider.providerId === 'google.com')
           );
           
-          // Get the user's ID token
+          // Get the user's ID token - already refreshed above so we can just get it
           const idToken = await firebaseUser.getIdToken();
           
           // Call the API to verify the token and get user data
@@ -691,48 +699,65 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   
   // Periodically check if email has been verified
   useEffect(() => {
+    // Debug logs to help track what's happening
+    console.log("Verification effect running. User:", !!user, "EmailVerified:", emailVerified, "Auth Current User:", !!auth.currentUser);
+    
     // Only poll if user is logged in but email is not verified
-    if (user && !emailVerified && auth.currentUser && !auth.currentUser.emailVerified) {
+    if (user && !emailVerified && auth.currentUser) {
       console.log("Starting email verification polling...");
+      console.log("Current user email verified status:", auth.currentUser.emailVerified);
       
       const checkEmailVerification = async () => {
         try {
           console.log("Checking for email verification status...");
-          // Reload the user to get fresh metadata from Firebase
+          // Force reload the user to get fresh metadata from Firebase
           if (auth.currentUser) {
-            await reload(auth.currentUser);
+            console.log("Before reload - Email verified:", auth.currentUser.emailVerified);
             
-            // Check if email is now verified
-            if (auth.currentUser.emailVerified) {
-              console.log("Email has been verified!");
-              setEmailVerified(true);
+            try {
+              // Get a fresh token to force metadata refresh
+              await auth.currentUser.getIdToken(true);
+              // Then reload the user
+              await reload(auth.currentUser);
               
-              // Show success message
-              toast({
-                title: "Email Verified!",
-                description: "Your email has been verified. You now have full access to all features.",
-                variant: "default",
-              });
+              console.log("After reload - Email verified:", auth.currentUser.emailVerified);
               
-              // Stop polling
-              if (verificationTimerRef.current) {
-                clearInterval(verificationTimerRef.current);
-                verificationTimerRef.current = null;
-              }
-              
-              // Check if there's a redirect route stored
-              const intendedRoute = sessionStorage.getItem('intendedRoute');
-              if (intendedRoute) {
-                console.log(`Redirecting to intended route: ${intendedRoute}`);
-                sessionStorage.removeItem('intendedRoute');
+              // Check if email is now verified
+              if (auth.currentUser.emailVerified) {
+                console.log("Email has been verified!");
+                setEmailVerified(true);
                 
-                // Small delay to ensure toast is visible
-                setTimeout(() => {
-                  if (typeof window !== 'undefined') {
-                    window.location.href = intendedRoute;
-                  }
-                }, 1500);
+                // Show success message
+                toast({
+                  title: "Email Verified!",
+                  description: "Your email has been verified. You now have full access to all features.",
+                  variant: "default",
+                });
+                
+                // Stop polling
+                if (verificationTimerRef.current) {
+                  clearInterval(verificationTimerRef.current);
+                  verificationTimerRef.current = null;
+                }
+                
+                // Check if there's a redirect route stored
+                const intendedRoute = sessionStorage.getItem('intendedRoute');
+                if (intendedRoute) {
+                  console.log(`Redirecting to intended route: ${intendedRoute}`);
+                  sessionStorage.removeItem('intendedRoute');
+                  
+                  // Small delay to ensure toast is visible
+                  setTimeout(() => {
+                    if (typeof window !== 'undefined') {
+                      window.location.href = intendedRoute;
+                    }
+                  }, 1500);
+                }
+              } else {
+                console.log("Email still not verified after reload");
               }
+            } catch (reloadError) {
+              console.error("Error reloading user:", reloadError);
             }
           }
         } catch (error) {
@@ -740,13 +765,14 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         }
       };
       
-      // Poll every 5 seconds
-      verificationTimerRef.current = setInterval(checkEmailVerification, 5000);
+      // Poll every 3 seconds (reduced from 5 for faster checking)
+      verificationTimerRef.current = setInterval(checkEmailVerification, 3000);
       
       // Also check immediately
       checkEmailVerification();
       
       return () => {
+        console.log("Cleaning up verification timer in useEffect");
         if (verificationTimerRef.current) {
           clearInterval(verificationTimerRef.current);
           verificationTimerRef.current = null;
@@ -754,6 +780,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       };
     } else if (emailVerified || !user) {
       // Clean up timer if user becomes verified or logs out
+      console.log("User verified or not present, clearing timer");
       if (verificationTimerRef.current) {
         clearInterval(verificationTimerRef.current);
         verificationTimerRef.current = null;
@@ -766,42 +793,89 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     if (auth.currentUser) {
       try {
         console.log("Manually checking email verification status...");
+        
+        // First, force token refresh to get latest claims
+        try {
+          await auth.currentUser.getIdToken(true);
+          console.log("Token refreshed successfully");
+        } catch (tokenError) {
+          console.error("Error refreshing token:", tokenError);
+        }
+        
+        // Then reload user to get latest metadata
         await reload(auth.currentUser);
+        
+        console.log("Current user email verification status:", auth.currentUser.emailVerified);
         
         // Check if email is now verified
         if (auth.currentUser.emailVerified) {
           console.log("Email verified during manual check!");
+          
+          // Update state in our app
           setEmailVerified(true);
           
+          // Update the user record in our database (through API) - Optional but good practice
+          try {
+            // Make API call to update the user's verification status
+            const idToken = await auth.currentUser.getIdToken();
+            const response = await fetch('/api/auth/me', {
+              method: 'GET',
+              headers: {
+                'Authorization': `Bearer ${idToken}`
+              }
+            });
+            
+            if (response.ok) {
+              console.log("Successfully updated user profile after verification");
+            }
+          } catch (apiError) {
+            console.error("Error updating user profile after verification:", apiError);
+            // Non-critical error, don't prevent verification success
+          }
+          
+          // Show success message
           toast({
             title: "Email Verified!",
             description: "Your email has been verified. You now have full access to all features.",
             variant: "default",
           });
           
-          // Check if there's a redirect route stored
-          const intendedRoute = sessionStorage.getItem('intendedRoute');
-          if (intendedRoute) {
-            console.log(`Redirecting to intended route: ${intendedRoute}`);
+          // Check for redirects
+          // First check for the redirect after verification path
+          let redirectPath = sessionStorage.getItem('redirectAfterVerification');
+          
+          // If no specific redirect path, check for intended route
+          if (!redirectPath) {
+            redirectPath = sessionStorage.getItem('intendedRoute');
+          }
+          
+          if (redirectPath) {
+            console.log(`Redirecting to: ${redirectPath}`);
+            // Clear stored paths
+            sessionStorage.removeItem('redirectAfterVerification');
             sessionStorage.removeItem('intendedRoute');
             
             // Small delay to ensure toast is visible
             setTimeout(() => {
               if (typeof window !== 'undefined') {
-                window.location.href = intendedRoute;
+                window.location.href = redirectPath;
               }
             }, 1500);
           }
           
           return true;
+        } else {
+          console.log("Email not verified in manual check");
+          return false;
         }
-        return false;
       } catch (error) {
         console.error("Error during manual verification check:", error);
         return false;
       }
+    } else {
+      console.log("No current user found for verification check");
+      return false;
     }
-    return false;
   };
   
   const value = {
