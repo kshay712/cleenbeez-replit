@@ -61,6 +61,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       '/auth/me',      // Auth check should be accessible
       '/auth/profile', // Profile update endpoint is checked internally
       '/auth/logout',  // Logout should always be accessible
+      '/auth/cleanup-firebase', // Cleanup endpoint has its own auth checks
       '/products',
       '/products/featured',
       '/products/related',
@@ -107,6 +108,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/auth/google', auth.googleAuth);
   app.get('/api/auth/me', auth.getCurrentUser);
   app.post('/api/auth/profile', auth.updateProfile);
+  app.post('/api/auth/cleanup-firebase', auth.cleanupFirebaseUser);
   
   // Logout endpoint
   app.post('/api/auth/logout', (req, res) => {

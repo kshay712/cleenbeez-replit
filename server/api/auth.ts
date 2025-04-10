@@ -352,6 +352,23 @@ export const requireEditor = async (req: Request, res: Response, next: NextFunct
   next();
 };
 
+// Helper function to find a Firebase user by email
+const findFirebaseUserByEmail = async (email: string): Promise<UserRecord | null> => {
+  try {
+    console.log(`[FIREBASE] Looking up user with email: ${email}`);
+    const userRecord = await admin.auth().getUserByEmail(email);
+    console.log(`[FIREBASE] Found user with email ${email}, UID: ${userRecord.uid}`);
+    return userRecord;
+  } catch (error: any) {
+    if (error.code === 'auth/user-not-found') {
+      console.log(`[FIREBASE] No user found with email: ${email}`);
+      return null;
+    }
+    console.error(`[FIREBASE] Error looking up user by email:`, error);
+    throw error;
+  }
+};
+
 export const auth = {
   updateProfile: async (req: Request, res: Response) => {
     try {
@@ -839,4 +856,63 @@ export const auth = {
       return res.status(401).json({ message: 'Not authenticated' });
     }
   },
+  
+  // Method to clean up Firebase users by email - only accessible to admins
+  cleanupFirebaseUser: [requireAdmin, async (req: Request, res: Response) => {
+    try {
+      console.log('[CLEANUP FIREBASE] Request received:', JSON.stringify(req.body));
+      
+      const { email } = req.body;
+      
+      if (!email) {
+        return res.status(400).json({ message: 'Email is required' });
+      }
+      
+      // Look up the user in Firebase by email
+      const firebaseUser = await findFirebaseUserByEmail(email);
+      
+      if (!firebaseUser) {
+        return res.status(404).json({ message: 'No Firebase user found with this email' });
+      }
+      
+      console.log(`[CLEANUP FIREBASE] Found Firebase user: ${firebaseUser.uid} (${firebaseUser.email})`);
+      
+      // Also check our database
+      const dbUser = await storage.getUserByEmail(email);
+      
+      // Delete the Firebase user
+      try {
+        console.log(`[CLEANUP FIREBASE] Deleting Firebase user with UID: ${firebaseUser.uid}`);
+        await admin.auth().deleteUser(firebaseUser.uid);
+        console.log(`[CLEANUP FIREBASE] Successfully deleted Firebase user: ${firebaseUser.uid}`);
+        
+        // If user exists in our database, also clean it up
+        if (dbUser) {
+          console.log(`[CLEANUP FIREBASE] Also deleting user from our database: ${dbUser.id}`);
+          const result = await storage.deleteUser(dbUser.id);
+          if (result.success) {
+            console.log(`[CLEANUP FIREBASE] Successfully deleted user from database: ${dbUser.id}`);
+          } else {
+            console.log(`[CLEANUP FIREBASE] Failed to delete user from database: ${dbUser.id}`);
+          }
+        }
+        
+        return res.status(200).json({ 
+          message: 'User deleted successfully from Firebase', 
+          firebaseUid: firebaseUser.uid,
+          databaseUserDeleted: dbUser ? true : false
+        });
+      } catch (deleteError: any) {
+        console.error(`[CLEANUP FIREBASE] Error deleting Firebase user:`, deleteError);
+        return res.status(500).json({ 
+          message: 'Failed to delete Firebase user', 
+          error: deleteError.message, 
+          code: deleteError.code
+        });
+      }
+    } catch (error: any) {
+      console.error('[CLEANUP FIREBASE] Error:', error);
+      res.status(500).json({ message: 'Failed to cleanup Firebase user', error: error.message });
+    }
+  }],
 };
