@@ -1,7 +1,7 @@
-import type { Express } from "express";
+import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { auth } from "./api/auth";
+import { auth, requireAdmin } from "./api/auth";
 import { products } from "./api/products";
 import { blog } from "./api/blog";
 import { users } from "./api/users";
@@ -180,6 +180,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/users', users.getUsers);
   app.patch('/api/users/:id/role', users.updateUserRole);
   app.delete('/api/users/:id', users.deleteUser);
+  
+  // Debug endpoint to check admin status (temporary)
+  app.get('/api/admin-check', [requireAdmin, (req: Request, res: Response) => {
+    console.log('Admin check passed for user:', req.user);
+    res.json({ 
+      success: true, 
+      user: {
+        id: req.user?.id,
+        username: req.user?.username,
+        role: req.user?.role,
+        email: req.user?.email
+      }
+    });
+  }]);
 
   const httpServer = createServer(app);
 

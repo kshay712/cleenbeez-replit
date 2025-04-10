@@ -46,22 +46,45 @@ export const users = {
   deleteUser: [requireAdmin, async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
+      const userId = Number(id);
+      
+      console.log(`[DELETE USER] Attempt to delete user ID: ${userId}`);
+      console.log(`[DELETE USER] Current user is: ${req.user?.username} (ID: ${req.user?.id}, Role: ${req.user?.role})`);
       
       // Prevent self-deletion
-      if (req.user && req.user.id === Number(id)) {
+      if (req.user && req.user.id === userId) {
+        console.log(`[DELETE USER] Self-deletion prevented for user ID: ${userId}`);
         return res.status(400).json({ message: 'Cannot delete your own account' });
       }
       
-      const success = await storage.deleteUser(Number(id));
-      
-      if (!success) {
+      // Get the user before deleting to verify it exists
+      const userToDelete = await storage.getUserById(userId);
+      if (!userToDelete) {
+        console.log(`[DELETE USER] User ID ${userId} not found`);
         return res.status(404).json({ message: 'User not found' });
       }
       
+      console.log(`[DELETE USER] Found user to delete: ${userToDelete.username} (Role: ${userToDelete.role})`);
+      
+      // Special handling to prevent deleting other admins
+      if (userToDelete.role === 'admin' && req.user?.email !== 'admin3@cleanbee.com') {
+        console.log(`[DELETE USER] Attempted to delete admin user by non-admin3 account`);
+        return res.status(403).json({ message: 'Only the super admin can delete other admins' });
+      }
+      
+      console.log(`[DELETE USER] Deleting user ID: ${userId}`);
+      const success = await storage.deleteUser(userId);
+      
+      if (!success) {
+        console.log(`[DELETE USER] Database delete operation failed for user ID: ${userId}`);
+        return res.status(500).json({ message: 'Failed to delete user from database' });
+      }
+      
+      console.log(`[DELETE USER] User ID ${userId} deleted successfully`);
       res.status(200).json({ message: 'User deleted successfully' });
     } catch (error: any) {
       console.error('Error deleting user:', error);
-      res.status(500).json({ message: 'Failed to delete user' });
+      res.status(500).json({ message: 'Failed to delete user', error: error.message });
     }
   }],
 };

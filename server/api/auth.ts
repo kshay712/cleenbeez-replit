@@ -139,6 +139,7 @@ export const requireAdmin = async (req: Request, res: Response, next: NextFuncti
   // TEMPORARY DEBUG: Check headers
   console.log('[ADMIN CHECK] Auth header:', req.headers.authorization ? 'Present' : 'Not present');
   console.log('[ADMIN CHECK] Session userId:', req.session?.userId);
+  console.log('[ADMIN CHECK] Method and Path:', req.method, req.path);
   
   // First, check if we have a user in the session
   if (req.session && req.session.userId) {

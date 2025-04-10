@@ -150,11 +150,23 @@ const AdminUsersPage = () => {
       });
     },
     onError: (error: any) => {
+      // Attempt to extract a more detailed error message
+      let errorMessage = error.message || "Failed to delete user";
+      
+      // Handle special cases
+      if (errorMessage.includes("Only the super admin can delete other admins")) {
+        errorMessage = "Only the super admin (admin3@cleanbee.com) can delete other admin accounts.";
+      } else if (errorMessage.includes("Cannot delete your own account")) {
+        errorMessage = "You cannot delete your own account.";
+      }
+      
       toast({
         title: "Error",
-        description: error.message || "Failed to delete user",
+        description: errorMessage,
         variant: "destructive"
       });
+      
+      console.error("Delete user error details:", error);
     }
   });
 
