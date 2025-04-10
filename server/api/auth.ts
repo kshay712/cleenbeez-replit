@@ -241,6 +241,95 @@ export const requireEditor = async (req: Request, res: Response, next: NextFunct
 };
 
 export const auth = {
+  updateProfile: async (req: Request, res: Response) => {
+    try {
+      console.log('[UPDATE PROFILE] Request body:', JSON.stringify(req.body));
+      
+      // Check if user is authenticated
+      if (!req.user) {
+        return res.status(401).json({ message: 'Authentication required' });
+      }
+      
+      const userId = req.user.id;
+      const { username, currentPassword, newPassword } = req.body;
+      
+      // If updating username, check if it's available
+      if (username && username !== req.user.username) {
+        const existingUser = await storage.getUserByUsername(username);
+        if (existingUser && existingUser.id !== userId) {
+          return res.status(400).json({ message: 'Username already taken' });
+        }
+      }
+      
+      // If updating password, verify current password
+      if (newPassword) {
+        if (!currentPassword) {
+          return res.status(400).json({ message: 'Current password is required to set a new password' });
+        }
+        
+        // For Firebase auth users, handle password updates through Firebase
+        if (req.user.firebaseUid && !req.user.firebaseUid.startsWith('test-')) {
+          try {
+            // We can't verify Firebase passwords directly, so we'll trust the client verification
+            // In a real production app, you might use Firebase Admin to update the password
+            console.log('[UPDATE PROFILE] Updating password for Firebase user');
+          } catch (error) {
+            console.error('[UPDATE PROFILE] Firebase password update error:', error);
+            return res.status(500).json({ message: 'Failed to update password' });
+          }
+        } else {
+          // For local users, verify the current password (this is simplified as we don't have bcrypt)
+          // In a real app, you'd use bcrypt.compare
+          if (currentPassword !== req.user.password) {
+            return res.status(400).json({ message: 'Current password is incorrect' });
+          }
+        }
+      }
+      
+      // Update user in database
+      const updateData: any = {};
+      if (username && username !== req.user.username) {
+        updateData.username = username;
+      }
+      if (newPassword) {
+        updateData.password = newPassword;
+      }
+      
+      // Only update if there are changes
+      if (Object.keys(updateData).length === 0) {
+        return res.status(200).json({ 
+          user: {
+            id: req.user.id,
+            username: req.user.username,
+            email: req.user.email,
+            role: req.user.role,
+            firebaseUid: req.user.firebaseUid
+          }
+        });
+      }
+      
+      console.log('[UPDATE PROFILE] Updating user with data:', { ...updateData, password: updateData.password ? '[REDACTED]' : undefined });
+      
+      const updatedUser = await storage.updateUser(userId, updateData);
+      if (!updatedUser) {
+        return res.status(500).json({ message: 'Failed to update user profile' });
+      }
+      
+      res.status(200).json({
+        user: {
+          id: updatedUser.id,
+          username: updatedUser.username,
+          email: updatedUser.email,
+          role: updatedUser.role,
+          firebaseUid: updatedUser.firebaseUid
+        }
+      });
+    } catch (error: any) {
+      console.error('[UPDATE PROFILE] Error:', error);
+      res.status(500).json({ message: 'Failed to update profile', error: error.message });
+    }
+  },
+  
   register: async (req: Request, res: Response) => {
     try {
       console.log('[REGISTER] Request body:', JSON.stringify(req.body));

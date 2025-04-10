@@ -96,6 +96,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/auth/register', auth.register);
   app.post('/api/auth/google', auth.googleAuth);
   app.get('/api/auth/me', auth.getCurrentUser);
+  app.post('/api/auth/profile', auth.updateProfile);
 
   // Product-related routes
   app.get('/api/products', products.getProducts);
