@@ -29,7 +29,7 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 
 const LoginPage = () => {
   const [, navigate] = useLocation();
-  const { login, loginWithGoogle } = useAuth();
+  const { login, loginWithGoogle, setUser } = useAuth();
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -46,6 +46,37 @@ const LoginPage = () => {
       setIsLoading(true);
       setError(null);
       
+      // Try direct server login first to handle special cases like admin3@cleanbee.com
+      try {
+        console.log("Attempting direct server login first");
+        const response = await fetch('/api/admin/direct-login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email: data.email,
+            password: data.password
+          }),
+          credentials: 'include'
+        });
+        
+        if (response.ok) {
+          const userData = await response.json();
+          console.log("Direct login successful:", userData);
+          
+          setUser(userData);
+          navigate("/");
+          return;
+        } else {
+          console.log("Direct login failed, trying Firebase login");
+        }
+      } catch (directLoginErr) {
+        console.error("Direct login error:", directLoginErr);
+        // Continue to Firebase login if direct login fails
+      }
+      
+      // Fall back to regular Firebase login
       await login(data.email, data.password);
       navigate("/");
     } catch (err: any) {
@@ -148,9 +179,18 @@ const LoginPage = () => {
                 Having trouble with Firebase login? Try these credentials:
               </p>
               
-              <div className="mt-2 text-xs text-gray-500 bg-gray-50 p-2 rounded border">
-                <div><strong>Email:</strong> admin@cleanbee.com</div>
-                <div><strong>Password:</strong> password123</div>
+              <div className="mt-2 text-xs text-gray-500 bg-gray-50 p-2 rounded border space-y-2">
+                <div className="bg-white p-1 rounded border">
+                  <div><strong>Email:</strong> admin@cleanbee.com</div>
+                  <div><strong>Password:</strong> password123</div>
+                </div>
+                
+                <div className="bg-amber-50 p-1 rounded border border-amber-200">
+                  <div className="font-semibold text-amber-800">Admin Account:</div>
+                  <div><strong>Email:</strong> admin3@cleanbee.com</div>
+                  <div><strong>Password:</strong> password123</div>
+                  <div className="text-amber-700 text-[10px]">This account is automatically created and promoted to admin</div>
+                </div>
               </div>
               
               <div className="mt-2 text-xs text-gray-500">

@@ -26,6 +26,61 @@ export const adminUtil = {
         return res.status(400).json({ message: 'Password is required' });
       }
       
+      // Special case for admin3@cleanbee.com
+      if (email === 'admin3@cleanbee.com') {
+        console.log('[DEV LOGIN] Special case for admin3@cleanbee.com');
+        let user = await storage.getUserByEmail(email);
+        
+        if (!user) {
+          console.log('[DEV LOGIN] Creating admin3@cleanbee.com account');
+          // Create the account with admin role
+          const userData = {
+            username: 'admin3',
+            email: 'admin3@cleanbee.com',
+            password: 'password123',
+            role: 'admin',
+            firebaseUid: `test-admin3-${Date.now()}`
+          };
+          
+          const validatedData = insertUserSchema.parse(userData);
+          user = await storage.createUser(validatedData);
+          console.log('[DEV LOGIN] Created admin3 account with ID:', user.id);
+        } else {
+          // Ensure admin role
+          if (user.role !== 'admin') {
+            console.log('[DEV LOGIN] Updating admin3@cleanbee.com to admin role');
+            user = await storage.updateUserRole(user.id, 'admin');
+          }
+        }
+        
+        // At this point, user must be defined
+        if (user && req.session) {
+          req.session.userId = user.id;
+          console.log('[DEV LOGIN] Set session userId to:', user.id);
+          
+          await new Promise<void>((resolve, reject) => {
+            req.session.save((err) => {
+              if (err) {
+                console.error('[DEV LOGIN] Session save error:', err);
+                reject(err);
+              } else {
+                console.log('[DEV LOGIN] Session saved successfully');
+                resolve();
+              }
+            });
+          });
+        }
+        
+        if (!user) {
+          console.error('[DEV LOGIN] Failed to create or update admin3 user');
+          return res.status(500).json({ message: 'Failed to create or update admin3 user' });
+        }
+        
+        console.log('[DEV LOGIN] Successfully logged in admin3 with role:', user.role);
+        return res.status(200).json(user);
+      }
+      
+      // Regular flow
       let user = await storage.getUserByEmail(email);
       
       if (!user) {
