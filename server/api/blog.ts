@@ -29,11 +29,21 @@ const upload = multer({
     fileSize: 5 * 1024 * 1024 // 5MB
   },
   fileFilter: (req, file, cb) => {
-    const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
-    if (allowedTypes.includes(file.mimetype)) {
+    // More permissive image type checking
+    const allowedTypes = [
+      "image/jpeg", "image/jpg", "image/png", "image/webp", 
+      "image/gif", "image/svg+xml", "image/bmp"
+    ];
+    
+    console.log("[DEBUG] File upload - mimetype:", file.mimetype, ", originalname:", file.originalname);
+    
+    // More lenient checking - accept image/* types or specific allowed types
+    if (file.mimetype.startsWith('image/') || allowedTypes.includes(file.mimetype)) {
+      console.log("[DEBUG] File upload accepted:", file.originalname);
       cb(null, true);
     } else {
-      cb(new Error("Invalid file type. Only JPEG, PNG, and WebP are allowed."));
+      console.error("[ERROR] Invalid file type rejected:", file.mimetype);
+      cb(new Error("Invalid file type. Only image files are allowed."));
     }
   }
 });
@@ -326,11 +336,29 @@ export const blog = {
   // Create a new blog post
   createPost: [requireEditor, upload.single('featuredImage'), async (req: Request, res: Response) => {
     try {
-      const postData = JSON.parse(req.body.postData);
+      // Ensure the postData is available and properly parsed
+      if (!req.body.postData) {
+        console.error("[ERROR] Missing postData in request body");
+        return res.status(400).json({ error: "Missing post data" });
+      }
       
-      // Set the featured image path if file was uploaded
+      // Handle possible JSON parsing errors with try/catch
+      let postData;
+      try {
+        postData = JSON.parse(req.body.postData);
+        console.log("[DEBUG] Successfully parsed postData");
+      } catch (error) {
+        console.error("[ERROR] Failed to parse postData JSON:", error, "Raw data:", req.body.postData);
+        return res.status(400).json({ error: "Invalid post data format" });
+      }
+      
+      // Set a default featured image if none was uploaded
       if (req.file) {
+        console.log("[DEBUG] File uploaded:", req.file.filename);
         postData.featuredImage = `/uploads/blog/${req.file.filename}`;
+      } else {
+        console.log("[DEBUG] No file uploaded, using default image");
+        postData.featuredImage = `/uploads/blog/default-blog-image.jpg`;
       }
       
       // Set author ID from authenticated user
@@ -378,7 +406,21 @@ export const blog = {
         return res.status(404).json({ error: "Post not found" });
       }
       
-      const postData = JSON.parse(req.body.postData);
+      // Ensure the postData is available and properly parsed
+      if (!req.body.postData) {
+        console.error("[ERROR] Missing postData in request body for post update");
+        return res.status(400).json({ error: "Missing post data" });
+      }
+      
+      // Handle possible JSON parsing errors with try/catch
+      let postData;
+      try {
+        postData = JSON.parse(req.body.postData);
+        console.log("[DEBUG] Successfully parsed update postData");
+      } catch (error) {
+        console.error("[ERROR] Failed to parse update postData JSON:", error, "Raw data:", req.body.postData);
+        return res.status(400).json({ error: "Invalid post data format" });
+      }
       
       // Set the featured image path if file was uploaded
       if (req.file) {
