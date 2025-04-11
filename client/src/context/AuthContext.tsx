@@ -317,22 +317,72 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       storeFirebaseUser(firebaseUser);
       
       // Check if email is verified for email/password users
-      if (!firebaseUser.emailVerified && !firebaseUser.providerData.some(provider => provider.providerId === 'google.com')) {
-        console.log("Email not verified, sending verification email");
+      // Skip this check if the user has verified their email already
+      if (!firebaseUser.emailVerified && 
+          !firebaseUser.providerData.some(provider => provider.providerId === 'google.com')) {
+        console.log("Email not verified, checking if we need to send verification email");
         
-        // Send verification email
-        await sendEmailVerification(firebaseUser);
-        
-        // Sign out the user
-        await signOut(auth);
-        
-        toast({
-          variant: "destructive",
-          title: "Email Verification Required",
-          description: "Please check your email to verify your account. A new verification email has been sent.",
-        });
-        
-        throw new Error("Email verification required");
+        // First try to get the user's data from our database to double-check verification status
+        try {
+          const idToken = await firebaseUser.getIdToken();
+          const checkResponse = await fetch('/api/auth/check-verification', {
+            headers: {
+              'Authorization': `Bearer ${idToken}`,
+              'X-Dev-User-Id': String(firebaseUser.uid)
+            },
+            credentials: 'include'
+          });
+          
+          if (checkResponse.ok) {
+            const verificationData = await checkResponse.json();
+            // If user is verified according to our DB or Firebase, proceed without showing verification message
+            if (verificationData.emailVerified === true) {
+              console.log("Email actually is verified according to our verification check, proceeding with login");
+              // Force reload to update the emailVerified flag
+              await reload(firebaseUser);
+              // No need to send verification email or show toast
+            } else {
+              // User is truly not verified, send verification email
+              console.log("Email truly not verified, sending verification email");
+              await sendEmailVerification(firebaseUser);
+              await signOut(auth);
+              
+              toast({
+                variant: "destructive",
+                title: "Email Verification Required",
+                description: "Please check your email to verify your account. A new verification email has been sent.",
+              });
+              
+              throw new Error("Email verification required");
+            }
+          } else {
+            // If check fails, fall back to default behavior
+            console.log("Verification check failed, using default verification behavior");
+            await sendEmailVerification(firebaseUser);
+            await signOut(auth);
+            
+            toast({
+              variant: "destructive",
+              title: "Email Verification Required",
+              description: "Please check your email to verify your account. A new verification email has been sent.",
+            });
+            
+            throw new Error("Email verification required");
+          }
+        } catch (verificationError) {
+          console.error("Error during verification check:", verificationError);
+          // If verification check fails, fall back to default behavior
+          await sendEmailVerification(firebaseUser);
+          await signOut(auth);
+          
+          toast({
+            variant: "destructive",
+            title: "Email Verification Required",
+            description: "Please check your email to verify your account. A new verification email has been sent.",
+          });
+          
+          throw new Error("Email verification required");
+        }
       }
       
       // Get token for verification with backend
