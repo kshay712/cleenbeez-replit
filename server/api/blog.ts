@@ -75,13 +75,24 @@ export const blog = {
   
   // Get blog posts by category
   getPostsByCategory: async (req: Request, res: Response) => {
-    const { slug } = req.params;
+    const { categoryId } = req.params;
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
     
     try {
-      const category = await storage.getCategoryBySlug(slug);
+      // The route expects a categoryId parameter, not a slug
+      console.log("[DEBUG] Looking up posts for category ID:", categoryId);
+      
+      // Check if categoryId is a valid number
+      const categoryIdNum = parseInt(categoryId);
+      if (isNaN(categoryIdNum)) {
+        console.error("[ERROR] Invalid category ID:", categoryId);
+        return res.status(400).json({ error: "Invalid category ID" });
+      }
+      
+      const category = await storage.getCategoryById(categoryIdNum);
       if (!category) {
+        console.error("[ERROR] Category not found with ID:", categoryId);
         return res.status(404).json({ error: "Category not found" });
       }
       
