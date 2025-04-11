@@ -51,6 +51,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [emailVerified, setEmailVerified] = useState(false);
+  const [isNewRegistration, setIsNewRegistration] = useState(false);
   const { toast } = useToast();
   
   useEffect(() => {
@@ -208,6 +209,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         // Send email verification
         console.log("Sending email verification");
         await sendEmailVerification(firebaseUser);
+        
+        // Set the new registration flag to true
+        setIsNewRegistration(true);
         
         toast({
           title: "Verification Email Sent",
