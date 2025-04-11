@@ -90,7 +90,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         req.path.startsWith('/categories/') ||
         req.path.startsWith('/blog/posts/') ||
         req.path.startsWith('/blog/related/') ||
-        req.path === '/blog/categories'
+        req.path === '/blog/categories' ||
+        // Special case for email check endpoint
+        req.path === '/auth/check-email'
       ))
     ) {
       console.log(`[AUTH] Public GET path: ${req.path}`);
