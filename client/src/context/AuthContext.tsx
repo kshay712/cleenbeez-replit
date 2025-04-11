@@ -951,28 +951,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
             variant: "default",
           });
           
-          // Check for redirects
-          // First check for the redirect after verification path
-          let redirectPath = sessionStorage.getItem('redirectAfterVerification');
-          
-          // If no specific redirect path, check for intended route
-          if (!redirectPath) {
-            redirectPath = sessionStorage.getItem('intendedRoute');
-          }
-          
-          if (redirectPath) {
-            console.log(`Redirecting to: ${redirectPath}`);
-            // Clear stored paths
-            sessionStorage.removeItem('redirectAfterVerification');
-            sessionStorage.removeItem('intendedRoute');
-            
-            // Small delay to ensure toast is visible
-            setTimeout(() => {
-              if (typeof window !== 'undefined') {
-                window.location.href = redirectPath;
-              }
-            }, 1500);
-          }
+          // Handle redirect after verification
+          handleVerificationRedirect();
           
           return true;
         } else {
@@ -988,23 +968,60 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     else if (user) {
       console.log("No Firebase user, but app has authenticated user. Attempting verification with stored user info...");
       
+      // Try all possible sources of stored Firebase user information
+      let firebaseCredentials = null;
+      let firebaseUid = null;
+      let email = user.email;
+      
       try {
-        // Try to get firebase user info from localStorage
+        // Option 1: Get from firebase-current-user
         const storedUserJson = localStorage.getItem('firebase-current-user');
-        
-        if (storedUserJson && user.email) {
+        if (storedUserJson) {
           const storedUser = JSON.parse(storedUserJson);
           console.log("Found stored Firebase user info:", storedUser);
-          
-          // Try to use an alternative method to check verification status
-          // Call our backend directly - it will verify with Firebase Admin SDK
+          if (storedUser.uid) {
+            firebaseUid = storedUser.uid;
+          }
+        }
+        
+        // Option 2: Get from firebase-credentials
+        if (!firebaseUid) {
+          const storedCredsJson = localStorage.getItem('firebase-credentials');
+          if (storedCredsJson) {
+            firebaseCredentials = JSON.parse(storedCredsJson);
+            console.log("Found stored Firebase credentials:", firebaseCredentials);
+            if (firebaseCredentials.uid) {
+              firebaseUid = firebaseCredentials.uid;
+            }
+          }
+        }
+        
+        // Option 3: Use user.firebaseUid directly if available
+        if (!firebaseUid && user.firebaseUid) {
+          console.log("Using firebaseUid from user object:", user.firebaseUid);
+          firebaseUid = user.firebaseUid;
+        }
+        
+        // If still no Firebase UID, we can't verify
+        if (!firebaseUid) {
+          console.log("No Firebase UID found in any stored credentials");
+          toast({
+            variant: "destructive",
+            title: "Verification Failed",
+            description: "Could not find your Firebase user ID. Please refresh and log in again.",
+          });
+          return false;
+        }
+        
+        // We have a uid, so try backend verification regardless of source
+        if (email) {
+          console.log(`Calling backend to check verification with email: ${email}, uid: ${firebaseUid}`);
           try {
-            console.log("Calling backend to check verification status");
-            const response = await fetch(`/api/auth/check-verification?email=${encodeURIComponent(user.email)}&uid=${storedUser.uid}`, {
+            const response = await fetch(`/api/auth/check-verification?email=${encodeURIComponent(email)}&uid=${firebaseUid}`, {
               method: 'GET',
               headers: {
                 'x-firebase-check': 'true',
-                'x-dev-user-id': user.id.toString() // Include our user ID for double verification
+                'x-dev-user-id': user.id ? user.id.toString() : '' // Include user ID if available
               }
             });
             
@@ -1022,25 +1039,26 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
                   variant: "default",
                 });
                 
-                // Handle redirect (same as above)
-                let redirectPath = sessionStorage.getItem('redirectAfterVerification') || 
-                                   sessionStorage.getItem('intendedRoute');
-                
-                if (redirectPath) {
-                  console.log(`Redirecting to: ${redirectPath}`);
-                  sessionStorage.removeItem('redirectAfterVerification');
-                  sessionStorage.removeItem('intendedRoute');
-                  
-                  setTimeout(() => {
-                    if (typeof window !== 'undefined') {
-                      window.location.href = redirectPath;
-                    }
-                  }, 1500);
-                }
+                // Handle redirect after verification
+                handleVerificationRedirect();
                 
                 return true;
+              } else if (result.uidMismatch) {
+                // Special case: Firebase found a user with this email but different UID
+                console.log("Email found but UID mismatch:", result.user);
+                toast({
+                  variant: "destructive",
+                  title: "Account Mismatch",
+                  description: "We found your email but with a different account. Please log out and log in again.",
+                });
+                return false;
               } else {
                 console.log("Email not verified according to backend check");
+                toast({
+                  title: "Not Verified Yet",
+                  description: "Your email is not verified yet. Please check your inbox and click the verification link.",
+                  variant: "default",
+                });
                 return false;
               }
             } else {
@@ -1050,40 +1068,72 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
               toast({
                 variant: "destructive",
                 title: "Verification Check Failed",
-                description: "Please refresh the page and log in again to check your verification status.",
+                description: "Server couldn't verify your email. Please try again later.",
               });
               
               return false;
             }
           } catch (backendError) {
             console.error("Error checking verification with backend:", backendError);
+            toast({
+              variant: "destructive",
+              title: "Server Error",
+              description: "Could not connect to verification service. Please try again later.",
+            });
             return false;
           }
         } else {
-          console.log("No stored Firebase user info found");
-          
-          // Try fallback: if user has email, attempt to sign in again
-          if (user.email && user.firebaseUid) {
-            console.log("Attempting to reconnect to Firebase...");
-            
-            // Show informative toast
-            toast({
-              title: "Reconnecting to Firebase",
-              description: "Please try again in a moment, or refresh the page.",
-              variant: "default",
-            });
-            
-            return false;
-          }
+          console.log("No email found to check verification");
+          toast({
+            variant: "destructive",
+            title: "Missing Email",
+            description: "Could not determine your email address. Please refresh and try again.",
+          });
+          return false;
         }
       } catch (error) {
         console.error("Error during alternative verification check:", error);
+        toast({
+          variant: "destructive",
+          title: "Verification Error",
+          description: "An unexpected error occurred. Please refresh and try again.",
+        });
         return false;
       }
+    } else {
+      console.log("No authenticated user found to check verification");
+      toast({
+        variant: "destructive",
+        title: "Not Logged In",
+        description: "You must be logged in to verify your email.",
+      });
+      return false;
+    }
+  };
+  
+  // Helper function to handle redirects after successful verification
+  const handleVerificationRedirect = () => {
+    // First check for the redirect after verification path
+    let redirectPath = sessionStorage.getItem('redirectAfterVerification');
+    
+    // If no specific redirect path, check for intended route
+    if (!redirectPath) {
+      redirectPath = sessionStorage.getItem('intendedRoute');
     }
     
-    console.log("No valid method found to check verification status");
-    return false;
+    if (redirectPath) {
+      console.log(`Redirecting to: ${redirectPath}`);
+      // Clear stored paths
+      sessionStorage.removeItem('redirectAfterVerification');
+      sessionStorage.removeItem('intendedRoute');
+      
+      // Small delay to ensure toast is visible
+      setTimeout(() => {
+        if (typeof window !== 'undefined') {
+          window.location.href = redirectPath;
+        }
+      }, 1500);
+    }
   };
   
   const value = {
