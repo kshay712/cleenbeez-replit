@@ -2,11 +2,56 @@ import { Request, Response } from 'express';
 import { storage } from '../storage';
 import { upload, getFileUrl } from '../middleware/multer';
 import { insertBlogPostSchema, insertCategorySchema, blogPosts, blogPostsToCategories, users, categories } from '@shared/schema';
-import { requireAuth, requireEditor } from './auth';
+import { requireAuth, requireEditor, requireAdmin } from './auth';
 import { db } from '../db';
-import { and, eq, inArray, desc, sql } from 'drizzle-orm';
+import { and, eq, inArray, desc, sql, isNull } from 'drizzle-orm';
 
 export const blog = {
+  fixPublishedDates: [requireAdmin, async (req: Request, res: Response) => {
+    try {
+      console.log('[FIX] Starting published date fix operation');
+      
+      // Get all published posts without a publishedAt date
+      const result = await db
+        .select()
+        .from(blogPosts)
+        .where(
+          and(
+            eq(blogPosts.published, true),
+            isNull(blogPosts.publishedAt)
+          )
+        );
+      
+      console.log(`[FIX] Found ${result.length} published posts without publishedAt dates`);
+      
+      // Set publishedAt to the createdAt date for all of these posts
+      const updates = [];
+      for (const post of result) {
+        console.log(`[FIX] Setting publishedAt for post ${post.id} to created date ${post.createdAt}`);
+        
+        const updateResult = await db
+          .update(blogPosts)
+          .set({ publishedAt: post.createdAt })
+          .where(eq(blogPosts.id, post.id))
+          .returning();
+          
+        updates.push({
+          id: post.id,
+          title: post.title,
+          createdAt: post.createdAt,
+          publishedAt: updateResult[0]?.publishedAt
+        });
+      }
+      
+      res.json({ 
+        message: `Fixed ${updates.length} posts`,
+        posts: updates
+      });
+    } catch (error: any) {
+      console.error('[FIX] Error fixing published dates:', error);
+      res.status(500).json({ message: 'Failed to fix published dates', error: error.message });
+    }
+  }],
   // First-principles approach: Direct category posts endpoint
   getPostsByCategory: async (req: Request, res: Response) => {
     const categoryId = req.params.categoryId;
@@ -317,12 +362,19 @@ export const blog = {
       let postData = { ...req.body };
       
       // Convert published string to boolean if it exists
-      if (postData.published) {
-        postData.published = postData.published === 'true' 
-          ? true 
-          : postData.published === 'false' 
-            ? false 
-            : postData.published;
+      if (postData.published !== undefined) {
+        const wasPublished = typeof postData.published === 'boolean' 
+          ? postData.published 
+          : postData.published === 'true';
+        
+        postData.published = wasPublished;
+        
+        // If post is being published and doesn't have a publishedAt date, set it now
+        const existingPost = await storage.getBlogPostById(Number(id));
+        if (wasPublished && existingPost && !existingPost.publishedAt) {
+          console.log(`Setting publishedAt for post ${id} that's being published`);
+          postData.publishedAt = new Date();
+        }
       }
       
       // Handle image upload if provided

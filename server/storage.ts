@@ -987,9 +987,8 @@ export class DatabaseStorage implements IStorage {
       count = Number(countResult[0]?.count || 0);
       
       // Get the posts
-      console.log('[DEBUG] Executing main blog post query with:');
-      console.log('[DEBUG] - whereClause:', JSON.stringify(whereClause, null, 2));
-      console.log('[DEBUG] - orderBy:', orderBy ? 'Present' : 'Not present');
+      console.log('[DEBUG] Executing main blog post query');
+      console.log('[DEBUG] - filtering by published:', published !== undefined ? published.toString() : 'not specified');
       console.log('[DEBUG] - limit:', limit);
       console.log('[DEBUG] - offset:', offset);
       
@@ -1002,9 +1001,11 @@ export class DatabaseStorage implements IStorage {
         .offset(offset);
         
       console.log('[DEBUG] Query returned', postList.length, 'blog posts');
-      console.log('[DEBUG] Post IDs:', postList.map(p => p.id).join(', '));
-      console.log('[DEBUG] Posts with publishedAt:', postList.filter(p => p.publishedAt).length);
-      console.log('[DEBUG] Posts without publishedAt:', postList.filter(p => !p.publishedAt).length);
+      if (postList.length > 0) {
+        console.log('[DEBUG] Post IDs:', postList.map(p => p.id).join(', '));
+        console.log('[DEBUG] Posts with publishedAt:', postList.filter(p => p.publishedAt).length);
+        console.log('[DEBUG] Posts without publishedAt:', postList.filter(p => !p.publishedAt).length);
+      }
     }
     
     // Get author information

@@ -244,6 +244,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/blog/admin', blog.getAdminPosts);
   // First principles approach - direct category-based query
   app.get('/api/blog/category/:categoryId/posts', blog.getPostsByCategory);
+  // Utility endpoint to fix published dates
+  app.post('/api/blog/fix-published-dates', blog.fixPublishedDates);
   app.post('/api/blog/posts', blog.createPost);
   app.put('/api/blog/posts/:id', blog.updatePost);
   app.delete('/api/blog/posts/:id', blog.deletePost);
