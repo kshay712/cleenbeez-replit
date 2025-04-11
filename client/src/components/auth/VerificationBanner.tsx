@@ -50,57 +50,41 @@ export function VerificationBanner({ email }: VerificationBannerProps) {
     try {
       console.log("Manual verification check initiated from banner");
       
-      // Even if auth.currentUser is not available, we'll try to force verification
-      // by signing in again with the stored credentials to get a fresh auth state
-      if (!auth.currentUser && email) {
-        console.log("No current Firebase user found, attempting to restore session...");
-        
-        try {
-          // Try to re-establish Firebase session from localStorage if available
-          const storedUser = localStorage.getItem('firebase-current-user');
-          if (storedUser) {
-            const userData = JSON.parse(storedUser);
-            console.log("Found stored Firebase user, refreshing session");
-            
-            // Call our verification check which will handle the stored user
-            const success = await checkEmailVerificationStatus();
-            
-            if (success) {
-              return; // Verification successful, function handled by auth context
-            } else {
-              console.log("Verification failed using stored credentials");
-            }
-          }
-        } catch (storageError) {
-          console.error("Error using stored Firebase credentials:", storageError);
-        }
+      // Always try our context method first, which has logic to use stored credentials
+      // even if there's no active Firebase session
+      console.log("Using checkEmailVerificationStatus from context...");
+      const verificationSuccess = await checkEmailVerificationStatus();
+      
+      if (verificationSuccess) {
+        console.log("Verification successful through context method");
+        return; // Verification successful, all handled by the auth context
       }
       
-      // If we have the current user in Firebase, use that
+      // If the context method didn't confirm verification, but we have an active Firebase user
+      // we'll try a direct reload as a backup approach
       if (auth.currentUser) {
         try {
-          console.log("Current Firebase user found, checking verification status");
+          console.log("Context check failed but Firebase user exists, trying direct reload");
           // Force token refresh
           await auth.currentUser.getIdToken(true);
           
           // Then reload the user
           await auth.currentUser.reload();
           
-          console.log("After manual reload - Is verified:", auth.currentUser.emailVerified);
+          console.log("After direct reload - Is verified:", auth.currentUser.emailVerified);
           
           if (auth.currentUser.emailVerified) {
-            // Call the context method to update the app state and handle redirects
-            const success = await checkEmailVerificationStatus();
+            // Try the context method one more time
+            const retrySuccess = await checkEmailVerificationStatus();
             
-            if (!success) {
-              console.log("Verification state did not update properly");
+            if (!retrySuccess) {
+              console.log("Verification detected but state not updated properly");
               toast({
                 title: "Verification Detected",
-                description: "Your email appears to be verified, but we couldn't update your account. Please refresh the page.",
+                description: "Your email appears to be verified. Please refresh the page to update your account status.",
                 variant: "default",
               });
             }
-            // Success toast is handled by the auth context method
           } else {
             toast({
               title: "Not Verified Yet",
@@ -109,21 +93,30 @@ export function VerificationBanner({ email }: VerificationBannerProps) {
             });
           }
         } catch (reloadError) {
-          console.error("Error reloading Firebase user:", reloadError);
-          toast({
-            variant: "destructive",
-            title: "Verification Check Error",
-            description: "Error checking verification status. Please refresh the page and try again.",
-          });
+          console.error("Error during direct Firebase reload:", reloadError);
         }
       } else {
-        // No current user, but we still have their email - give helpful guidance
-        console.log("No Firebase user available to check verification");
-        toast({
-          variant: "destructive",
-          title: "Authentication Issue",
-          description: "Firebase session not active. Please refresh the page or log out and back in to verify your email.",
-        });
+        // No Firebase session, but we might have credentials in localStorage
+        const storedCreds = localStorage.getItem('firebase-credentials');
+        const storedUser = localStorage.getItem('firebase-current-user');
+        
+        if ((storedCreds || storedUser) && email) {
+          // We have stored credentials but verification still failed
+          console.log("Verification failed despite stored credentials");
+          toast({
+            title: "Verification Status Unknown",
+            description: "We couldn't confirm your verification status. Try refreshing the page or logging out and back in.",
+            variant: "default",
+          });
+        } else {
+          // No stored credentials at all
+          console.log("No Firebase session or stored credentials available");
+          toast({
+            variant: "destructive",
+            title: "Session Expired",
+            description: "Your session has expired. Please refresh the page or log out and back in to verify your email.",
+          });
+        }
       }
     } catch (error) {
       console.error("Error checking verification:", error);

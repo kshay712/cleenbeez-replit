@@ -370,45 +370,66 @@ const findFirebaseUserByEmail = async (email: string): Promise<UserRecord | null
 };
 
 export const auth = {
-  // New endpoint to check email verification status directly from Firebase
+  // Endpoint to check email verification status directly from Firebase
   checkVerification: async (req: Request, res: Response) => {
     try {
       const { email, uid } = req.query;
       
       // Security check - make sure we have a valid request
       if (!email || !uid) {
+        console.log(`Verification check missing parameters: email=${email}, uid=${uid}`);
         return res.status(400).json({ message: 'Missing required parameters' });
       }
       
       // Get the user ID from the headers
       const userId = req.headers['x-dev-user-id'];
-      if (!userId) {
-        return res.status(400).json({ message: 'Missing user ID header' });
-      }
-      
       console.log(`Verification check requested for email: ${email}, uid: ${uid}, userId: ${userId}`);
       
-      // Verify the user exists in our database
-      const userInDb = await storage.getUserById(Number(userId));
-      if (!userInDb) {
-        console.log(`User with ID ${userId} not found in database`);
-        return res.status(404).json({ message: 'User not found' });
+      // Try to verify the user exists in our database only if the ID is provided
+      let userInDb = null;
+      if (userId) {
+        userInDb = await storage.getUserById(Number(userId));
+        if (!userInDb) {
+          console.log(`User with ID ${userId} not found in database`);
+          
+          // Try finding user by email instead of failing immediately
+          userInDb = await storage.getUserByEmail(email as string);
+          if (!userInDb) {
+            console.log(`User with email ${email} not found in database either`);
+            // Continue with verification check but let the client know user wasn't found
+          }
+        }
+      } else {
+        // No userId provided, try to find by email
+        userInDb = await storage.getUserByEmail(email as string);
+        if (!userInDb) {
+          console.log(`User with email ${email} not found in database without userId`);
+          // Continue with verification check but let the client know user wasn't found
+        }
       }
       
-      // Verify the email matches our records
-      if (userInDb.email !== email) {
+      // If we found a user, make sure the email matches
+      if (userInDb && userInDb.email !== email) {
         console.log(`Email mismatch: ${userInDb.email} (db) vs ${email} (request)`);
         return res.status(403).json({ message: 'Email mismatch with account' });
       }
       
-      // Check with Firebase Admin SDK
+      // Regardless of database presence, check with Firebase Admin SDK
       try {
         const firebaseUser = await admin.auth().getUser(uid as string);
         console.log(`Firebase user found, email verified: ${firebaseUser.emailVerified}`);
         
+        // If verification status changes from false to true in Firebase,
+        // and we have a user record, update it
+        if (firebaseUser.emailVerified && userInDb && userInDb.firebaseUid) {
+          console.log(`Email verification confirmed for user ${userInDb.id}, updating status...`);
+          // For debugging we don't actually need to update any status in our DB as it's not stored
+        }
+        
         // Return the verification status
         return res.status(200).json({ 
           emailVerified: firebaseUser.emailVerified,
+          userFound: !!userInDb,
           user: {
             email: firebaseUser.email,
             uid: firebaseUser.uid
@@ -416,7 +437,35 @@ export const auth = {
         });
       } catch (firebaseError: any) {
         console.error('Error getting Firebase user:', firebaseError);
-        return res.status(404).json({ message: 'Firebase user not found', error: firebaseError.message || 'Unknown Firebase error' });
+        
+        // Try looking up by email as a backup
+        try {
+          if (email) {
+            console.log(`Trying to find Firebase user by email instead: ${email}`);
+            const userByEmail = await findFirebaseUserByEmail(email as string);
+            
+            if (userByEmail) {
+              console.log(`Found Firebase user by email, ID: ${userByEmail.uid}, verified: ${userByEmail.emailVerified}`);
+              
+              return res.status(200).json({
+                emailVerified: userByEmail.emailVerified,
+                userFound: !!userInDb,
+                user: {
+                  email: userByEmail.email,
+                  uid: userByEmail.uid
+                },
+                uidMismatch: userByEmail.uid !== uid
+              });
+            }
+          }
+        } catch (emailLookupError) {
+          console.error('Error finding Firebase user by email:', emailLookupError);
+        }
+        
+        return res.status(404).json({ 
+          message: 'Firebase user not found', 
+          error: firebaseError.message || 'Unknown Firebase error' 
+        });
       }
     } catch (error: any) {
       console.error('Error in checkVerification:', error);
