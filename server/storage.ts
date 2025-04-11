@@ -913,12 +913,7 @@ export class DatabaseStorage implements IStorage {
         orderBy = desc(blogPosts.publishedAt || blogPosts.createdAt);
     }
     
-    // Combine into a single where clause if needed
-    const whereClause = whereConditions.length > 0
-      ? and(...whereConditions)
-      : undefined;
-    
-    // Handle category filter separately if needed
+    // Handle category filter separately first (need to fetch IDs from junction table)
     let filteredPostIds: number[] = [];
     if (category) {
       // Get post IDs that have this category
@@ -946,6 +941,11 @@ export class DatabaseStorage implements IStorage {
       console.log('[STORAGE] Filtering by post IDs:', filteredPostIds);
       whereConditions.push(inArray(blogPosts.id, filteredPostIds));
     }
+    
+    // NOW combine into a single where clause (after category post IDs have been added)
+    const whereClause = whereConditions.length > 0
+      ? and(...whereConditions)
+      : undefined;
     
     // Count total posts for pagination
     const countResult = await db
