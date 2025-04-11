@@ -302,20 +302,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
   };
   
-  const storeLoginCredentials = (email: string, uid: string) => {
-    try {
-      // Store credential info in localStorage for potential recovery
-      const credentialInfo = {
-        email,
-        uid,
-        timestamp: Date.now()
-      };
-      localStorage.setItem('firebase-credentials', JSON.stringify(credentialInfo));
-      console.log("Firebase credentials stored for recovery");
-    } catch (error) {
-      console.error("Error storing login credentials:", error);
-    }
-  };
+
   
   const login = async (email: string, password: string) => {
     try {
@@ -328,7 +315,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       
       // Store Firebase user info for potential recovery
       storeFirebaseUser(firebaseUser);
-      storeLoginCredentials(email, firebaseUser.uid);
       
       // Check if email is verified for email/password users
       if (!firebaseUser.emailVerified && !firebaseUser.providerData.some(provider => provider.providerId === 'google.com')) {
@@ -434,7 +420,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           
           // Store user info for recovery and verification
           storeFirebaseUser(firebaseUser);
-          storeLoginCredentials(firebaseUser.email || '', firebaseUser.uid);
           
           try {
             // Get the user's ID token to authenticate with our backend
@@ -559,7 +544,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         
         // Store Firebase user info for potential recovery
         storeFirebaseUser(firebaseUser);
-        storeLoginCredentials(firebaseUser.email || '', firebaseUser.uid);
         
         const idToken = await firebaseUser.getIdToken();
         
