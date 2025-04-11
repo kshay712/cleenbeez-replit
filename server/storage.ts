@@ -923,17 +923,27 @@ export class DatabaseStorage implements IStorage {
     if (category) {
       // Get post IDs that have this category
       const categoryId = parseInt(category);
+      console.log('[STORAGE] Filtering blog posts by category ID:', categoryId);
+      
+      if (isNaN(categoryId)) {
+        console.error('[STORAGE] Invalid category ID (not a number):', category);
+        return { posts: [], total: 0 };
+      }
+      
       const postCategories = await db
         .select()
         .from(blogPostsToCategories)
         .where(eq(blogPostsToCategories.categoryId, categoryId));
       
+      console.log('[STORAGE] Found', postCategories.length, 'posts in category', categoryId);
       filteredPostIds = postCategories.map(pc => pc.blogPostId);
       
       if (filteredPostIds.length === 0) {
+        console.log('[STORAGE] No posts found for category ID:', categoryId);
         return { posts: [], total: 0 };
       }
       
+      console.log('[STORAGE] Filtering by post IDs:', filteredPostIds);
       whereConditions.push(inArray(blogPosts.id, filteredPostIds));
     }
     
