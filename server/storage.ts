@@ -947,22 +947,47 @@ export class DatabaseStorage implements IStorage {
       ? and(...whereConditions)
       : undefined;
     
-    // Count total posts for pagination
-    const countResult = await db
-      .select({ count: sql`count(*)` })
-      .from(blogPosts)
-      .where(whereClause as any);
+    // Count total posts for pagination - if we have filtered post IDs, use them directly
+    let count = 0;
+    let postList = [];
     
-    const count = Number(countResult[0]?.count || 0);
-    
-    // Get the posts
-    const postList = await db
-      .select()
-      .from(blogPosts)
-      .where(whereClause as any)
-      .orderBy(orderBy)
-      .limit(limit)
-      .offset(offset);
+    if (category && filteredPostIds.length > 0) {
+      // When filtering by category, just use the post IDs directly
+      console.log('[STORAGE] Using direct post ID filtering for category search:', filteredPostIds);
+      
+      // Count is simply the number of filtered IDs
+      count = filteredPostIds.length;
+      
+      // Get the posts by IDs (which already underwent category filtering)
+      postList = await db
+        .select()
+        .from(blogPosts)
+        .where(and(
+          inArray(blogPosts.id, filteredPostIds),
+          // Keep the published filter for safety
+          published !== undefined ? eq(blogPosts.published, published) : undefined
+        ))
+        .orderBy(orderBy)
+        .limit(limit)
+        .offset(offset);
+    } else {
+      // Normal case - no category filtering or empty category
+      const countResult = await db
+        .select({ count: sql`count(*)` })
+        .from(blogPosts)
+        .where(whereClause as any);
+      
+      count = Number(countResult[0]?.count || 0);
+      
+      // Get the posts
+      postList = await db
+        .select()
+        .from(blogPosts)
+        .where(whereClause as any)
+        .orderBy(orderBy)
+        .limit(limit)
+        .offset(offset);
+    }
     
     // Get author information
     const authorIds = postList.map(post => post.authorId);
