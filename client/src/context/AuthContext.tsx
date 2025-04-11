@@ -33,6 +33,7 @@ interface AuthContextType {
   isAdmin: boolean;
   isEditor: boolean;
   emailVerified: boolean;
+  isNewRegistration: boolean; // Added for tracking new registrations
   register: (email: string, password: string, username: string, firebaseUid?: string) => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
   loginWithGoogle: () => Promise<boolean | void>;
@@ -999,12 +1000,16 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
             // Non-critical error, don't prevent verification success
           }
           
-          // Show success message
-          toast({
-            title: "Email Verified!",
-            description: "Your email has been verified. You now have full access to all features.",
-            variant: "default",
-          });
+          // Show success message only for new registrations
+          if (isNewRegistration) {
+            toast({
+              title: "Email Verified!",
+              description: "Your email has been verified. You now have full access to all features.",
+              variant: "default",
+            });
+            // Reset the flag after showing the toast
+            setIsNewRegistration(false);
+          }
           
           // Handle redirect after verification
           handleVerificationRedirect();
@@ -1088,11 +1093,16 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
                 console.log("Email verified according to backend check!");
                 setEmailVerified(true);
                 
-                toast({
-                  title: "Email Verified!",
-                  description: "Your email has been verified. You now have full access to all features.",
-                  variant: "default",
-                });
+                // Only show verification toast for new registrations
+                if (isNewRegistration) {
+                  toast({
+                    title: "Email Verified!",
+                    description: "Your email has been verified. You now have full access to all features.",
+                    variant: "default",
+                  });
+                  // Reset the flag after showing the toast
+                  setIsNewRegistration(false);
+                }
                 
                 // Handle redirect after verification
                 handleVerificationRedirect();
@@ -1198,6 +1208,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     isAdmin,
     isEditor,
     emailVerified,
+    isNewRegistration, // Add isNewRegistration flag
     register,
     login,
     loginWithGoogle,
