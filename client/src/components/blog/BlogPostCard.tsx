@@ -63,8 +63,9 @@ const BlogPostCard: React.FC<BlogPostCardProps> = ({ post }) => {
           <div className="ml-3">
             <p className="text-sm font-medium text-neutral-900">{post.author.username}</p>
             <div className="flex space-x-1 text-sm text-neutral-500">
-              <time dateTime={post.publishedAt}>
-                {new Date(post.publishedAt).toLocaleDateString('en-US', { 
+              <time dateTime={post.publishedAt || post.createdAt}>
+                {console.log('Date value:', post.publishedAt, typeof post.publishedAt)}
+                {new Date(post.publishedAt || post.createdAt).toLocaleDateString('en-US', { 
                   year: 'numeric', 
                   month: 'long', 
                   day: 'numeric' 
