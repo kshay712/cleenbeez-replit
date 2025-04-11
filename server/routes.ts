@@ -65,7 +65,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       '/auth/cleanup-firebase', // Cleanup endpoint has its own auth checks
       '/auth/public-cleanup-firebase', // Public cleanup for registration flows
       '/auth/check-verification', // Email verification check has its own security checks
-      '/auth/check-email', // Email existence check for forgot password flow
+      '/auth/check-email', // Email existence check for forgot password flow (legacy path)
+      '/api/auth/check-email', // Email existence check with API prefix
       '/products',
       '/products/featured',
       '/products/related',
@@ -91,8 +92,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         req.path.startsWith('/blog/posts/') ||
         req.path.startsWith('/blog/related/') ||
         req.path === '/blog/categories' ||
-        // Special case for email check endpoint
-        req.path === '/auth/check-email'
+        // Special case for email check endpoint - make sure to capture both with and without /api prefix
+        req.path === '/auth/check-email' ||
+        req.path.startsWith('/auth/check-email?') ||
+        req.path === '/api/auth/check-email' ||
+        req.path.startsWith('/api/auth/check-email?')
       ))
     ) {
       console.log(`[AUTH] Public GET path: ${req.path}`);
