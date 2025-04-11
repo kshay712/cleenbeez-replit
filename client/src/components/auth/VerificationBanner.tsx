@@ -9,11 +9,12 @@ import { useAuth } from '@/hooks/useAuth';
 
 interface VerificationBannerProps {
   email?: string | null;
+  forceShow?: boolean; // Add option to force show the banner regardless of registration status
 }
 
-export function VerificationBanner({ email }: VerificationBannerProps) {
+export function VerificationBanner({ email, forceShow = false }: VerificationBannerProps) {
   const { toast } = useToast();
-  const { checkEmailVerificationStatus } = useAuth();
+  const { checkEmailVerificationStatus, isNewRegistration } = useAuth();
   const [isSending, setIsSending] = useState(false);
   const [isChecking, setIsChecking] = useState(false);
   
@@ -130,6 +131,12 @@ export function VerificationBanner({ email }: VerificationBannerProps) {
     }
   };
   
+  // Only show the verification banner for new registrations or if explicitly forced
+  if (!isNewRegistration && !forceShow) {
+    console.log("Skipping verification banner for returning user");
+    return null;
+  }
+  
   return (
     <Alert variant="destructive" className="mb-6">
       <AlertCircle className="h-4 w-4" />
@@ -172,7 +179,18 @@ export function VerificationBanner({ email }: VerificationBannerProps) {
   );
 }
 
-export function VerificationSuccess() {
+interface VerificationSuccessProps {
+  forceShow?: boolean; // Add option to force show the success message
+}
+
+export function VerificationSuccess({ forceShow = false }: VerificationSuccessProps) {
+  const { isNewRegistration } = useAuth();
+  
+  // Only show success message for new registrations or if explicitly forced
+  if (!isNewRegistration && !forceShow) {
+    return null;
+  }
+  
   return (
     <Alert className="mb-6 bg-green-50 border-green-200 text-green-800">
       <CheckCircle2 className="h-4 w-4 text-green-600" />
