@@ -46,7 +46,17 @@ const ForgotPasswordPage = () => {
       setIsLoading(true);
       setError(null);
       
-      // Send password reset email via Firebase
+      // First check if the email exists in our system
+      const checkResponse = await fetch(`/api/auth/check-email?email=${encodeURIComponent(data.email)}`);
+      const checkResult = await checkResponse.json();
+      
+      if (!checkResult.exists) {
+        // Email doesn't exist in our system
+        setError("This email address is not registered. Please check the email address or create a new account.");
+        return;
+      }
+      
+      // Email exists, send password reset email via Firebase
       await sendPasswordResetEmail(auth, data.email);
       
       // Show success state
@@ -60,17 +70,13 @@ const ForgotPasswordPage = () => {
     } catch (err: any) {
       console.error('Password reset error:', err);
       
-      // Handle user not found more gracefully
+      // Handle specific Firebase errors
       if (err.code === 'auth/user-not-found') {
-        // We don't want to reveal if an email exists or not for security reasons
-        // So we'll show the same success message as if the email was sent
-        setEmailSent(true);
-        
-        toast({
-          title: "Password Reset Email Sent",
-          description: "If an account exists with this email, you'll receive instructions to reset your password.",
-          variant: "default",
-        });
+        setError("This email address is not registered. Please check the email address or create a new account.");
+      } else if (err.code === 'auth/too-many-requests') {
+        setError("Too many password reset attempts. Please try again later.");
+      } else if (err.code === 'auth/invalid-email') {
+        setError("Invalid email format. Please enter a valid email address.");
       } else {
         setError(err.message || "Failed to send password reset email. Please try again.");
       }

@@ -8,6 +8,7 @@ import { users } from "./api/users";
 import { adminUtil } from "./api/adminUtil";
 import { z } from "zod";
 import { verifyAuthToken } from "./api/auth";
+import admin from 'firebase-admin';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Admin utility routes - no auth required (for development only)
@@ -64,6 +65,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       '/auth/cleanup-firebase', // Cleanup endpoint has its own auth checks
       '/auth/public-cleanup-firebase', // Public cleanup for registration flows
       '/auth/check-verification', // Email verification check has its own security checks
+      '/auth/check-email', // Email existence check for forgot password flow
       '/products',
       '/products/featured',
       '/products/related',
@@ -113,6 +115,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/auth/cleanup-firebase', auth.cleanupFirebaseUser);
   app.post('/api/auth/public-cleanup-firebase', auth.publicCleanupFirebaseUser);
   app.get('/api/auth/check-verification', auth.checkVerification);
+  
+  // Check if an email exists (for forgot password)
+  app.get('/api/auth/check-email', async (req: Request, res: Response) => {
+    try {
+      const { email } = req.query;
+      
+      if (!email || typeof email !== 'string') {
+        return res.status(400).json({ message: 'Email parameter is required' });
+      }
+      
+      // Check if email exists in our database
+      const user = await storage.getUserByEmail(email);
+      
+      // Check if email exists in Firebase
+      try {
+        const firebaseUser = await admin.auth().getUserByEmail(email);
+        return res.status(200).json({ 
+          exists: true,
+          firebaseOnly: !user,
+          message: 'Email is registered' 
+        });
+      } catch (firebaseError: any) {
+        // If Firebase can't find the user either
+        if (firebaseError.code === 'auth/user-not-found') {
+          return res.status(200).json({ 
+            exists: false, 
+            message: 'Email is not registered' 
+          });
+        }
+        
+        // Some other Firebase error
+        console.error('Firebase error during email check:', firebaseError);
+        
+        // If we have the user in our database but Firebase error, still allow password reset
+        if (user) {
+          return res.status(200).json({ 
+            exists: true,
+            message: 'Email is registered in our database' 
+          });
+        }
+        
+        return res.status(500).json({ 
+          message: 'Error checking email, please try again' 
+        });
+      }
+    } catch (error) {
+      console.error('Error checking email:', error);
+      return res.status(500).json({ 
+        message: 'Server error when checking email' 
+      });
+    }
+  });
   
   // Logout endpoint
   app.post('/api/auth/logout', (req, res) => {
