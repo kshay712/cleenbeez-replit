@@ -1,17 +1,11 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import BlogPostCard from "@/components/blog/BlogPostCard";
 import BlogCategories from "@/components/blog/BlogCategories";
+import CategoryBlogPosts from "@/components/blog/CategoryBlogPosts";
 import { queryClient } from "@/lib/queryClient";
 import { Pagination } from "@/components/ui/pagination";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Sheet,
   SheetContent,
@@ -237,8 +231,12 @@ const BlogPage = () => {
               </div>
             ) : null}
             
-            {/* Blog posts grid */}
-            {isLoading ? (
+            {/* Blog posts grid - Use our dedicated component for category filtering */}
+            {selectedCategory ? (
+              /* Use direct category posts endpoint for selected categories */
+              <CategoryBlogPosts categoryId={selectedCategory} />
+            ) : isLoading ? (
+              /* Use regular endpoint for all posts (no category filter) */
               <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
                 {[...Array(6)].map((_, i) => (
                   <div key={i} className="flex flex-col rounded-lg shadow-lg overflow-hidden bg-white">
@@ -275,8 +273,8 @@ const BlogPage = () => {
               </div>
             )}
             
-            {/* Pagination */}
-            {data?.pagination && (
+            {/* Pagination - Only show for "all posts" view */}
+            {!selectedCategory && data?.pagination && (
               <Pagination 
                 currentPage={currentPage}
                 totalPages={data.pagination.totalPages}
