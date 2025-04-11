@@ -279,13 +279,46 @@ const AdminBlogPage = () => {
       
       formData.append('postData', JSON.stringify(postData));
       
-      const headers: HeadersInit = {};
-      
-      const response = await fetch(`/api/blog/posts/${data.id}`, {
+      // Use custom fetch with FormData that includes auth headers
+      const config: RequestInit = {
         method: 'PUT',
-        headers,
+        credentials: "include",
+        headers: {},
         body: formData
-      });
+      };
+      
+      // Add dev user ID and Firebase UID if it exists in localStorage
+      const devUser = localStorage.getItem('dev-user');
+      if (devUser) {
+        try {
+          const userData = JSON.parse(devUser);
+          if (userData && userData.id) {
+            config.headers = {
+              ...config.headers,
+              'X-Dev-User-ID': userData.id.toString(),
+              'Authorization': `Bearer ${userData.firebaseUid || 'test-' + userData.id}`
+            };
+          }
+        } catch (e) {
+          console.error('Failed to parse dev user from localStorage:', e);
+        }
+      }
+      
+      // If Firebase auth is used, add the token to the headers
+      try {
+        const currentUser = auth.currentUser;
+        if (currentUser) {
+          const token = await currentUser.getIdToken();
+          config.headers = {
+            ...config.headers,
+            'Authorization': `Bearer ${token}`
+          };
+        }
+      } catch (e) {
+        console.error('Failed to get Firebase token:', e);
+      }
+      
+      const response = await fetch(`/api/blog/posts/${data.id}`, config);
       
       if (!response.ok) {
         throw new Error('Failed to update blog post');
