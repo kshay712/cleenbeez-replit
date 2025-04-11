@@ -33,14 +33,17 @@ const BlogPostCard: React.FC<BlogPostCardProps> = ({ post }) => {
       <div className="flex-1 p-6 flex flex-col justify-between">
         <div className="flex-1">
           {post.categories.length > 0 && (
-            <p className="text-sm font-medium text-primary-600">
-              <Link 
-                href={`/blog?category=${post.categories[0].id}`} 
-                className="hover:underline"
-              >
-                {post.categories[0].name}
-              </Link>
-            </p>
+            <div className="flex flex-wrap gap-2 mb-2">
+              {post.categories.map(category => (
+                <Link 
+                  key={category.id}
+                  href={`/blog?category=${category.id}`} 
+                  className="text-xs font-medium bg-primary-100 text-primary-800 px-2 py-1 rounded-full hover:bg-primary-200 transition-colors"
+                >
+                  {category.name}
+                </Link>
+              ))}
+            </div>
           )}
           <Link href={`/blog/${post.slug}`} className="block mt-2">
             <p className="text-lg font-semibold text-neutral-900">{post.title}</p>

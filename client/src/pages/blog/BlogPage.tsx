@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "wouter";
 import BlogPostCard from "@/components/blog/BlogPostCard";
 import BlogCategories from "@/components/blog/BlogCategories";
 import CategoryBlogPosts from "@/components/blog/CategoryBlogPosts";
@@ -193,9 +194,20 @@ const BlogPage = () => {
                       />
                     </div>
                     <div className="p-6">
-                      <span className="inline-flex items-center px-3 py-0.5 rounded-full text-sm font-medium bg-primary-100 text-primary-800">
-                        Featured
-                      </span>
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="inline-flex items-center px-3 py-0.5 rounded-full text-sm font-medium bg-primary-800 text-white">
+                          Featured
+                        </span>
+                        {featuredPost.categories.map(category => (
+                          <Link 
+                            key={category.id}
+                            href={`/blog?category=${category.id}`} 
+                            className="text-xs font-medium bg-primary-100 text-primary-800 px-2 py-1 rounded-full hover:bg-primary-200 transition-colors"
+                          >
+                            {category.name}
+                          </Link>
+                        ))}
+                      </div>
                       <a href={`/blog/${featuredPost.slug}`} className="block mt-2">
                         <p className="text-xl font-semibold text-neutral-900">{featuredPost.title}</p>
                         <p className="mt-3 text-base text-neutral-600">
