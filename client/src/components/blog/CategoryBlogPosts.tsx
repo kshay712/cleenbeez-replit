@@ -12,6 +12,7 @@ interface BlogPost {
   content: string;
   featuredImage: string;
   publishedAt: string;
+  createdAt: string; // Added createdAt for fallback
   author: {
     id: number;
     username: string;

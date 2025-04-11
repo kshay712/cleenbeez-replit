@@ -38,6 +38,7 @@ const BlogPage = () => {
     content: string;
     featuredImage: string;
     publishedAt: string;
+    createdAt: string; // Added createdAt for fallback
     author: {
       id: number;
       username: string;
@@ -225,8 +226,8 @@ const BlogPage = () => {
                         <div className="ml-3">
                           <p className="text-sm font-medium text-neutral-900">{featuredPost.author.username}</p>
                           <div className="flex space-x-1 text-sm text-neutral-500">
-                            <time dateTime={featuredPost.publishedAt}>
-                              {new Date(featuredPost.publishedAt).toLocaleDateString('en-US', { 
+                            <time dateTime={featuredPost.publishedAt || featuredPost.createdAt}>
+                              {new Date(featuredPost.publishedAt || featuredPost.createdAt).toLocaleDateString('en-US', { 
                                 year: 'numeric', 
                                 month: 'long', 
                                 day: 'numeric' 

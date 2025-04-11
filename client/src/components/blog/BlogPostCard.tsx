@@ -8,6 +8,7 @@ interface BlogPostCardProps {
     excerpt: string;
     featuredImage: string;
     publishedAt: string;
+    createdAt: string; // Added createdAt for fallback
     author: {
       id: number;
       username: string;
@@ -64,7 +65,6 @@ const BlogPostCard: React.FC<BlogPostCardProps> = ({ post }) => {
             <p className="text-sm font-medium text-neutral-900">{post.author.username}</p>
             <div className="flex space-x-1 text-sm text-neutral-500">
               <time dateTime={post.publishedAt || post.createdAt}>
-                {console.log('Date value:', post.publishedAt, typeof post.publishedAt)}
                 {new Date(post.publishedAt || post.createdAt).toLocaleDateString('en-US', { 
                   year: 'numeric', 
                   month: 'long', 
