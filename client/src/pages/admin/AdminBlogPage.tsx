@@ -19,7 +19,10 @@ import {
   Filter,
   Image as ImageIcon,
   Loader2,
-  Star
+  Star,
+  ArrowUpDown,
+  ArrowDown,
+  ArrowUp
 } from "lucide-react";
 
 import {
@@ -124,6 +127,14 @@ const AdminBlogPage = () => {
   const [editingCategory, setEditingCategory] = useState<any | null>(null);
   const [selectedTab, setSelectedTab] = useState("posts");
   const [searchQuery, setSearchQuery] = useState("");
+  
+  // State for sorting posts
+  const [sortField, setSortField] = useState<string>("createdAt");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
+  
+  // State for sorting categories
+  const [catSortField, setCatSortField] = useState<string>("name");
+  const [catSortDirection, setCatSortDirection] = useState<"asc" | "desc">("asc");
   
   // Define types
   interface BlogPostWithRelations {
@@ -978,35 +989,170 @@ const AdminBlogPage = () => {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Title</TableHead>
-                      <TableHead>Author</TableHead>
-                      <TableHead>Categories</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Date</TableHead>
+                      <TableHead 
+                        className="cursor-pointer"
+                        onClick={() => {
+                          if (sortField === "title") {
+                            setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+                          } else {
+                            setSortField("title");
+                            setSortDirection("asc");
+                          }
+                        }}
+                      >
+                        <div className="flex items-center">
+                          Title
+                          {sortField === "title" ? (
+                            sortDirection === "asc" ? (
+                              <ArrowUp className="ml-2 h-4 w-4" />
+                            ) : (
+                              <ArrowDown className="ml-2 h-4 w-4" />
+                            )
+                          ) : (
+                            <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />
+                          )}
+                        </div>
+                      </TableHead>
+                      <TableHead 
+                        className="cursor-pointer"
+                        onClick={() => {
+                          if (sortField === "author") {
+                            setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+                          } else {
+                            setSortField("author");
+                            setSortDirection("asc");
+                          }
+                        }}
+                      >
+                        <div className="flex items-center">
+                          Author
+                          {sortField === "author" ? (
+                            sortDirection === "asc" ? (
+                              <ArrowUp className="ml-2 h-4 w-4" />
+                            ) : (
+                              <ArrowDown className="ml-2 h-4 w-4" />
+                            )
+                          ) : (
+                            <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />
+                          )}
+                        </div>
+                      </TableHead>
+                      <TableHead 
+                        className="cursor-pointer"
+                        onClick={() => {
+                          if (sortField === "categories") {
+                            setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+                          } else {
+                            setSortField("categories");
+                            setSortDirection("asc");
+                          }
+                        }}
+                      >
+                        <div className="flex items-center">
+                          Categories
+                          {sortField === "categories" ? (
+                            sortDirection === "asc" ? (
+                              <ArrowUp className="ml-2 h-4 w-4" />
+                            ) : (
+                              <ArrowDown className="ml-2 h-4 w-4" />
+                            )
+                          ) : (
+                            <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />
+                          )}
+                        </div>
+                      </TableHead>
+                      <TableHead 
+                        className="cursor-pointer"
+                        onClick={() => {
+                          if (sortField === "published") {
+                            setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+                          } else {
+                            setSortField("published");
+                            setSortDirection("asc");
+                          }
+                        }}
+                      >
+                        <div className="flex items-center">
+                          Status
+                          {sortField === "published" ? (
+                            sortDirection === "asc" ? (
+                              <ArrowUp className="ml-2 h-4 w-4" />
+                            ) : (
+                              <ArrowDown className="ml-2 h-4 w-4" />
+                            )
+                          ) : (
+                            <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />
+                          )}
+                        </div>
+                      </TableHead>
+                      <TableHead 
+                        className="cursor-pointer"
+                        onClick={() => {
+                          if (sortField === "publishedAt") {
+                            setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+                          } else {
+                            setSortField("publishedAt");
+                            setSortDirection("desc");
+                          }
+                        }}
+                      >
+                        <div className="flex items-center">
+                          Date
+                          {sortField === "publishedAt" ? (
+                            sortDirection === "asc" ? (
+                              <ArrowUp className="ml-2 h-4 w-4" />
+                            ) : (
+                              <ArrowDown className="ml-2 h-4 w-4" />
+                            )
+                          ) : (
+                            <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />
+                          )}
+                        </div>
+                      </TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {blogPosts?.posts && blogPosts.posts.length > 0 ? (
-                      blogPosts.posts.map((post: any) => (
+                      [...blogPosts.posts]
+                        .sort((a, b) => {
+                          // Handle sorting based on the current sort field and direction
+                          if (sortField === "title") {
+                            return sortDirection === "asc" 
+                              ? a.title.localeCompare(b.title)
+                              : b.title.localeCompare(a.title);
+                          } else if (sortField === "author") {
+                            const authorA = a.author?.username || "";
+                            const authorB = b.author?.username || "";
+                            return sortDirection === "asc"
+                              ? authorA.localeCompare(authorB)
+                              : authorB.localeCompare(authorA);
+                          } else if (sortField === "categories") {
+                            const catA = a.categories?.length || 0;
+                            const catB = b.categories?.length || 0;
+                            return sortDirection === "asc" 
+                              ? catA - catB 
+                              : catB - catA;
+                          } else if (sortField === "published") {
+                            const pubA = a.published ? 1 : 0;
+                            const pubB = b.published ? 1 : 0;
+                            return sortDirection === "asc" 
+                              ? pubA - pubB 
+                              : pubB - pubA;
+                          } else if (sortField === "publishedAt") {
+                            const dateA = a.publishedAt ? new Date(a.publishedAt) : new Date(a.createdAt);
+                            const dateB = b.publishedAt ? new Date(b.publishedAt) : new Date(b.createdAt);
+                            return sortDirection === "asc" 
+                              ? dateA.getTime() - dateB.getTime() 
+                              : dateB.getTime() - dateA.getTime();
+                          }
+                          return 0;
+                        })
+                        .map((post: any) => (
                         <TableRow key={post.id}>
                           <TableCell className="font-medium">{post.title}</TableCell>
                           <TableCell>
-                            {post.author ? (
-                              <div className="flex items-center gap-2">
-                                <Avatar className="h-6 w-6">
-                                  {post.author.profileImage ? (
-                                    <AvatarImage src={post.author.profileImage} />
-                                  ) : null}
-                                  <AvatarFallback>
-                                    {post.author.username.slice(0, 2).toUpperCase()}
-                                  </AvatarFallback>
-                                </Avatar>
-                                <span>{post.author.username}</span>
-                              </div>
-                            ) : (
-                              "Unknown"
-                            )}
+                            {post.author ? post.author.username : "Unknown"}
                           </TableCell>
                           <TableCell>
                             <div className="flex flex-wrap gap-1">
@@ -1141,9 +1287,78 @@ const AdminBlogPage = () => {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Slug</TableHead>
-                      <TableHead>Posts</TableHead>
+                      <TableHead 
+                        className="cursor-pointer"
+                        onClick={() => {
+                          if (catSortField === "name") {
+                            setCatSortDirection(catSortDirection === "asc" ? "desc" : "asc");
+                          } else {
+                            setCatSortField("name");
+                            setCatSortDirection("asc");
+                          }
+                        }}
+                      >
+                        <div className="flex items-center">
+                          Name
+                          {catSortField === "name" ? (
+                            catSortDirection === "asc" ? (
+                              <ArrowUp className="ml-2 h-4 w-4" />
+                            ) : (
+                              <ArrowDown className="ml-2 h-4 w-4" />
+                            )
+                          ) : (
+                            <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />
+                          )}
+                        </div>
+                      </TableHead>
+                      <TableHead 
+                        className="cursor-pointer"
+                        onClick={() => {
+                          if (catSortField === "slug") {
+                            setCatSortDirection(catSortDirection === "asc" ? "desc" : "asc");
+                          } else {
+                            setCatSortField("slug");
+                            setCatSortDirection("asc");
+                          }
+                        }}
+                      >
+                        <div className="flex items-center">
+                          Slug
+                          {catSortField === "slug" ? (
+                            catSortDirection === "asc" ? (
+                              <ArrowUp className="ml-2 h-4 w-4" />
+                            ) : (
+                              <ArrowDown className="ml-2 h-4 w-4" />
+                            )
+                          ) : (
+                            <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />
+                          )}
+                        </div>
+                      </TableHead>
+                      <TableHead 
+                        className="cursor-pointer"
+                        onClick={() => {
+                          if (catSortField === "postCount") {
+                            setCatSortDirection(catSortDirection === "asc" ? "desc" : "asc");
+                          } else {
+                            setCatSortField("postCount");
+                            setCatSortDirection("asc");
+                          }
+                        }}
+                      >
+                        <div className="flex items-center">
+                          Posts
+                          {catSortField === "postCount" ? (
+                            catSortDirection === "asc" ? (
+                              <ArrowUp className="ml-2 h-4 w-4" />
+                            ) : (
+                              <ArrowDown className="ml-2 h-4 w-4" />
+                            )
+                          ) : (
+                            <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />
+                          )}
+                        </div>
+                      </TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
