@@ -302,6 +302,21 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
   };
   
+  const storeLoginCredentials = (email: string, uid: string) => {
+    try {
+      // Store credential info in localStorage for potential recovery
+      const credentialInfo = {
+        email,
+        uid,
+        timestamp: Date.now()
+      };
+      localStorage.setItem('firebase-credentials', JSON.stringify(credentialInfo));
+      console.log("Firebase credentials stored for recovery");
+    } catch (error) {
+      console.error("Error storing login credentials:", error);
+    }
+  };
+  
   const login = async (email: string, password: string) => {
     try {
       setIsLoading(true);
@@ -310,6 +325,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       console.log("Signing in with Firebase:", email);
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const firebaseUser = userCredential.user;
+      
+      // Store Firebase user info for potential recovery
+      storeFirebaseUser(firebaseUser);
+      storeLoginCredentials(email, firebaseUser.uid);
       
       // Check if email is verified for email/password users
       if (!firebaseUser.emailVerified && !firebaseUser.providerData.some(provider => provider.providerId === 'google.com')) {
@@ -703,18 +722,22 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     console.log("Verification effect running. User:", !!user, "EmailVerified:", emailVerified, "Auth Current User:", !!auth.currentUser);
     
     // Only poll if user is logged in but email is not verified
-    if (user && !emailVerified && auth.currentUser) {
+    if (user && !emailVerified) {
       console.log("Starting email verification polling...");
-      console.log("Current user email verified status:", auth.currentUser.emailVerified);
+      
+      // Track the current verification status
+      const currentVerificationStatus = auth.currentUser?.emailVerified || false;
+      console.log("Current user email verified status:", currentVerificationStatus);
       
       const checkEmailVerification = async () => {
         try {
           console.log("Checking for email verification status...");
-          // Force reload the user to get fresh metadata from Firebase
+          
+          // First approach: Standard Firebase reload if we have a current user
           if (auth.currentUser) {
-            console.log("Before reload - Email verified:", auth.currentUser.emailVerified);
-            
             try {
+              console.log("Before reload - Email verified:", auth.currentUser.emailVerified);
+              
               // Get a fresh token to force metadata refresh
               await auth.currentUser.getIdToken(true);
               // Then reload the user
@@ -724,7 +747,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
               
               // Check if email is now verified
               if (auth.currentUser.emailVerified) {
-                console.log("Email has been verified!");
+                console.log("Email has been verified via Firebase reload!");
                 setEmailVerified(true);
                 
                 // Show success message
@@ -753,12 +776,70 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
                     }
                   }, 1500);
                 }
-              } else {
-                console.log("Email still not verified after reload");
+                
+                return; // Exit after successful verification
               }
             } catch (reloadError) {
-              console.error("Error reloading user:", reloadError);
+              console.error("Error during Firebase reload:", reloadError);
+              // Continue to backup approach
             }
+          }
+          
+          // Second approach: Use our backend verification API
+          try {
+            // Get credentials from localStorage
+            const storedCredentials = localStorage.getItem('firebase-credentials');
+            if (storedCredentials && user.email) {
+              const credentials = JSON.parse(storedCredentials);
+              console.log("Using stored credentials for verification check");
+              
+              // Call backend API
+              const response = await fetch(`/api/auth/check-verification?email=${encodeURIComponent(user.email)}&uid=${credentials.uid}`, {
+                method: 'GET',
+                headers: {
+                  'x-firebase-check': 'true',
+                  'x-dev-user-id': user.id.toString()
+                }
+              });
+              
+              if (response.ok) {
+                const result = await response.json();
+                console.log("Backend verification check result:", result);
+                
+                if (result.emailVerified) {
+                  console.log("Email verified according to backend check!");
+                  setEmailVerified(true);
+                  
+                  toast({
+                    title: "Email Verified!",
+                    description: "Your email has been verified. You now have full access to all features.",
+                    variant: "default",
+                  });
+                  
+                  // Stop polling
+                  if (verificationTimerRef.current) {
+                    clearInterval(verificationTimerRef.current);
+                    verificationTimerRef.current = null;
+                  }
+                  
+                  // Check if there's a redirect route stored
+                  const intendedRoute = sessionStorage.getItem('intendedRoute');
+                  if (intendedRoute) {
+                    console.log(`Redirecting to intended route: ${intendedRoute}`);
+                    sessionStorage.removeItem('intendedRoute');
+                    
+                    // Small delay to ensure toast is visible
+                    setTimeout(() => {
+                      if (typeof window !== 'undefined') {
+                        window.location.href = intendedRoute;
+                      }
+                    }, 1500);
+                  }
+                }
+              }
+            }
+          } catch (backendError) {
+            console.error("Error during backend verification check:", backendError);
           }
         } catch (error) {
           console.error("Error checking email verification:", error);
@@ -786,7 +867,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         verificationTimerRef.current = null;
       }
     }
-  }, [user, emailVerified]);
+  }, [user, emailVerified, toast]);
   
   // Store Firebase user in localStorage for recovery
   const storeFirebaseUser = (firebaseUser: any) => {
