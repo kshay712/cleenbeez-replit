@@ -20,6 +20,8 @@ import BlogPostPage from "./pages/blog/BlogPostPage";
 import LearnPage from "./pages/learn/LearnPage";
 import LoginPage from "./pages/auth/LoginPage";
 import RegisterPage from "./pages/auth/RegisterPage";
+import ForgotPasswordPage from "./pages/auth/ForgotPasswordPage";
+import ResetPasswordPage from "./pages/auth/ResetPasswordPage";
 import DevLoginPage from "./pages/auth/DevLoginPage";
 import AdminUtilPage from "./pages/auth/AdminUtilPage";
 import ProfilePage from "./pages/profile/ProfilePage";
@@ -104,6 +106,8 @@ function Router() {
           <Route path="/" component={HomePage} />
           <Route path="/login" component={LoginPage} />
           <Route path="/register" component={RegisterPage} />
+          <Route path="/forgot-password" component={ForgotPasswordPage} />
+          <Route path="/reset-password" component={ResetPasswordPage} />
           <Route path="/dev-login" component={DevLoginPage} />
           
           {/* Protected general routes - require login */}
