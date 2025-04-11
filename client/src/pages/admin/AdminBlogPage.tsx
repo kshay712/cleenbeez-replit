@@ -18,7 +18,8 @@ import {
   Search,
   Filter,
   Image as ImageIcon,
-  Loader2 
+  Loader2,
+  Star
 } from "lucide-react";
 
 import {
@@ -484,6 +485,30 @@ const AdminBlogPage = () => {
     }
   });
   
+  // Set featured post mutation
+  const setFeaturedPostMutation = useMutation({
+    mutationFn: async (id: number) => {
+      return await apiRequest("POST", `/api/blog/posts/${id}/set-featured`, undefined);
+    },
+    onSuccess: () => {
+      // Invalidate both blog posts and featured post caches
+      queryClient.invalidateQueries({ queryKey: ['/api/blog/admin'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/blog/posts'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/blog/featured'] });
+      toast({
+        title: "Post set as featured",
+        description: "The blog post has been set as featured successfully."
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to set post as featured",
+        variant: "destructive"
+      });
+    }
+  });
+  
   // Handle form submissions
   const onPostSubmit = (data: BlogFormValues) => {
     if (editingPost) {
@@ -922,11 +947,16 @@ const AdminBlogPage = () => {
                           ))}
                         </TableCell>
                         <TableCell>
-                          {post.published ? (
-                            <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Published</Badge>
-                          ) : (
-                            <Badge variant="outline" className="text-neutral-500">Draft</Badge>
-                          )}
+                          <div className="flex flex-wrap gap-1">
+                            {post.published ? (
+                              <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Published</Badge>
+                            ) : (
+                              <Badge variant="outline" className="text-neutral-500">Draft</Badge>
+                            )}
+                            {post.featured && (
+                              <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100">Featured</Badge>
+                            )}
+                          </div>
                         </TableCell>
                         <TableCell>
                           {post.publishedAt ? new Date(post.publishedAt).toLocaleDateString() : 
@@ -949,6 +979,20 @@ const AdminBlogPage = () => {
                           >
                             <Edit className="h-4 w-4" />
                           </Button>
+                          {!post.featured && (
+                            <Button 
+                              variant="ghost" 
+                              size="icon"
+                              onClick={() => setFeaturedPostMutation.mutate(post.id)}
+                              disabled={setFeaturedPostMutation.isPending}
+                              title="Set as featured post"
+                            >
+                              <Star className="h-4 w-4 text-amber-500" />
+                              {setFeaturedPostMutation.isPending && (
+                                <Loader2 className="absolute h-3 w-3 animate-spin" />
+                              )}
+                            </Button>
+                          )}
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
                               <Button 
