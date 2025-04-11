@@ -34,11 +34,19 @@ const CategoryBlogPosts: React.FC<CategoryBlogPostsProps> = ({ categoryId }) => 
     queryFn: async () => {
       if (!categoryId) return null;
       
-      const res = await fetch(`/api/blog/category/${categoryId}/posts?page=${currentPage}&limit=${itemsPerPage}`);
+      console.log(`[CATEGORY_BLOG] Fetching posts for category ID: ${categoryId}`);
+      const url = `/api/blog/category/${categoryId}/posts?page=${currentPage}&limit=${itemsPerPage}`;
+      console.log(`[CATEGORY_BLOG] Request URL: ${url}`);
+      
+      const res = await fetch(url);
       if (!res.ok) {
+        console.error(`[CATEGORY_BLOG] Error response: ${res.status} ${res.statusText}`);
         throw new Error('Failed to fetch category posts');
       }
-      return res.json();
+      
+      const data = await res.json();
+      console.log(`[CATEGORY_BLOG] Response data:`, data);
+      return data;
     },
     enabled: !!categoryId, // Only run query if categoryId is provided
   });
