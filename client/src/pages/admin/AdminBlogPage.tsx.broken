@@ -1,0 +1,1174 @@
+import { useState, useRef } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm, Controller } from "react-hook-form";
+import { z } from "zod";
+import { useLocation } from "wouter";
+import { apiRequest } from "@/lib/queryClient";
+import { auth } from "@/lib/firebase";
+import { 
+  PlusCircle, 
+  Edit, 
+  Trash2, 
+  Eye, 
+  X, 
+  Search,
+  Filter,
+  Image as ImageIcon,
+  Loader2,
+  Star
+} from "lucide-react";
+
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import { Card, CardContent } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+
+// Blog post form schema
+const blogPostSchema = z.object({
+  title: z.string().min(3, { message: "Title must be at least 3 characters" }),
+  slug: z.string().min(3, { message: "Slug must be at least 3 characters" })
+    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, { 
+      message: "Slug must contain only lowercase letters, numbers, and hyphens" 
+    }),
+  excerpt: z.string().min(10, { message: "Excerpt must be at least 10 characters" }),
+  content: z.string().min(50, { message: "Content must be at least 50 characters" }),
+  featuredImage: z.any(), // Will be handled as a file upload
+  published: z.boolean().default(false),
+  categories: z.array(z.string()).min(1, { message: "Select at least one category" }),
+});
+
+type BlogFormValues = z.infer<typeof blogPostSchema>;
+
+// Category form schema
+const categorySchema = z.object({
+  name: z.string().min(2, { message: "Name must be at least 2 characters" }),
+  slug: z.string().min(2, { message: "Slug must be at least 2 characters" })
+    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, { 
+      message: "Slug must contain only lowercase letters, numbers, and hyphens" 
+    }),
+});
+
+type CategoryFormValues = z.infer<typeof categorySchema>;
+
+const AdminBlogPage = () => {
+  const { isAdmin, isEditor, user } = useAuth();
+  const [, navigate] = useLocation();
+  const { toast } = useToast();
+  
+  // State for dialog controls
+  const [postDialogOpen, setPostDialogOpen] = useState(false);
+  const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
+  const [editingPost, setEditingPost] = useState<any | null>(null);
+  const [editingCategory, setEditingCategory] = useState<any | null>(null);
+  const [selectedTab, setSelectedTab] = useState("posts");
+  const [searchQuery, setSearchQuery] = useState("");
+  
+  // Define types
+  interface BlogPostWithRelations {
+    id: number;
+    title: string;
+    slug: string;
+    content: string;
+    excerpt: string;
+    featuredImage: string;
+    published: boolean;
+    publishedAt: string | null;
+    createdAt: string;
+    updatedAt: string;
+    authorId: number;
+    author: any;
+    categories: Array<{
+      id: number;
+      name: string;
+      slug: string;
+    }>;
+  }
+
+  interface BlogPostsResponse {
+    posts: BlogPostWithRelations[];
+    total: number;
+  }
+  
+  // Fetch blog posts
+  const { data: blogPosts, isLoading: postsLoading } = useQuery<BlogPostsResponse>({
+    queryKey: ['/api/blog/admin', searchQuery],
+  });
+  
+  interface BlogCategory {
+    id: number;
+    name: string;
+    slug: string;
+    postCount?: number;
+  }
+  
+  // Fetch categories
+  const { data: categories, isLoading: categoriesLoading } = useQuery<BlogCategory[]>({
+    queryKey: ['/api/blog/categories'],
+  });
+  
+  // Post form
+  const postForm = useForm<BlogFormValues>({
+    resolver: zodResolver(blogPostSchema),
+    defaultValues: {
+      title: "",
+      slug: "",
+      excerpt: "",
+      content: "",
+      featuredImage: undefined, // Set to undefined instead of empty string for file input
+      published: false,
+      categories: [],
+    }
+  });
+  
+  // Category form
+  const categoryForm = useForm<CategoryFormValues>({
+    resolver: zodResolver(categorySchema),
+    defaultValues: {
+      name: "",
+      slug: "",
+    }
+  });
+  
+  // Auto-generate slug from title
+  const handleTitleChange = (title: string) => {
+    if (!editingPost || (editingPost && editingPost.slug === postForm.getValues().slug)) {
+      const slug = title.toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/(^-|-$)/g, '');
+      postForm.setValue('slug', slug);
+    }
+  };
+  
+  // Auto-generate slug from category name
+  const handleCategoryNameChange = (name: string) => {
+    if (!editingCategory || (editingCategory && editingCategory.slug === categoryForm.getValues().slug)) {
+      const slug = name.toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/(^-|-$)/g, '');
+      categoryForm.setValue('slug', slug);
+    }
+  };
+  
+  // Create blog post mutation
+  const createPostMutation = useMutation({
+    mutationFn: async (data: BlogFormValues) => {
+      // Create FormData for file upload
+      const formData = new FormData();
+      
+      // Add all text fields to FormData
+      Object.keys(data).forEach(key => {
+        if (key === 'featuredImage') {
+          if (data.featuredImage instanceof File) {
+            formData.append('featuredImage', data.featuredImage);
+          } else if (typeof data.featuredImage === 'string') {
+            formData.append('featuredImage', data.featuredImage);
+          }
+        } else if (key === 'categories') {
+          formData.append('categories', JSON.stringify(data.categories));
+        } else if (key === 'published') {
+          // Convert the published boolean to a string format that the server can parse
+          formData.append('published', data.published ? 'true' : 'false');
+        } else {
+          formData.append(key, String(data[key as keyof typeof data]));
+        }
+      });
+      
+      // Add author ID
+      if (user?.id) {
+        formData.append('authorId', String(user.id));
+      }
+      
+      // Setup headers with authentication
+      const headers: HeadersInit = {};
+      
+      // Add dev user ID and Firebase UID if it exists in localStorage
+      const devUser = localStorage.getItem('dev-user');
+      if (devUser) {
+        try {
+          const userData = JSON.parse(devUser);
+          if (userData && userData.id) {
+            headers['X-Dev-User-ID'] = userData.id.toString();
+            headers['Authorization'] = `Bearer ${userData.firebaseUid || 'test-' + userData.id}`;
+            console.log('Found development user in localStorage:', userData);
+          }
+        } catch (e) {
+          console.error('Failed to parse dev user from localStorage:', e);
+        }
+      }
+      
+      // If Firebase auth is used, add the token to the headers
+      try {
+        const currentUser = auth.currentUser;
+        if (currentUser) {
+          const token = await currentUser.getIdToken();
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+      } catch (e) {
+        console.error('Failed to get Firebase token:', e);
+      }
+      
+      // Special handling for FormData
+      return await fetch('/api/blog/posts', {
+        method: 'POST',
+        headers, // Add auth headers
+        body: formData,
+        credentials: 'include'
+      }).then(response => {
+        if (!response.ok) {
+          return response.json().then(err => {
+            throw new Error(err.message || 'Failed to create blog post');
+          });
+        }
+        return response.json();
+      });
+    },
+    onSuccess: () => {
+      // Invalidate both blog posts and categories caches
+      queryClient.invalidateQueries({ queryKey: ['/api/blog/admin'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/blog/categories'] });
+      toast({
+        title: "Blog post created",
+        description: "Your blog post has been created successfully."
+      });
+      setPostDialogOpen(false);
+      postForm.reset();
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create blog post",
+        variant: "destructive"
+      });
+    }
+  });
+  
+  // Update blog post mutation
+  const updatePostMutation = useMutation({
+    mutationFn: async (data: BlogFormValues & { id: number }) => {
+      const { id, ...postData } = data;
+      
+      // Create FormData for file upload
+      const formData = new FormData();
+      
+      // Add all text fields to FormData
+      Object.keys(postData).forEach(key => {
+        if (key === 'featuredImage') {
+          if (postData.featuredImage instanceof File) {
+            formData.append('featuredImage', postData.featuredImage);
+          } else if (typeof postData.featuredImage === 'string') {
+            formData.append('featuredImage', postData.featuredImage);
+          }
+        } else if (key === 'categories') {
+          formData.append('categories', JSON.stringify(postData.categories));
+        } else if (key === 'published') {
+          // Convert the published boolean to a string format that the server can parse
+          formData.append('published', postData.published ? 'true' : 'false');
+        } else {
+          formData.append(key, String(postData[key as keyof typeof postData]));
+        }
+      });
+      
+      // Setup headers with authentication
+      const headers: HeadersInit = {};
+      
+      // Add dev user ID and Firebase UID if it exists in localStorage
+      const devUser = localStorage.getItem('dev-user');
+      if (devUser) {
+        try {
+          const userData = JSON.parse(devUser);
+          if (userData && userData.id) {
+            headers['X-Dev-User-ID'] = userData.id.toString();
+            headers['Authorization'] = `Bearer ${userData.firebaseUid || 'test-' + userData.id}`;
+            console.log('Found development user in localStorage:', userData);
+          }
+        } catch (e) {
+          console.error('Failed to parse dev user from localStorage:', e);
+        }
+      }
+      
+      // If Firebase auth is used, add the token to the headers
+      try {
+        const currentUser = auth.currentUser;
+        if (currentUser) {
+          const token = await currentUser.getIdToken();
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+      } catch (e) {
+        console.error('Failed to get Firebase token:', e);
+      }
+      
+      // Special handling for FormData
+      return await fetch(`/api/blog/posts/${id}`, {
+        method: 'PUT',
+        headers, // Add auth headers
+        body: formData,
+        credentials: 'include'
+      }).then(response => {
+        if (!response.ok) {
+          return response.json().then(err => {
+            throw new Error(err.message || 'Failed to update blog post');
+          });
+        }
+        return response.json();
+      });
+    },
+    onSuccess: () => {
+      // Invalidate both blog posts and categories caches
+      queryClient.invalidateQueries({ queryKey: ['/api/blog/admin'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/blog/categories'] });
+      toast({
+        title: "Blog post updated",
+        description: "Your blog post has been updated successfully."
+      });
+      setPostDialogOpen(false);
+      setEditingPost(null);
+      postForm.reset();
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update blog post",
+        variant: "destructive"
+      });
+    }
+  });
+  
+  // Delete blog post mutation
+  const deletePostMutation = useMutation({
+    mutationFn: async (id: number) => {
+      return await apiRequest("DELETE", `/api/blog/posts/${id}`, undefined);
+    },
+    onSuccess: () => {
+      // Invalidate both blog posts and categories caches
+      queryClient.invalidateQueries({ queryKey: ['/api/blog/admin'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/blog/categories'] });
+      toast({
+        title: "Blog post deleted",
+        description: "The blog post has been deleted successfully."
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete blog post",
+        variant: "destructive"
+      });
+    }
+  });
+  
+  // Create category mutation
+  const createCategoryMutation = useMutation({
+    mutationFn: async (data: CategoryFormValues) => {
+      return await apiRequest("POST", "/api/blog/categories", data);
+    },
+    onSuccess: () => {
+      // Invalidate both blog and product category caches
+      queryClient.invalidateQueries({ queryKey: ['/api/blog/categories'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/categories'] });
+      toast({
+        title: "Category created",
+        description: "The category has been created successfully."
+      });
+      setCategoryDialogOpen(false);
+      categoryForm.reset();
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create category",
+        variant: "destructive"
+      });
+    }
+  });
+  
+  // Update category mutation
+  const updateCategoryMutation = useMutation({
+    mutationFn: async (data: CategoryFormValues & { id: number }) => {
+      const { id, ...categoryData } = data;
+      return await apiRequest("PUT", `/api/blog/categories/${id}`, categoryData);
+    },
+    onSuccess: () => {
+      // Invalidate both blog and product category caches
+      queryClient.invalidateQueries({ queryKey: ['/api/blog/categories'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/categories'] });
+      toast({
+        title: "Category updated",
+        description: "The category has been updated successfully."
+      });
+      setCategoryDialogOpen(false);
+      setEditingCategory(null);
+      categoryForm.reset();
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update category",
+        variant: "destructive"
+      });
+    }
+  });
+  
+  // Delete category mutation
+  const deleteCategoryMutation = useMutation({
+    mutationFn: async (id: number) => {
+      return await apiRequest("DELETE", `/api/blog/categories/${id}`, undefined);
+    },
+    onSuccess: () => {
+      // Invalidate both blog and product category caches
+      queryClient.invalidateQueries({ queryKey: ['/api/blog/categories'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/categories'] });
+      toast({
+        title: "Category deleted",
+        description: "The category has been deleted successfully."
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete category",
+        variant: "destructive"
+      });
+    }
+  });
+  
+  // Set featured post mutation
+  const setFeaturedPostMutation = useMutation({
+    mutationFn: async (id: number) => {
+      return await apiRequest("POST", `/api/blog/posts/${id}/set-featured`, undefined);
+    },
+    onSuccess: () => {
+      // Invalidate both blog posts and featured post caches
+      queryClient.invalidateQueries({ queryKey: ['/api/blog/admin'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/blog/posts'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/blog/featured'] });
+      toast({
+        title: "Post set as featured",
+        description: "The blog post has been set as featured successfully."
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to set post as featured",
+        variant: "destructive"
+      });
+    }
+  });
+  
+  // Handle form submissions
+  const onPostSubmit = (data: BlogFormValues) => {
+    if (editingPost) {
+      updatePostMutation.mutate({ ...data, id: editingPost.id });
+    } else {
+      createPostMutation.mutate(data);
+    }
+  };
+  
+  const onCategorySubmit = (data: CategoryFormValues) => {
+    if (editingCategory) {
+      updateCategoryMutation.mutate({ ...data, id: editingCategory.id });
+    } else {
+      createCategoryMutation.mutate(data);
+    }
+  };
+  
+  // Handle editing blog post
+  const handleEditPost = (post: any) => {
+    setEditingPost(post);
+    postForm.reset({
+      title: post.title,
+      slug: post.slug,
+      excerpt: post.excerpt,
+      content: post.content,
+      featuredImage: post.featuredImage,
+      published: post.published,
+      categories: post.categories.map((cat: any) => cat.id.toString()),
+    });
+    setPostDialogOpen(true);
+  };
+  
+  // Handle editing category
+  const handleEditCategory = (category: any) => {
+    setEditingCategory(category);
+    categoryForm.reset({
+      name: category.name,
+      slug: category.slug,
+    });
+    setCategoryDialogOpen(true);
+  };
+  
+  // Reset forms when closing dialogs
+  const handleClosePostDialog = () => {
+    setPostDialogOpen(false);
+    setEditingPost(null);
+    postForm.reset();
+  };
+  
+  const handleCloseCategoryDialog = () => {
+    setCategoryDialogOpen(false);
+    setEditingCategory(null);
+    categoryForm.reset();
+  };
+  
+  // Check for admin or editor role
+  if (!isAdmin && !isEditor) {
+    navigate("/");
+    return null;
+  }
+  
+  return (
+    <div className="container mx-auto py-10 max-w-7xl">
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-3xl font-bold">Blog Management</h1>
+      </div>
+      
+      <Tabs value={selectedTab} onValueChange={setSelectedTab}>
+        <div className="flex justify-between items-center mb-6">
+          <TabsList>
+            <TabsTrigger value="posts">Blog Posts</TabsTrigger>
+            <TabsTrigger value="categories">Categories</TabsTrigger>
+          </TabsList>
+          
+          {selectedTab === "posts" ? (
+            <div className="flex gap-2">
+              <Button 
+                variant="outline"
+                onClick={async () => {
+                  try {
+                    const res = await fetch('/api/blog/fix-published-dates', {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json'
+                      }
+                    });
+                    const data = await res.json();
+                    console.log('Fix result:', data);
+                    toast({
+                      title: "Published dates fixed",
+                      description: `Fixed ${data.posts?.length || 0} posts`,
+                      variant: "default"
+                    });
+                    queryClient.invalidateQueries({ queryKey: ['/api/blog/admin'] });
+                    queryClient.invalidateQueries({ queryKey: ['/api/blog/posts'] });
+                  } catch (error) {
+                    console.error('Error fixing dates:', error);
+                    toast({
+                      title: "Error fixing dates",
+                      description: "An error occurred while fixing published dates",
+                      variant: "destructive"
+                    });
+                  }
+                }}
+              >
+                Fix Published Dates
+              </Button>
+              
+              <Dialog open={postDialogOpen} onOpenChange={setPostDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button>
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    Add Blog Post
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>{editingPost ? "Edit Blog Post" : "Create New Blog Post"}</DialogTitle>
+                  <DialogDescription>
+                    {editingPost 
+                      ? "Update your blog post content and settings below."
+                      : "Fill out the form to create a new blog post."}
+                  </DialogDescription>
+                </DialogHeader>
+                <Form {...postForm}>
+                  <form onSubmit={postForm.handleSubmit(onPostSubmit)} className="space-y-6">
+                    <FormField
+                      control={postForm.control}
+                      name="title"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Title</FormLabel>
+                          <FormControl>
+                            <Input 
+                              placeholder="Enter blog post title" 
+                              {...field} 
+                              onChange={(e) => {
+                                field.onChange(e);
+                                handleTitleChange(e.target.value);
+                              }}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={postForm.control}
+                      name="slug"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Slug</FormLabel>
+                          <FormControl>
+                            <Input placeholder="enter-your-slug-here" {...field} />
+                          </FormControl>
+                          <FormDescription>
+                            The unique URL path for this blog post.
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={postForm.control}
+                      name="excerpt"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Excerpt</FormLabel>
+                          <FormControl>
+                            <Textarea 
+                              placeholder="A brief summary of your blog post" 
+                              className="h-20"
+                              {...field} 
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            A short summary that appears in blog listings.
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={postForm.control}
+                      name="featuredImage"
+                      render={({ field: { value, onChange, ...field } }) => (
+                        <FormItem>
+                          <FormLabel>Featured Image</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="file"
+                              accept="image/*"
+                              onChange={(e) => {
+                                // Handle the file input change
+                                if (e.target.files?.[0]) {
+                                  onChange(e.target.files[0]);
+                                }
+                              }}
+                              {...field}
+                            />
+                          </FormControl>
+                          {value && typeof value === 'string' && (
+                            <div className="mt-2">
+                              <img 
+                                src={value} 
+                                alt="Current featured image" 
+                                className="max-h-40 object-cover rounded-md" 
+                              />
+                            </div>
+                          )}
+                          <FormDescription>
+                            Upload an image for your blog post.
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={postForm.control}
+                      name="categories"
+                      render={() => (
+                        <FormItem>
+                          <div className="mb-4">
+                            <FormLabel>Categories</FormLabel>
+                            <FormDescription>
+                              Select categories that apply to this post.
+                            </FormDescription>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
+                            {categoriesLoading ? (
+                              <div>Loading categories...</div>
+                            ) : categories && categories.length > 0 ? (
+                              categories.map((category: any) => (
+                                <FormField
+                                  key={category.id}
+                                  control={postForm.control}
+                                  name="categories"
+                                  render={({ field }) => (
+                                    <FormItem
+                                      key={category.id}
+                                      className="flex flex-row items-start space-x-3 space-y-0"
+                                    >
+                                      <FormControl>
+                                        <Checkbox
+                                          checked={field.value?.includes(category.id.toString())}
+                                          onCheckedChange={(checked) => {
+                                            const currentValues = field.value || [];
+                                            if (checked) {
+                                              field.onChange([...currentValues, category.id.toString()]);
+                                            } else {
+                                              field.onChange(
+                                                currentValues.filter(
+                                                  (value) => value !== category.id.toString()
+                                                )
+                                              );
+                                            }
+                                          }}
+                                        />
+                                      </FormControl>
+                                      <FormLabel className="font-normal cursor-pointer">
+                                        {category.name}
+                                      </FormLabel>
+                                    </FormItem>
+                                  )}
+                                />
+                              ))
+                            ) : (
+                              <div>No categories available. Please create categories first.</div>
+                            )}
+                          </div>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={postForm.control}
+                      name="content"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Content</FormLabel>
+                          <FormControl>
+                            <Textarea 
+                              placeholder="Write your blog post content here..." 
+                              className="min-h-[300px]"
+                              {...field} 
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={postForm.control}
+                      name="published"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                          <div className="space-y-0.5">
+                            <FormLabel className="text-base">
+                              Publish Post
+                            </FormLabel>
+                            <FormDescription>
+                              When enabled, the post will be visible to all users.
+                            </FormDescription>
+                          </div>
+                          <FormControl>
+                            <Switch
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                            />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <DialogFooter>
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        onClick={handleClosePostDialog}
+                      >
+                        Cancel
+                      </Button>
+                      <Button 
+                        type="submit"
+                        disabled={createPostMutation.isPending || updatePostMutation.isPending}
+                      >
+                        {(createPostMutation.isPending || updatePostMutation.isPending) && (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        )}
+                        {editingPost ? "Update Blog Post" : "Create Blog Post"}
+                      </Button>
+                    </DialogFooter>
+                  </form>
+                </Form>
+              </DialogContent>
+            </Dialog>
+          ) : (
+            <Dialog open={categoryDialogOpen} onOpenChange={setCategoryDialogOpen}>
+              <DialogTrigger asChild>
+                <Button>
+                  <PlusCircle className="mr-2 h-4 w-4" />
+                  Add Category
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                  <DialogTitle>{editingCategory ? "Edit Category" : "Create New Category"}</DialogTitle>
+                  <DialogDescription>
+                    {editingCategory 
+                      ? "Update the category details below."
+                      : "Add a new category for organizing blog posts."}
+                  </DialogDescription>
+                </DialogHeader>
+                <Form {...categoryForm}>
+                  <form onSubmit={categoryForm.handleSubmit(onCategorySubmit)} className="space-y-6">
+                    <FormField
+                      control={categoryForm.control}
+                      name="name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Category Name</FormLabel>
+                          <FormControl>
+                            <Input 
+                              placeholder="e.g. Healthy Recipes" 
+                              {...field} 
+                              onChange={(e) => {
+                                field.onChange(e);
+                                handleCategoryNameChange(e.target.value);
+                              }}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={categoryForm.control}
+                      name="slug"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Slug</FormLabel>
+                          <FormControl>
+                            <Input placeholder="e.g. healthy-recipes" {...field} />
+                          </FormControl>
+                          <FormDescription>
+                            The URL-friendly version of the name.
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <DialogFooter>
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        onClick={handleCloseCategoryDialog}
+                      >
+                        Cancel
+                      </Button>
+                      <Button 
+                        type="submit"
+                        disabled={createCategoryMutation.isPending || updateCategoryMutation.isPending}
+                      >
+                        {(createCategoryMutation.isPending || updateCategoryMutation.isPending) && (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        )}
+                        {editingCategory ? "Update Category" : "Create Category"}
+                      </Button>
+                    </DialogFooter>
+                  </form>
+                </Form>
+              </DialogContent>
+            </Dialog>
+          )}
+        </div>
+        
+        <TabsContent value="posts">
+          <div className="mb-6">
+            <div className="relative">
+              <Search className="absolute left-2 top-2.5 h-4 w-4 text-neutral-500" />
+              <Input
+                placeholder="Search blog posts..."
+                className="pl-8"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+          </div>
+          
+          {postsLoading ? (
+            <div className="space-y-4">
+              <Skeleton className="h-12 w-full" />
+              {[...Array(5)].map((_, i) => (
+                <Skeleton key={i} className="h-16 w-full" />
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Title</TableHead>
+                    <TableHead>Author</TableHead>
+                    <TableHead>Categories</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {blogPosts?.posts && blogPosts.posts.length > 0 ? (
+                    blogPosts.posts.map((post: any) => (
+                      <TableRow key={post.id}>
+                        <TableCell className="font-medium">{post.title}</TableCell>
+                        <TableCell>{post.author?.username || 'Unknown'}</TableCell>
+                        <TableCell>
+                          {post.categories.map((category: any) => (
+                            <Badge key={category.id} variant="outline" className="mr-1">
+                              {category.name}
+                            </Badge>
+                          ))}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-wrap gap-1">
+                            {post.published ? (
+                              <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Published</Badge>
+                            ) : (
+                              <Badge variant="outline" className="text-neutral-500">Draft</Badge>
+                            )}
+                            {post.featured && (
+                              <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100">Featured</Badge>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {post.publishedAt ? new Date(post.publishedAt).toLocaleDateString() : 
+                            new Date(post.createdAt).toLocaleDateString()}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button 
+                            variant="ghost" 
+                            size="icon"
+                            asChild
+                          >
+                            <a href={`/blog/${post.slug}`} target="_blank" rel="noopener noreferrer">
+                              <Eye className="h-4 w-4" />
+                            </a>
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="icon"
+                            onClick={() => handleEditPost(post)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          {!post.featured && (
+                            <Button 
+                              variant="ghost" 
+                              size="icon"
+                              onClick={() => setFeaturedPostMutation.mutate(post.id)}
+                              disabled={setFeaturedPostMutation.isPending}
+                              title="Set as featured post"
+                            >
+                              <Star className="h-4 w-4 text-amber-500" />
+                              {setFeaturedPostMutation.isPending && (
+                                <Loader2 className="absolute h-3 w-3 animate-spin" />
+                              )}
+                            </Button>
+                          )}
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button 
+                                variant="ghost" 
+                                size="icon"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  This action cannot be undone. This will permanently delete the blog post.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction 
+                                  onClick={() => deletePostMutation.mutate(post.id)}
+                                  className="bg-red-600 hover:bg-red-700"
+                                >
+                                  {deletePostMutation.isPending ? (
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                  ) : (
+                                    "Delete"
+                                  )}
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center h-24">
+                        {postsLoading ? (
+                          <div className="flex justify-center">
+                            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                          </div>
+                        ) : searchQuery ? (
+                          "No blog posts match your search."
+                        ) : (
+                          "No blog posts found. Create your first post to get started."
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </TabsContent>
+        
+        <TabsContent value="categories">
+          {categoriesLoading ? (
+            <div className="space-y-4">
+              <Skeleton className="h-12 w-full" />
+              {[...Array(5)].map((_, i) => (
+                <Skeleton key={i} className="h-16 w-full" />
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Slug</TableHead>
+                    <TableHead>Post Count</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {categories?.length > 0 ? (
+                    categories.map((category: any) => (
+                      <TableRow key={category.id}>
+                        <TableCell className="font-medium">{category.name}</TableCell>
+                        <TableCell>{category.slug}</TableCell>
+                        <TableCell>{category.postCount || 0}</TableCell>
+                        <TableCell className="text-right">
+                          <Button 
+                            variant="ghost" 
+                            size="icon"
+                            onClick={() => handleEditCategory(category)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button 
+                                variant="ghost" 
+                                size="icon"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  This action cannot be undone. This will permanently delete the category.
+                                  {category.postCount > 0 && (
+                                    <span className="block text-red-500 mt-2">
+                                      Warning: This category is used by {category.postCount} blog posts.
+                                    </span>
+                                  )}
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction 
+                                  onClick={() => deleteCategoryMutation.mutate(category.id)}
+                                  className="bg-red-600 hover:bg-red-700"
+                                >
+                                  {deleteCategoryMutation.isPending ? (
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                  ) : (
+                                    "Delete"
+                                  )}
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={4} className="text-center h-24">
+                        No categories found. Create your first category to organize blog posts.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+};
+
+export default AdminBlogPage;

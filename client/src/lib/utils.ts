@@ -19,3 +19,18 @@ export function calculateReadingTime(content: string): number {
   // Return at least 1 minute even for very short content
   return Math.max(1, readingTime);
 }
+
+/**
+ * Convert a string to a URL-friendly slug
+ * @param str The string to convert to a slug
+ * @returns URL-friendly slug string
+ */
+export function slugify(str: string): string {
+  return str
+    .toLowerCase()
+    .replace(/\s+/g, '-')           // Replace spaces with -
+    .replace(/[^\w\-]+/g, '')       // Remove all non-word chars
+    .replace(/\-\-+/g, '-')         // Replace multiple - with single -
+    .replace(/^-+/, '')             // Trim - from start of text
+    .replace(/-+$/, '');            // Trim - from end of text
+}
