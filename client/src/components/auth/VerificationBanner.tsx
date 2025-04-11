@@ -50,34 +50,79 @@ export function VerificationBanner({ email }: VerificationBannerProps) {
     try {
       console.log("Manual verification check initiated from banner");
       
-      // Force the current user to reload to update the verification status
+      // Even if auth.currentUser is not available, we'll try to force verification
+      // by signing in again with the stored credentials to get a fresh auth state
+      if (!auth.currentUser && email) {
+        console.log("No current Firebase user found, attempting to restore session...");
+        
+        try {
+          // Try to re-establish Firebase session from localStorage if available
+          const storedUser = localStorage.getItem('firebase-current-user');
+          if (storedUser) {
+            const userData = JSON.parse(storedUser);
+            console.log("Found stored Firebase user, refreshing session");
+            
+            // Call our verification check which will handle the stored user
+            const success = await checkEmailVerificationStatus();
+            
+            if (success) {
+              return; // Verification successful, function handled by auth context
+            } else {
+              console.log("Verification failed using stored credentials");
+            }
+          }
+        } catch (storageError) {
+          console.error("Error using stored Firebase credentials:", storageError);
+        }
+      }
+      
+      // If we have the current user in Firebase, use that
       if (auth.currentUser) {
-        // Get new token to force refresh
-        await auth.currentUser.getIdToken(true);
-        
-        // Then reload the user
-        await auth.currentUser.reload();
-        
-        console.log("After manual reload - Is verified:", auth.currentUser.emailVerified);
-        
-        if (auth.currentUser.emailVerified) {
-          // The user is verified according to Firebase
-          // Call the context method to update the app state and handle redirects
-          await checkEmailVerificationStatus();
+        try {
+          console.log("Current Firebase user found, checking verification status");
+          // Force token refresh
+          await auth.currentUser.getIdToken(true);
           
-          // Success is handled by the auth context method
-        } else {
+          // Then reload the user
+          await auth.currentUser.reload();
+          
+          console.log("After manual reload - Is verified:", auth.currentUser.emailVerified);
+          
+          if (auth.currentUser.emailVerified) {
+            // Call the context method to update the app state and handle redirects
+            const success = await checkEmailVerificationStatus();
+            
+            if (!success) {
+              console.log("Verification state did not update properly");
+              toast({
+                title: "Verification Detected",
+                description: "Your email appears to be verified, but we couldn't update your account. Please refresh the page.",
+                variant: "default",
+              });
+            }
+            // Success toast is handled by the auth context method
+          } else {
+            toast({
+              title: "Not Verified Yet",
+              description: "Your email is not verified yet. Please check your inbox and click the verification link.",
+              variant: "default",
+            });
+          }
+        } catch (reloadError) {
+          console.error("Error reloading Firebase user:", reloadError);
           toast({
-            title: "Not Verified Yet",
-            description: "Your email is not verified yet. Please check your inbox and click the verification link.",
-            variant: "default",
+            variant: "destructive",
+            title: "Verification Check Error",
+            description: "Error checking verification status. Please refresh the page and try again.",
           });
         }
       } else {
+        // No current user, but we still have their email - give helpful guidance
+        console.log("No Firebase user available to check verification");
         toast({
           variant: "destructive",
           title: "Authentication Issue",
-          description: "You must be logged in to verify your email. Please refresh the page or log in again.",
+          description: "Firebase session not active. Please refresh the page or log out and back in to verify your email.",
         });
       }
     } catch (error) {
@@ -85,7 +130,7 @@ export function VerificationBanner({ email }: VerificationBannerProps) {
       toast({
         variant: "destructive",
         title: "Verification Check Failed",
-        description: "Could not check verification status. Please try again.",
+        description: "Could not check verification status. Please refresh the page and try again.",
       });
     } finally {
       setIsChecking(false);

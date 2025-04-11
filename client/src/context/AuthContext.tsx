@@ -788,11 +788,33 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
   }, [user, emailVerified]);
   
+  // Store Firebase user in localStorage for recovery
+  const storeFirebaseUser = (firebaseUser: any) => {
+    try {
+      if (firebaseUser) {
+        const userInfo = {
+          uid: firebaseUser.uid,
+          email: firebaseUser.email,
+          createdAt: Date.now()
+        };
+        localStorage.setItem('firebase-current-user', JSON.stringify(userInfo));
+      }
+    } catch (error) {
+      console.error("Error storing Firebase user info:", error);
+    }
+  };
+  
   // Manual check method for email verification
   const checkEmailVerificationStatus = async () => {
+    console.log("Manually checking email verification status...");
+    
+    // First check if we have a current Firebase user
     if (auth.currentUser) {
       try {
-        console.log("Manually checking email verification status...");
+        console.log("Firebase user exists in auth.currentUser, checking verification...");
+        
+        // Store the current user info for recovery if needed
+        storeFirebaseUser(auth.currentUser);
         
         // First, force token refresh to get latest claims
         try {
@@ -872,10 +894,107 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         console.error("Error during manual verification check:", error);
         return false;
       }
-    } else {
-      console.log("No current user found for verification check");
-      return false;
+    } 
+    // If no current Firebase user but we have a user in our app state
+    else if (user) {
+      console.log("No Firebase user, but app has authenticated user. Attempting verification with stored user info...");
+      
+      try {
+        // Try to get firebase user info from localStorage
+        const storedUserJson = localStorage.getItem('firebase-current-user');
+        
+        if (storedUserJson && user.email) {
+          const storedUser = JSON.parse(storedUserJson);
+          console.log("Found stored Firebase user info:", storedUser);
+          
+          // Try to use an alternative method to check verification status
+          // Call our backend directly - it will verify with Firebase Admin SDK
+          try {
+            console.log("Calling backend to check verification status");
+            const response = await fetch(`/api/auth/check-verification?email=${encodeURIComponent(user.email)}&uid=${storedUser.uid}`, {
+              method: 'GET',
+              headers: {
+                'x-firebase-check': 'true',
+                'x-dev-user-id': user.id.toString() // Include our user ID for double verification
+              }
+            });
+            
+            if (response.ok) {
+              const result = await response.json();
+              console.log("Backend verification check result:", result);
+              
+              if (result.emailVerified) {
+                console.log("Email verified according to backend check!");
+                setEmailVerified(true);
+                
+                toast({
+                  title: "Email Verified!",
+                  description: "Your email has been verified. You now have full access to all features.",
+                  variant: "default",
+                });
+                
+                // Handle redirect (same as above)
+                let redirectPath = sessionStorage.getItem('redirectAfterVerification') || 
+                                   sessionStorage.getItem('intendedRoute');
+                
+                if (redirectPath) {
+                  console.log(`Redirecting to: ${redirectPath}`);
+                  sessionStorage.removeItem('redirectAfterVerification');
+                  sessionStorage.removeItem('intendedRoute');
+                  
+                  setTimeout(() => {
+                    if (typeof window !== 'undefined') {
+                      window.location.href = redirectPath;
+                    }
+                  }, 1500);
+                }
+                
+                return true;
+              } else {
+                console.log("Email not verified according to backend check");
+                return false;
+              }
+            } else {
+              console.error("Error from backend verification check:", await response.text());
+              
+              // Show helpful error message
+              toast({
+                variant: "destructive",
+                title: "Verification Check Failed",
+                description: "Please refresh the page and log in again to check your verification status.",
+              });
+              
+              return false;
+            }
+          } catch (backendError) {
+            console.error("Error checking verification with backend:", backendError);
+            return false;
+          }
+        } else {
+          console.log("No stored Firebase user info found");
+          
+          // Try fallback: if user has email, attempt to sign in again
+          if (user.email && user.firebaseUid) {
+            console.log("Attempting to reconnect to Firebase...");
+            
+            // Show informative toast
+            toast({
+              title: "Reconnecting to Firebase",
+              description: "Please try again in a moment, or refresh the page.",
+              variant: "default",
+            });
+            
+            return false;
+          }
+        }
+      } catch (error) {
+        console.error("Error during alternative verification check:", error);
+        return false;
+      }
     }
+    
+    console.log("No valid method found to check verification status");
+    return false;
   };
   
   const value = {

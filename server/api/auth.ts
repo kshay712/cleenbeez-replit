@@ -370,6 +370,60 @@ const findFirebaseUserByEmail = async (email: string): Promise<UserRecord | null
 };
 
 export const auth = {
+  // New endpoint to check email verification status directly from Firebase
+  checkVerification: async (req: Request, res: Response) => {
+    try {
+      const { email, uid } = req.query;
+      
+      // Security check - make sure we have a valid request
+      if (!email || !uid) {
+        return res.status(400).json({ message: 'Missing required parameters' });
+      }
+      
+      // Get the user ID from the headers
+      const userId = req.headers['x-dev-user-id'];
+      if (!userId) {
+        return res.status(400).json({ message: 'Missing user ID header' });
+      }
+      
+      console.log(`Verification check requested for email: ${email}, uid: ${uid}, userId: ${userId}`);
+      
+      // Verify the user exists in our database
+      const userInDb = await storage.getUserById(Number(userId));
+      if (!userInDb) {
+        console.log(`User with ID ${userId} not found in database`);
+        return res.status(404).json({ message: 'User not found' });
+      }
+      
+      // Verify the email matches our records
+      if (userInDb.email !== email) {
+        console.log(`Email mismatch: ${userInDb.email} (db) vs ${email} (request)`);
+        return res.status(403).json({ message: 'Email mismatch with account' });
+      }
+      
+      // Check with Firebase Admin SDK
+      try {
+        const firebaseUser = await admin.auth().getUser(uid as string);
+        console.log(`Firebase user found, email verified: ${firebaseUser.emailVerified}`);
+        
+        // Return the verification status
+        return res.status(200).json({ 
+          emailVerified: firebaseUser.emailVerified,
+          user: {
+            email: firebaseUser.email,
+            uid: firebaseUser.uid
+          }
+        });
+      } catch (firebaseError: any) {
+        console.error('Error getting Firebase user:', firebaseError);
+        return res.status(404).json({ message: 'Firebase user not found', error: firebaseError.message || 'Unknown Firebase error' });
+      }
+    } catch (error: any) {
+      console.error('Error in checkVerification:', error);
+      return res.status(500).json({ message: 'Server error', error: error.message || 'Unknown server error' });
+    }
+  },
+  
   publicCleanupFirebaseUser: async (req: Request, res: Response) => {
     try {
       console.log('[PUBLIC CLEANUP FIREBASE] Request received:', JSON.stringify(req.body));
