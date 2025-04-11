@@ -11,6 +11,13 @@ const BlogCategories: React.FC<BlogCategoriesProps> = ({ selectedCategory, onCha
     queryKey: ['/api/blog/categories'],
   });
 
+  // Find the currently selected category name for display purposes
+  const getSelectedCategoryName = () => {
+    if (!selectedCategory || !categories) return null;
+    const category = categories.find((cat: any) => cat.id.toString() === selectedCategory);
+    return category ? category.name : null;
+  };
+
   return (
     <div>
       <h3 className="text-lg font-medium text-neutral-900">Categories</h3>
@@ -38,7 +45,7 @@ const BlogCategories: React.FC<BlogCategoriesProps> = ({ selectedCategory, onCha
                 onClick={() => onChange(category.id.toString())}
                 className={`text-${selectedCategory === category.id.toString() ? 'primary-600' : 'neutral-700'} hover:text-primary-600`}
               >
-                {category.name}
+                {category.name} {category.postCount > 0 ? `(${category.postCount})` : ''}
               </button>
             </li>
           ))}

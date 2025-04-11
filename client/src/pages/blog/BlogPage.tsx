@@ -26,7 +26,19 @@ const BlogPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   
-  // Build query params
+  // Get categories for displaying the selected category name
+  const { data: categories } = useQuery({
+    queryKey: ['/api/blog/categories'],
+  });
+  
+  // Find the selected category name for display if needed
+  const selectedCategoryName = React.useMemo(() => {
+    if (!selectedCategory || !categories) return null;
+    const category = categories.find((cat: any) => cat.id.toString() === selectedCategory);
+    return category ? category.name : null;
+  }, [selectedCategory, categories]);
+  
+  // Build query params - ensures we pass numeric IDs to the server
   const queryParams = new URLSearchParams();
   if (currentPage > 1) queryParams.set('page', currentPage.toString());
   if (selectedCategory) queryParams.set('category', selectedCategory);
@@ -44,6 +56,7 @@ const BlogPage = () => {
   
   // Handle category change
   const handleCategoryChange = (categoryId: string | null) => {
+    console.log('Changing category to:', categoryId);
     setSelectedCategory(categoryId);
     setCurrentPage(1); // Reset to first page when category changes
   };
@@ -83,7 +96,7 @@ const BlogPage = () => {
                 <SheetTrigger asChild>
                   <Button variant="outline" className="w-full flex justify-between items-center">
                     <span>
-                      {selectedCategory ? `Category: ${selectedCategory}` : 'All Posts'}
+                      {selectedCategoryName ? `Category: ${selectedCategoryName}` : 'All Posts'}
                     </span>
                     <Menu className="h-4 w-4" />
                   </Button>
