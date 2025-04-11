@@ -731,9 +731,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         await signOut(auth);
       }
       
-      // Always manually clear the user state and reset verification status
+      // Always manually clear the user state and reset verification and registration status
       setUser(null);
       setEmailVerified(false);
+      setIsNewRegistration(false);
       
       console.log("Logout complete");
     } catch (error: any) {
@@ -743,6 +744,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       localStorage.removeItem('dev-user');
       setUser(null);
       setEmailVerified(false);
+      setIsNewRegistration(false);
       
       // Re-throw for UI error handling
       throw new Error(error.message || 'Failed to logout');
@@ -792,12 +794,16 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
                 console.log("Email has been verified via Firebase reload!");
                 setEmailVerified(true);
                 
-                // Show success message
-                toast({
-                  title: "Email Verified!",
-                  description: "Your email has been verified. You now have full access to all features.",
-                  variant: "default",
-                });
+                // Show success message only for new registrations
+                if (isNewRegistration) {
+                  toast({
+                    title: "Email Verified!",
+                    description: "Your email has been verified. You now have full access to all features.",
+                    variant: "default",
+                  });
+                  // Reset the flag after showing the toast
+                  setIsNewRegistration(false);
+                }
                 
                 // Stop polling
                 if (verificationTimerRef.current) {
@@ -852,11 +858,16 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
                   console.log("Email verified according to backend check!");
                   setEmailVerified(true);
                   
-                  toast({
-                    title: "Email Verified!",
-                    description: "Your email has been verified. You now have full access to all features.",
-                    variant: "default",
-                  });
+                  // Only show verification toast for new registrations
+                  if (isNewRegistration) {
+                    toast({
+                      title: "Email Verified!",
+                      description: "Your email has been verified. You now have full access to all features.",
+                      variant: "default",
+                    });
+                    // Reset the flag after showing the toast
+                    setIsNewRegistration(false);
+                  }
                   
                   // Stop polling
                   if (verificationTimerRef.current) {
