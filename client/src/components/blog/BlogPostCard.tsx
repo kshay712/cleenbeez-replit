@@ -57,15 +57,8 @@ const BlogPostCard: React.FC<BlogPostCardProps> = ({ post }) => {
             </p>
           </Link>
         </div>
-        <div className="mt-6 flex items-center">
-          <div className="flex-shrink-0">
-            <img 
-              className="h-10 w-10 rounded-full" 
-              src={post.author.avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-1.2.1&auto=format&fit=crop&w=200&q=80"} 
-              alt={post.author.username} 
-            />
-          </div>
-          <div className="ml-3">
+        <div className="mt-6">
+          <div className="flex justify-between items-center">
             <p className="text-sm font-medium text-neutral-900">{post.author.username}</p>
             <div className="flex space-x-1 text-sm text-neutral-500">
               <time dateTime={post.publishedAt || post.createdAt}>

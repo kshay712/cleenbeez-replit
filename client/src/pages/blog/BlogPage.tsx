@@ -173,11 +173,10 @@ const BlogPage = () => {
                       <Skeleton className="h-6 w-24 rounded-full" />
                       <Skeleton className="h-10 w-full mt-4" />
                       <Skeleton className="h-24 w-full mt-4" />
-                      <div className="mt-4 flex items-center">
-                        <Skeleton className="h-10 w-10 rounded-full" />
-                        <div className="ml-3">
+                      <div className="mt-4">
+                        <div className="flex justify-between items-center">
                           <Skeleton className="h-4 w-32" />
-                          <Skeleton className="h-4 w-24 mt-1" />
+                          <Skeleton className="h-4 w-24" />
                         </div>
                       </div>
                     </div>
@@ -216,15 +215,8 @@ const BlogPage = () => {
                           {featuredPost.excerpt}
                         </p>
                       </a>
-                      <div className="mt-4 flex items-center">
-                        <div className="flex-shrink-0">
-                          <img 
-                            className="h-10 w-10 rounded-full" 
-                            src={featuredPost.author.avatar || "https://images.unsplash.com/photo-1580489944761-15a19d654956?ixlib=rb-1.2.1&auto=format&fit=crop&w=200&q=80"} 
-                            alt={featuredPost.author.username} 
-                          />
-                        </div>
-                        <div className="ml-3">
+                      <div className="mt-4">
+                        <div className="flex justify-between items-center">
                           <p className="text-sm font-medium text-neutral-900">{featuredPost.author.username}</p>
                           <div className="flex space-x-1 text-sm text-neutral-500">
                             <time dateTime={featuredPost.publishedAt || featuredPost.createdAt}>
