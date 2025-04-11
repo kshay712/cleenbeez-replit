@@ -1,10 +1,118 @@
 import { Request, Response } from 'express';
 import { storage } from '../storage';
 import { upload, getFileUrl } from '../middleware/multer';
-import { insertBlogPostSchema, insertCategorySchema } from '@shared/schema';
+import { insertBlogPostSchema, insertCategorySchema, blogPosts, blogPostsToCategories, users, categories } from '@shared/schema';
 import { requireAuth, requireEditor } from './auth';
+import { db } from '../db';
+import { and, eq, inArray, desc, sql } from 'drizzle-orm';
 
 export const blog = {
+  // First-principles approach: Direct category posts endpoint
+  getPostsByCategory: async (req: Request, res: Response) => {
+    const categoryId = req.params.categoryId;
+    const { page = 1, limit = 10 } = req.query;
+    
+    console.log('[BLOG] Direct fetch of posts for category ID:', categoryId);
+    
+    if (!categoryId || isNaN(parseInt(categoryId))) {
+      return res.status(400).json({ error: 'Invalid category ID' });
+    }
+    
+    try {
+      // Find posts in the specific category
+      const postCategories = await db
+        .select()
+        .from(blogPostsToCategories)
+        .where(eq(blogPostsToCategories.categoryId, parseInt(categoryId)));
+      
+      if (postCategories.length === 0) {
+        console.log('[BLOG] No posts found for category ID:', categoryId);
+        return res.json({ posts: [], total: 0 });
+      }
+      
+      const postIds = postCategories.map(pc => pc.blogPostId);
+      console.log('[BLOG] Found post IDs in category:', postIds);
+      
+      // Get the actual posts with only published ones
+      const posts = await db
+        .select()
+        .from(blogPosts)
+        .where(
+          and(
+            inArray(blogPosts.id, postIds),
+            eq(blogPosts.published, true)
+          )
+        )
+        .orderBy(desc(blogPosts.publishedAt))
+        .limit(parseInt(limit as string))
+        .offset((parseInt(page as string) - 1) * parseInt(limit as string));
+      
+      if (posts.length === 0) {
+        console.log('[BLOG] No published posts found for category ID:', categoryId);
+        return res.json({ posts: [], total: 0 });
+      }
+      
+      // Count total for pagination
+      const countResult = await db
+        .select({ count: sql`count(*)` })
+        .from(blogPosts)
+        .where(
+          and(
+            inArray(blogPosts.id, postIds),
+            eq(blogPosts.published, true)
+          )
+        );
+      
+      const count = Number(countResult[0]?.count || 0);
+      
+      // Get author information
+      const authorIds = posts.map(post => post.authorId);
+      const authors = await db
+        .select()
+        .from(users)
+        .where(inArray(users.id, authorIds));
+      
+      // Get all categories for these posts
+      const allPostIds = posts.map(post => post.id);
+      const allPostCategories = await db
+        .select()
+        .from(blogPostsToCategories)
+        .where(inArray(blogPostsToCategories.blogPostId, allPostIds));
+      
+      const categoryIds = allPostCategories.map(pc => pc.categoryId);
+      const categoriesList = await db
+        .select()
+        .from(categories)
+        .where(inArray(categories.id, categoryIds));
+      
+      // Build complete posts with author and categories
+      const enrichedPosts = posts.map(post => {
+        const author = authors.find(a => a.id === post.authorId);
+        const postCategories = allPostCategories
+          .filter(pc => pc.blogPostId === post.id)
+          .map(pc => {
+            return categoriesList.find(c => c.id === pc.categoryId);
+          })
+          .filter(Boolean);
+        
+        return {
+          ...post,
+          author,
+          categories: postCategories
+        };
+      });
+      
+      console.log('[BLOG] Returning', enrichedPosts.length, 'posts for category ID:', categoryId);
+      
+      res.json({
+        posts: enrichedPosts,
+        total: count
+      });
+    } catch (error) {
+      console.error('Error fetching posts by category:', error);
+      res.status(500).json({ error: 'Failed to fetch posts by category' });
+    }
+  },
   // Public endpoints
   getPosts: async (req: Request, res: Response) => {
     try {

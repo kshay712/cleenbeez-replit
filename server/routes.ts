@@ -74,6 +74,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       '/blog/posts',
       '/blog/featured',
       '/blog/categories',
+      '/blog/category', // Our new direct category posts endpoint
     ];
     
     // Check for exact path matches
@@ -92,6 +93,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         req.path.startsWith('/blog/posts/') ||
         req.path.startsWith('/blog/related/') ||
         req.path === '/blog/categories' ||
+        req.path.startsWith('/blog/category/') || // First principles approach - direct category based query
         // Special case for email check endpoint - make sure to capture both with and without /api prefix
         req.path === '/auth/check-email' ||
         req.path.startsWith('/auth/check-email?') ||
@@ -239,6 +241,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/blog/related/:slug', blog.getRelatedPosts);
   app.get('/api/blog/categories', blog.getCategories);
   app.get('/api/blog/admin', blog.getAdminPosts);
+  // First principles approach - direct category-based query
+  app.get('/api/blog/category/:categoryId/posts', blog.getPostsByCategory);
   app.post('/api/blog/posts', blog.createPost);
   app.put('/api/blog/posts/:id', blog.updatePost);
   app.delete('/api/blog/posts/:id', blog.deletePost);
