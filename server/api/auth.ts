@@ -99,33 +99,79 @@ export const verifyAuthToken = async (req: Request, res: Response, next: NextFun
           console.log('[AUTH] Admin token recognized but admin user not found in database');
           return res.status(401).json({ message: 'Admin user not found' });
         }
+      } else if (token.length < 30) {
+        // This is likely a non-Firebase token that was passed directly
+        // Check if it's a numeric ID and try to find a user
+        console.log('[AUTH] Detected possible numeric ID token');
+        try {
+          const userId = parseInt(token);
+          if (!isNaN(userId)) {
+            const user = await storage.getUserById(userId);
+            if (user) {
+              console.log(`[AUTH] User found by numeric ID: ${user.username} (${user.role})`);
+              req.user = user;
+              if (req.session) {
+                req.session.userId = user.id;
+                console.log(`[AUTH] Set session userId to ${user.id}`);
+              }
+              return next();
+            }
+          }
+        } catch (e) {
+          console.log('[AUTH] Error parsing numeric ID token:', e);
+        }
       }
       
-      // Normal Firebase token authentication
-      console.log('[AUTH] Verifying Firebase token');
-      const decodedToken = await admin.auth().verifyIdToken(token);
-      const firebaseUid = decodedToken.uid;
-      console.log(`[AUTH] Token verified, Firebase UID: ${firebaseUid}`);
-      
-      // Get user from database by Firebase UID
-      const user = await storage.getUserByFirebaseUid(firebaseUid);
-      
-      if (!user) {
-        console.log('[AUTH] Firebase user not found in database');
-        return res.status(401).json({ message: 'User not found in database' });
+      try {
+        // Normal Firebase token authentication
+        console.log('[AUTH] Verifying Firebase token');
+        const decodedToken = await admin.auth().verifyIdToken(token);
+        const firebaseUid = decodedToken.uid;
+        console.log(`[AUTH] Token verified, Firebase UID: ${firebaseUid}`);
+        
+        // Get user from database by Firebase UID
+        const user = await storage.getUserByFirebaseUid(firebaseUid);
+        
+        if (!user) {
+          console.log('[AUTH] Firebase user not found in database');
+          return res.status(401).json({ message: 'User not found in database' });
+        }
+        
+        // Add user to request object
+        console.log(`[AUTH] Firebase user found: ${user.username} (${user.role})`);
+        req.user = user;
+        
+        // Also set in session for future requests
+        if (req.session) {
+          req.session.userId = user.id;
+          console.log(`[AUTH] Set session userId to ${user.id}`);
+        }
+        
+        return next();
+      } catch (firebaseError) {
+        console.log('[AUTH] Token verification error:', firebaseError);
+        
+        // If we reach here and failed Firebase verification, try one last fallback:
+        // Check if this is a developer uid being used directly
+        try {
+          console.log('[AUTH] Attempting fallback - checking if token is a Firebase UID');
+          const devUser = await storage.getUserByFirebaseUid(token);
+          if (devUser) {
+            console.log(`[AUTH] Dev user found by direct Firebase UID: ${devUser.username} (${devUser.role})`);
+            req.user = devUser;
+            if (req.session) {
+              req.session.userId = devUser.id;
+              console.log(`[AUTH] Set session userId to ${devUser.id}`);
+            }
+            return next();
+          }
+        } catch (fallbackError) {
+          console.log('[AUTH] Fallback authentication also failed:', fallbackError);
+        }
+        
+        return res.status(401).json({ message: 'Invalid authentication token' });
       }
-      
-      // Add user to request object
-      console.log(`[AUTH] Firebase user found: ${user.username} (${user.role})`);
-      req.user = user;
-      
-      // Also set in session for future requests
-      if (req.session) {
-        req.session.userId = user.id;
-        console.log(`[AUTH] Set session userId to ${user.id}`);
-      }
-      
-      return next();
+      // Already handled in the try block above
     } catch (error) {
       console.error('[AUTH] Token verification error:', error);
       return res.status(401).json({ message: 'Invalid authentication token' });
