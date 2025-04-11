@@ -238,6 +238,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/blog/posts', blog.getPosts);
   app.get('/api/blog/posts/:slug', blog.getPostBySlug);
   app.get('/api/blog/featured', blog.getFeaturedPost);
+  app.post('/api/blog/posts/:id/set-featured', blog.setFeaturedPost);
   app.get('/api/blog/related/:slug', blog.getRelatedPosts);
   app.get('/api/blog/categories', blog.getCategories);
   app.get('/api/blog/admin', blog.getAdminPosts);

@@ -90,6 +90,7 @@ export interface IStorage {
     search?: string;
   }): Promise<{ posts: BlogPost[], total: number }>;
   getFeaturedBlogPost(): Promise<BlogPost | undefined>;
+  setFeaturedBlogPost(id: number): Promise<boolean>;
   getRelatedBlogPosts(postId: number, limit?: number): Promise<BlogPost[]>;
   createBlogPost(post: InsertBlogPost): Promise<BlogPost>;
   updateBlogPost(id: number, post: Partial<InsertBlogPost>): Promise<BlogPost | undefined>;
@@ -1033,12 +1034,27 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getFeaturedBlogPost(): Promise<BlogPost | undefined> {
-    const [post] = await db
+    // First try to find a post explicitly marked as featured
+    let post = await db
       .select()
       .from(blogPosts)
-      .where(eq(blogPosts.published, true))
-      .orderBy(desc(blogPosts.publishedAt || blogPosts.createdAt))
-      .limit(1);
+      .where(and(
+        eq(blogPosts.published, true),
+        eq(blogPosts.featured, true)
+      ))
+      .limit(1)
+      .then(posts => posts[0]);
+    
+    // Fallback to most recent post if no featured post is found
+    if (!post) {
+      post = await db
+        .select()
+        .from(blogPosts)
+        .where(eq(blogPosts.published, true))
+        .orderBy(desc(blogPosts.publishedAt || blogPosts.createdAt))
+        .limit(1)
+        .then(posts => posts[0]);
+    }
     
     if (!post) return undefined;
     
@@ -1056,6 +1072,23 @@ export class DatabaseStorage implements IStorage {
       author,
       categories
     } as unknown as BlogPost;
+  }
+  
+  async setFeaturedBlogPost(id: number): Promise<boolean> {
+    // First, unfeature all posts
+    await db
+      .update(blogPosts)
+      .set({ featured: false })
+      .where(eq(blogPosts.featured, true));
+    
+    // Then, feature the specified post
+    const result = await db
+      .update(blogPosts)
+      .set({ featured: true })
+      .where(eq(blogPosts.id, id))
+      .returning();
+    
+    return result.length > 0;
   }
 
   async getRelatedBlogPosts(postId: number, limit: number = 3): Promise<BlogPost[]> {

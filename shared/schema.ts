@@ -89,6 +89,7 @@ export const blogPosts = pgTable("blog_posts", {
   featuredImage: text("featured_image").notNull(),
   authorId: integer("author_id").references(() => users.id).notNull(),
   published: boolean("published").default(false),
+  featured: boolean("featured").default(false),
   publishedAt: timestamp("published_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),

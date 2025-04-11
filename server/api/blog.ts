@@ -174,6 +174,32 @@ export const blog = {
       res.status(500).json({ message: 'Failed to fetch featured blog post' });
     }
   },
+  
+  setFeaturedPost: [requireEditor, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      
+      if (!id || isNaN(parseInt(id))) {
+        return res.status(400).json({ message: 'Invalid blog post ID' });
+      }
+      
+      const post = await storage.getBlogPostById(parseInt(id));
+      if (!post) {
+        return res.status(404).json({ message: 'Blog post not found' });
+      }
+      
+      const success = await storage.setFeaturedBlogPost(parseInt(id));
+      
+      if (success) {
+        res.json({ message: 'Blog post set as featured successfully' });
+      } else {
+        res.status(500).json({ message: 'Failed to set blog post as featured' });
+      }
+    } catch (error: any) {
+      console.error('Error setting featured blog post:', error);
+      res.status(500).json({ message: 'Failed to set featured blog post' });
+    }
+  }],
 
   getRelatedPosts: async (req: Request, res: Response) => {
     try {
