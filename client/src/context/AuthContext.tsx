@@ -359,11 +359,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         // Sign out from Firebase since the user is not registered with our system
         await signOut(auth);
         
-        toast({
-          variant: "destructive",
-          title: "Registration Required",
-          description: "Please register an account first before logging in.",
-        });
+        // Removed toast notification as the UI will change to registration page
         
         // Redirect to registration page
         if (typeof window !== 'undefined') {
@@ -590,10 +586,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
             window.location.href = '/register?source=google';
           }
           
-          toast({
-            title: "Registration Required",
-            description: "Please complete your account setup to continue.",
-          });
+          // Removed toast notification as the UI will change to registration page
           
           return false; // Registration needed
         } else {
