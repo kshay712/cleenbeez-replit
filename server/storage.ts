@@ -987,6 +987,12 @@ export class DatabaseStorage implements IStorage {
       count = Number(countResult[0]?.count || 0);
       
       // Get the posts
+      console.log('[DEBUG] Executing main blog post query with:');
+      console.log('[DEBUG] - whereClause:', JSON.stringify(whereClause, null, 2));
+      console.log('[DEBUG] - orderBy:', orderBy ? 'Present' : 'Not present');
+      console.log('[DEBUG] - limit:', limit);
+      console.log('[DEBUG] - offset:', offset);
+      
       postList = await db
         .select()
         .from(blogPosts)
@@ -994,6 +1000,11 @@ export class DatabaseStorage implements IStorage {
         .orderBy(orderBy)
         .limit(limit)
         .offset(offset);
+        
+      console.log('[DEBUG] Query returned', postList.length, 'blog posts');
+      console.log('[DEBUG] Post IDs:', postList.map(p => p.id).join(', '));
+      console.log('[DEBUG] Posts with publishedAt:', postList.filter(p => p.publishedAt).length);
+      console.log('[DEBUG] Posts without publishedAt:', postList.filter(p => !p.publishedAt).length);
     }
     
     // Get author information

@@ -279,6 +279,11 @@ export const blog = {
         }
       }
       
+      // Set publishedAt if the post is being published
+      if (postData.published) {
+        postData.publishedAt = new Date();
+      }
+      
       // Validate blog post data
       const validatedData = insertBlogPostSchema.parse(postData);
       const post = await storage.createBlogPost(validatedData);
