@@ -473,10 +473,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
                 window.location.href = '/register?source=google';
               }
               
-              toast({
-                title: "Registration Required",
-                description: "Please complete your account setup to continue.",
-              });
+              // Removed toast notification as the UI will change to registration page
             } else {
               // Some other error occurred
               throw new Error(responseData.message || `Google sign-in failed: ${response.status} ${response.statusText}`);

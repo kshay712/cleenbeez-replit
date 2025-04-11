@@ -55,14 +55,6 @@ const HomePage = () => {
       {/* Show verification banner if user is logged in but not verified */}
       {isAuthenticated && user && !emailVerified && (
         <div className="container mt-6">
-          <Alert className="mb-4 bg-blue-50 border-blue-200 text-blue-800">
-            <Info className="h-4 w-4 text-blue-600" />
-            <AlertTitle>Auto-Checking Verification Status</AlertTitle>
-            <AlertDescription>
-              We'll automatically check if you've verified your email every few seconds.
-              Alternatively, you can click the "I've Verified My Email" button below after completing verification.
-            </AlertDescription>
-          </Alert>
           <VerificationBanner email={user.email} />
         </div>
       )}
