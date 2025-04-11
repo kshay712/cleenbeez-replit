@@ -202,7 +202,7 @@ const BlogPage = () => {
                           <Link 
                             key={category.id}
                             href={`/blog?category=${category.id}`} 
-                            className="text-xs font-medium bg-primary-100 text-primary-800 px-2 py-1 rounded-full hover:bg-primary-200 transition-colors"
+                            className="text-xs font-medium bg-amber-50 border border-amber-200 text-amber-800 px-2 py-1 rounded-full hover:bg-amber-100 transition-colors"
                           >
                             {category.name}
                           </Link>
