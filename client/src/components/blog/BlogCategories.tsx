@@ -1,5 +1,13 @@
+import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
+
+interface Category {
+  id: number;
+  name: string;
+  slug: string;
+  postCount: number;
+}
 
 interface BlogCategoriesProps {
   selectedCategory: string | null;
@@ -7,14 +15,14 @@ interface BlogCategoriesProps {
 }
 
 const BlogCategories: React.FC<BlogCategoriesProps> = ({ selectedCategory, onChange }) => {
-  const { data: categories, isLoading } = useQuery({
+  const { data: categories, isLoading } = useQuery<Category[]>({
     queryKey: ['/api/blog/categories'],
   });
 
   // Find the currently selected category name for display purposes
   const getSelectedCategoryName = () => {
     if (!selectedCategory || !categories) return null;
-    const category = categories.find((cat: any) => cat.id.toString() === selectedCategory);
+    const category = categories.find(cat => cat.id.toString() === selectedCategory);
     return category ? category.name : null;
   };
 
@@ -39,7 +47,7 @@ const BlogCategories: React.FC<BlogCategoriesProps> = ({ selectedCategory, onCha
               All Posts
             </button>
           </li>
-          {categories && categories.map((category: any) => (
+          {categories?.map((category) => (
             <li key={category.id}>
               <button
                 onClick={() => onChange(category.id.toString())}

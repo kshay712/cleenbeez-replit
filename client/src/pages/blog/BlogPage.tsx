@@ -1,8 +1,8 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import BlogPostCard from "@/components/blog/BlogPostCard";
 import BlogCategories from "@/components/blog/BlogCategories";
-import Pagination from "@/components/ui/Pagination";
+import { Pagination } from "@/components/ui/pagination";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select,
@@ -26,15 +26,48 @@ const BlogPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   
+  // Define types for our API responses
+  interface Category {
+    id: number;
+    name: string;
+    slug: string;
+    postCount: number;
+  }
+
+  interface BlogPost {
+    id: number;
+    title: string;
+    slug: string;
+    excerpt: string;
+    content: string;
+    featuredImage: string;
+    publishedAt: string;
+    author: {
+      id: number;
+      username: string;
+      avatar?: string;
+    };
+    categories: Category[];
+  }
+
+  interface BlogPostsResponse {
+    posts: BlogPost[];
+    pagination: {
+      currentPage: number;
+      totalPages: number;
+      totalItems: number;
+    };
+  }
+  
   // Get categories for displaying the selected category name
-  const { data: categories } = useQuery({
+  const { data: categories } = useQuery<Category[]>({
     queryKey: ['/api/blog/categories'],
   });
   
   // Find the selected category name for display if needed
   const selectedCategoryName = React.useMemo(() => {
     if (!selectedCategory || !categories) return null;
-    const category = categories.find((cat: any) => cat.id.toString() === selectedCategory);
+    const category = categories.find(cat => cat.id.toString() === selectedCategory);
     return category ? category.name : null;
   }, [selectedCategory, categories]);
   
@@ -45,12 +78,12 @@ const BlogPage = () => {
   const queryString = queryParams.toString() ? `?${queryParams.toString()}` : '';
   
   // Fetch blog posts
-  const { data, isLoading } = useQuery({
+  const { data, isLoading } = useQuery<BlogPostsResponse>({
     queryKey: [`/api/blog/posts${queryString}`],
   });
   
   // Fetch featured post
-  const { data: featuredPost, isLoading: featuredLoading } = useQuery({
+  const { data: featuredPost, isLoading: featuredLoading } = useQuery<BlogPost>({
     queryKey: ['/api/blog/featured'],
   });
   
