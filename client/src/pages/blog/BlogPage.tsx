@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import BlogPostCard from "@/components/blog/BlogPostCard";
 import BlogCategories from "@/components/blog/BlogCategories";
+import { queryClient } from "@/lib/queryClient";
 import { Pagination } from "@/components/ui/pagination";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -77,9 +78,16 @@ const BlogPage = () => {
   if (selectedCategory) queryParams.set('category', selectedCategory);
   const queryString = queryParams.toString() ? `?${queryParams.toString()}` : '';
   
-  // Fetch blog posts
+  // Fetch blog posts - use array-based query key for better cache invalidation
   const { data, isLoading } = useQuery<BlogPostsResponse>({
-    queryKey: [`/api/blog/posts${queryString}`],
+    queryKey: ['/api/blog/posts', { category: selectedCategory, page: currentPage }],
+    queryFn: async () => {
+      const res = await fetch(`/api/blog/posts${queryString}`);
+      if (!res.ok) {
+        throw new Error('Failed to fetch blog posts');
+      }
+      return res.json();
+    },
   });
   
   // Fetch featured post
@@ -92,6 +100,9 @@ const BlogPage = () => {
     console.log('Changing category to:', categoryId);
     setSelectedCategory(categoryId);
     setCurrentPage(1); // Reset to first page when category changes
+    
+    // Force refetch when category changes by invalidating the cache
+    queryClient.invalidateQueries({ queryKey: ['/api/blog/posts'] });
   };
   
   // Handle page change
