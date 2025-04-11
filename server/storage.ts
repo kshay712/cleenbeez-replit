@@ -907,11 +907,13 @@ export class DatabaseStorage implements IStorage {
     let orderBy;
     switch (sortBy) {
       case 'oldest':
-        orderBy = asc(blogPosts.publishedAt || blogPosts.createdAt);
+        // For oldest, use publishedAt if available, otherwise createdAt
+        orderBy = asc(sql`COALESCE(${blogPosts.publishedAt}, ${blogPosts.createdAt})`);
         break;
       case 'newest':
       default:
-        orderBy = desc(blogPosts.publishedAt || blogPosts.createdAt);
+        // For newest, use publishedAt if available, otherwise createdAt
+        orderBy = desc(sql`COALESCE(${blogPosts.publishedAt}, ${blogPosts.createdAt})`);
     }
     
     // Handle category filter separately first (need to fetch IDs from junction table)
@@ -1051,7 +1053,7 @@ export class DatabaseStorage implements IStorage {
         .select()
         .from(blogPosts)
         .where(eq(blogPosts.published, true))
-        .orderBy(desc(blogPosts.publishedAt || blogPosts.createdAt))
+        .orderBy(desc(sql`COALESCE(${blogPosts.publishedAt}, ${blogPosts.createdAt})`))
         .limit(1)
         .then(posts => posts[0]);
     }
