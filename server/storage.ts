@@ -1141,8 +1141,30 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Blog category methods
-  async getBlogCategories(): Promise<Category[]> {
-    return await db.select().from(categories);
+  async getBlogCategories(): Promise<(Category & { postCount: number })[]> {
+    // First get all categories
+    const allCategories = await db.select().from(categories);
+    
+    // Then count posts per category using the join table
+    const categoryCounts = await db
+      .select({
+        categoryId: blogPostsToCategories.categoryId,
+        postCount: sql<number>`count(${blogPostsToCategories.blogPostId})`,
+      })
+      .from(blogPostsToCategories)
+      .groupBy(blogPostsToCategories.categoryId);
+    
+    // Create a map of category ID to post count for easier lookup
+    const countMap = new Map<number, number>();
+    for (const { categoryId, postCount } of categoryCounts) {
+      countMap.set(categoryId, postCount);
+    }
+    
+    // Add post count to each category
+    return allCategories.map(category => ({
+      ...category,
+      postCount: countMap.get(category.id) || 0
+    }));
   }
 
   async addPostToCategory(postId: number, categoryId: number): Promise<void> {
