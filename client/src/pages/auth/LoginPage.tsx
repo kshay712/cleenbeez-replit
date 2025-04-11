@@ -207,33 +207,7 @@ const LoginPage = () => {
               </div>
             </div>
 
-            <div className="mt-4 flex flex-col space-y-2 text-center">
-              <Link href="/dev-login" className="font-medium text-primary-600 hover:text-primary-500">
-                Use Development Login (for testing)
-              </Link>
-              
-              <p className="text-sm text-gray-500">
-                Having trouble with Firebase login? Try these credentials:
-              </p>
-              
-              <div className="mt-2 text-xs text-gray-500 bg-gray-50 p-2 rounded border space-y-2">
-                <div className="bg-white p-1 rounded border">
-                  <div><strong>Email:</strong> admin@cleanbee.com</div>
-                  <div><strong>Password:</strong> password123</div>
-                </div>
-                
-                <div className="bg-amber-50 p-1 rounded border border-amber-200">
-                  <div className="font-semibold text-amber-800">Admin Account:</div>
-                  <div><strong>Email:</strong> admin3@cleanbee.com</div>
-                  <div><strong>Password:</strong> password123</div>
-                  <div className="text-amber-700 text-[10px]">This account is automatically created and promoted to admin</div>
-                </div>
-              </div>
-              
-              <div className="mt-2 text-xs text-gray-500">
-                New users are automatically registered on first login
-              </div>
-            </div>
+            {/* Development login section removed */}
 
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="mt-6 space-y-6">
