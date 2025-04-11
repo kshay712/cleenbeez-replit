@@ -117,7 +117,15 @@ export const blog = {
     const limit = parseInt(req.query.limit as string) || 10;
     const category = req.query.category as string;
     const search = req.query.search as string;
-    const published = req.query.published === "false" ? false : true;
+    
+    // Default to showing published posts only for public requests
+    // This means published=true by default, but can be overridden with explicit query param
+    let published: boolean | undefined = true;
+    
+    if (req.query.published !== undefined) {
+      published = req.query.published === "true" || req.query.published === "1";
+      console.log("[BLOG] Explicit published param:", req.query.published, "-> set to:", published);
+    }
     
     try {
       console.log("[BLOG] Fetching blog posts with options:", {
@@ -273,10 +281,13 @@ export const blog = {
     const search = req.query.search as string;
     
     try {
+      // For admin, get all posts regardless of published status
       const { posts, total } = await storage.getBlogPosts({
         page,
         limit,
         search,
+        // Published status is undefined to get all posts
+        published: undefined,
         sortBy: "createdAt"
       });
       
@@ -315,8 +326,10 @@ export const blog = {
       postData.authorId = req.user?.id;
       
       // Set publishedAt date if post is published
+      console.log("[DEBUG] Post published status:", postData.published);
       if (postData.published) {
         postData.publishedAt = new Date();
+        console.log("[DEBUG] Setting publishedAt for new post:", new Date());
       }
       
       // Extract categories before creating the post
