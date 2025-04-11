@@ -276,7 +276,9 @@ const AdminBlogPage = () => {
       });
     },
     onSuccess: () => {
+      // Invalidate both blog posts and categories caches
       queryClient.invalidateQueries({ queryKey: ['/api/blog/admin'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/blog/categories'] });
       toast({
         title: "Blog post created",
         description: "Your blog post has been created successfully."
@@ -364,7 +366,9 @@ const AdminBlogPage = () => {
       });
     },
     onSuccess: () => {
+      // Invalidate both blog posts and categories caches
       queryClient.invalidateQueries({ queryKey: ['/api/blog/admin'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/blog/categories'] });
       toast({
         title: "Blog post updated",
         description: "Your blog post has been updated successfully."
@@ -388,7 +392,9 @@ const AdminBlogPage = () => {
       return await apiRequest("DELETE", `/api/blog/posts/${id}`, undefined);
     },
     onSuccess: () => {
+      // Invalidate both blog posts and categories caches
       queryClient.invalidateQueries({ queryKey: ['/api/blog/admin'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/blog/categories'] });
       toast({
         title: "Blog post deleted",
         description: "The blog post has been deleted successfully."
