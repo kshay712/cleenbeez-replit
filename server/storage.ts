@@ -910,6 +910,10 @@ export class DatabaseStorage implements IStorage {
         // For oldest, use publishedAt if available, otherwise createdAt
         orderBy = asc(sql`COALESCE(${blogPosts.publishedAt}, ${blogPosts.createdAt})`);
         break;
+      case 'publishedAt': // Match the value sent from the frontend
+        // This matches what the frontend is sending - sort by publishedAt descending (newest first)
+        orderBy = desc(sql`COALESCE(${blogPosts.publishedAt}, ${blogPosts.createdAt})`);
+        break;
       case 'newest':
       default:
         // For newest, use publishedAt if available, otherwise createdAt
