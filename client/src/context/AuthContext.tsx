@@ -432,6 +432,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           const firebaseUser = result.user;
           console.log("Firebase user:", firebaseUser);
           
+          // Store user info for recovery and verification
+          storeFirebaseUser(firebaseUser);
+          storeLoginCredentials(firebaseUser.email || '', firebaseUser.uid);
+          
           try {
             // Get the user's ID token to authenticate with our backend
             const idToken = await firebaseUser.getIdToken();
@@ -552,6 +556,11 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         
         // Extract user info
         const firebaseUser = result.user;
+        
+        // Store Firebase user info for potential recovery
+        storeFirebaseUser(firebaseUser);
+        storeLoginCredentials(firebaseUser.email || '', firebaseUser.uid);
+        
         const idToken = await firebaseUser.getIdToken();
         
         // Try to authenticate with our backend
@@ -682,6 +691,11 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         console.log("Found development user, clearing from localStorage");
         localStorage.removeItem('dev-user');
       }
+      
+      // Clear any stored Firebase credentials
+      localStorage.removeItem('firebase-credentials');
+      localStorage.removeItem('firebase-current-user');
+      console.log("Cleared stored Firebase credentials");
       
       // If the user is authenticated with Firebase, sign them out
       if (auth.currentUser) {
@@ -869,16 +883,26 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
   }, [user, emailVerified, toast]);
   
-  // Store Firebase user in localStorage for recovery
+  // Store Firebase user and credentials in localStorage for recovery
   const storeFirebaseUser = (firebaseUser: any) => {
     try {
       if (firebaseUser) {
+        // Store user info for later use
         const userInfo = {
           uid: firebaseUser.uid,
           email: firebaseUser.email,
           createdAt: Date.now()
         };
         localStorage.setItem('firebase-current-user', JSON.stringify(userInfo));
+        
+        // Also store credentials for verification recovery
+        const credentialInfo = {
+          email: firebaseUser.email || '',
+          uid: firebaseUser.uid,
+          timestamp: Date.now()
+        };
+        localStorage.setItem('firebase-credentials', JSON.stringify(credentialInfo));
+        console.log("Firebase user and credentials stored for recovery");
       }
     } catch (error) {
       console.error("Error storing Firebase user info:", error);
