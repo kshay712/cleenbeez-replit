@@ -1,4 +1,5 @@
 import { Link } from "wouter";
+import { calculateReadingTime } from "@/lib/utils";
 
 interface BlogPostCardProps {
   post: {
@@ -22,6 +23,9 @@ interface BlogPostCardProps {
 }
 
 const BlogPostCard: React.FC<BlogPostCardProps> = ({ post }) => {
+  // Calculate reading time based on excerpt + content
+  const readingTime = calculateReadingTime(post.excerpt || '');
+  
   return (
     <div className="flex flex-col rounded-lg shadow-lg overflow-hidden bg-white">
       <div className="flex-shrink-0">
@@ -72,7 +76,7 @@ const BlogPostCard: React.FC<BlogPostCardProps> = ({ post }) => {
                 })}
               </time>
               <span aria-hidden="true">&middot;</span>
-              <span>6 min read</span>
+              <span>{readingTime} min read</span>
             </div>
           </div>
         </div>

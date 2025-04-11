@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
+import { calculateReadingTime } from "@/lib/utils";
 import BlogPostCard from "@/components/blog/BlogPostCard";
 import BlogCategories from "@/components/blog/BlogCategories";
 import CategoryBlogPosts from "@/components/blog/CategoryBlogPosts";
@@ -234,7 +235,7 @@ const BlogPage = () => {
                               })}
                             </time>
                             <span aria-hidden="true">&middot;</span>
-                            <span>8 min read</span>
+                            <span>{calculateReadingTime(featuredPost.excerpt || '')} min read</span>
                           </div>
                         </div>
                       </div>
