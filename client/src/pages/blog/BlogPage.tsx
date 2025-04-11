@@ -174,9 +174,9 @@ const BlogPage = () => {
                       <Skeleton className="h-10 w-full mt-4" />
                       <Skeleton className="h-24 w-full mt-4" />
                       <div className="mt-4">
-                        <div className="flex justify-between items-center">
-                          <Skeleton className="h-4 w-32" />
-                          <Skeleton className="h-4 w-24" />
+                        <Skeleton className="h-4 w-32" />
+                        <div className="flex space-x-1 mt-1">
+                          <Skeleton className="h-4 w-40" />
                         </div>
                       </div>
                     </div>
@@ -216,19 +216,17 @@ const BlogPage = () => {
                         </p>
                       </a>
                       <div className="mt-4">
-                        <div className="flex justify-between items-center">
-                          <p className="text-sm font-medium text-neutral-900">{featuredPost.author.username}</p>
-                          <div className="flex space-x-1 text-sm text-neutral-500">
-                            <time dateTime={featuredPost.publishedAt || featuredPost.createdAt}>
-                              {new Date(featuredPost.publishedAt || featuredPost.createdAt).toLocaleDateString('en-US', { 
-                                year: 'numeric', 
-                                month: 'long', 
-                                day: 'numeric' 
-                              })}
-                            </time>
-                            <span aria-hidden="true">&middot;</span>
-                            <span>{calculateReadingTime(featuredPost.excerpt || '')} min read</span>
-                          </div>
+                        <p className="text-sm font-medium text-neutral-900">{featuredPost.author.username}</p>
+                        <div className="flex space-x-1 text-sm text-neutral-500">
+                          <time dateTime={featuredPost.publishedAt || featuredPost.createdAt}>
+                            {new Date(featuredPost.publishedAt || featuredPost.createdAt).toLocaleDateString('en-US', { 
+                              year: 'numeric', 
+                              month: 'long', 
+                              day: 'numeric' 
+                            })}
+                          </time>
+                          <span aria-hidden="true">&middot;</span>
+                          <span>{calculateReadingTime(featuredPost.excerpt || '')} min read</span>
                         </div>
                       </div>
                     </div>
@@ -255,11 +253,10 @@ const BlogPage = () => {
                         <Skeleton className="h-4 w-full mt-1" />
                         <Skeleton className="h-4 w-3/4 mt-1" />
                       </div>
-                      <div className="mt-6 flex items-center">
-                        <Skeleton className="h-10 w-10 rounded-full" />
-                        <div className="ml-3">
-                          <Skeleton className="h-4 w-20" />
-                          <Skeleton className="h-3 w-32 mt-1" />
+                      <div className="mt-6">
+                        <Skeleton className="h-4 w-24" />
+                        <div className="flex space-x-1 mt-1">
+                          <Skeleton className="h-3 w-40" />
                         </div>
                       </div>
                     </div>

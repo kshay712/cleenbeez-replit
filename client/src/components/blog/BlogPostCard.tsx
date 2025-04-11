@@ -58,19 +58,17 @@ const BlogPostCard: React.FC<BlogPostCardProps> = ({ post }) => {
           </Link>
         </div>
         <div className="mt-6">
-          <div className="flex justify-between items-center">
-            <p className="text-sm font-medium text-neutral-900">{post.author.username}</p>
-            <div className="flex space-x-1 text-sm text-neutral-500">
-              <time dateTime={post.publishedAt || post.createdAt}>
-                {new Date(post.publishedAt || post.createdAt).toLocaleDateString('en-US', { 
-                  year: 'numeric', 
-                  month: 'long', 
-                  day: 'numeric' 
-                })}
-              </time>
-              <span aria-hidden="true">&middot;</span>
-              <span>{readingTime} min read</span>
-            </div>
+          <p className="text-sm font-medium text-neutral-900">{post.author.username}</p>
+          <div className="flex space-x-1 text-sm text-neutral-500">
+            <time dateTime={post.publishedAt || post.createdAt}>
+              {new Date(post.publishedAt || post.createdAt).toLocaleDateString('en-US', { 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+              })}
+            </time>
+            <span aria-hidden="true">&middot;</span>
+            <span>{readingTime} min read</span>
           </div>
         </div>
       </div>
