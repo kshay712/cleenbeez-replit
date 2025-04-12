@@ -33,7 +33,7 @@ const LearnPage = () => {
             <AccordionItem value="item-1">
               <AccordionTrigger className="text-base font-medium">Ingredients List</AccordionTrigger>
               <AccordionContent>
-                <ul className="list-disc pl-6 space-y-2 text-neutral-700">
+                <ul className="list-disc pl-6 space-y-2 text-neutral-700 break-words">
                   <li>Ingredients are listed in descending order by weight</li>
                   <li>Watch out for chemical names that are difficult to pronounce</li>
                   <li>Be aware of "fragrance" or "parfum" which can contain hundreds of undisclosed chemicals</li>
@@ -43,7 +43,7 @@ const LearnPage = () => {
             <AccordionItem value="item-2">
               <AccordionTrigger className="text-base font-medium">Certifications to Look For</AccordionTrigger>
               <AccordionContent>
-                <ul className="list-disc pl-6 space-y-2 text-neutral-700">
+                <ul className="list-disc pl-6 space-y-2 text-neutral-700 break-words">
                   <li><strong>USDA Organic:</strong> Contains at least 95% organic ingredients</li>
                   <li><strong>EWG Verified:</strong> Free from EWG's chemicals of concern</li>
                   <li><strong>Leaping Bunny:</strong> Cruelty-free and not tested on animals</li>
@@ -55,7 +55,7 @@ const LearnPage = () => {
               <AccordionTrigger className="text-base font-medium">Marketing Claims vs. Reality</AccordionTrigger>
               <AccordionContent>
                 <p className="mb-2 text-neutral-700">Be cautious of these unregulated terms:</p>
-                <ul className="list-disc pl-6 space-y-2 text-neutral-700">
+                <ul className="list-disc pl-6 space-y-2 text-neutral-700 break-words">
                   <li><strong>"Natural"</strong> - Has no regulated definition</li>
                   <li><strong>"Eco-friendly"</strong> - May refer to only one aspect of the product</li>
                   <li><strong>"Pure"</strong> - Doesn't mean free from synthetic ingredients</li>
@@ -82,13 +82,13 @@ const LearnPage = () => {
                 <CardTitle className="text-base">In Cleaning Products</CardTitle>
               </CardHeader>
               <CardContent>
-                <ul className="list-disc pl-6 space-y-1 text-sm text-neutral-700">
+                <ul className="list-disc pl-6 space-y-1 text-sm text-neutral-700 break-words">
                   <li>Phthalates</li>
                   <li>Ammonia</li>
                   <li>Chlorine Bleach</li>
                   <li>Triclosan</li>
                   <li>Synthetic Fragrances</li>
-                  <li>Quaternary Ammonium Compounds</li>
+                  <li className="break-normal">Quaternary Ammonium Compounds</li>
                 </ul>
               </CardContent>
             </Card>
@@ -97,7 +97,7 @@ const LearnPage = () => {
                 <CardTitle className="text-base">In Personal Care</CardTitle>
               </CardHeader>
               <CardContent>
-                <ul className="list-disc pl-6 space-y-1 text-sm text-neutral-700">
+                <ul className="list-disc pl-6 space-y-1 text-sm text-neutral-700 break-words">
                   <li>Parabens</li>
                   <li>Sulfates (SLS/SLES)</li>
                   <li>Formaldehyde</li>
@@ -130,7 +130,7 @@ const LearnPage = () => {
                 <CardTitle className="text-base">Reduce Waste</CardTitle>
               </CardHeader>
               <CardContent className="text-sm text-neutral-700">
-                <ul className="list-disc pl-6 space-y-1">
+                <ul className="list-disc pl-6 space-y-1 break-words">
                   <li>Use reusable shopping bags</li>
                   <li>Choose products with less packaging</li>
                   <li>Start composting food scraps</li>
@@ -144,7 +144,7 @@ const LearnPage = () => {
                 <CardTitle className="text-base">Save Energy</CardTitle>
               </CardHeader>
               <CardContent className="text-sm text-neutral-700">
-                <ul className="list-disc pl-6 space-y-1">
+                <ul className="list-disc pl-6 space-y-1 break-words">
                   <li>Switch to LED light bulbs</li>
                   <li>Unplug devices when not in use</li>
                   <li>Wash clothes in cold water</li>
@@ -158,7 +158,7 @@ const LearnPage = () => {
                 <CardTitle className="text-base">Shop Consciously</CardTitle>
               </CardHeader>
               <CardContent className="text-sm text-neutral-700">
-                <ul className="list-disc pl-6 space-y-1">
+                <ul className="list-disc pl-6 space-y-1 break-words">
                   <li>Buy local when possible</li>
                   <li>Choose organic when you can</li>
                   <li>Support eco-friendly brands</li>
@@ -252,7 +252,7 @@ const LearnPage = () => {
                     <AccordionTrigger className="text-base font-medium">
                       {faq.question}
                     </AccordionTrigger>
-                    <AccordionContent className="text-neutral-700">
+                    <AccordionContent className="text-neutral-700 break-words">
                       {faq.answer}
                     </AccordionContent>
                   </AccordionItem>
