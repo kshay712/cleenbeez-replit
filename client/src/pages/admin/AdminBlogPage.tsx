@@ -1364,7 +1364,27 @@ const AdminBlogPage = () => {
                   </TableHeader>
                   <TableBody>
                     {categories && categories.length > 0 ? (
-                      categories.map((category: any) => (
+                      [...categories]
+                        .sort((a, b) => {
+                          // Handle sorting based on the current sort field and direction
+                          if (catSortField === "name") {
+                            return catSortDirection === "asc" 
+                              ? a.name.localeCompare(b.name)
+                              : b.name.localeCompare(a.name);
+                          } else if (catSortField === "slug") {
+                            return catSortDirection === "asc" 
+                              ? a.slug.localeCompare(b.slug)
+                              : b.slug.localeCompare(a.slug);
+                          } else if (catSortField === "postCount") {
+                            const countA = a.postCount || 0;
+                            const countB = b.postCount || 0;
+                            return catSortDirection === "asc" 
+                              ? countA - countB
+                              : countB - countA;
+                          }
+                          return 0;
+                        })
+                        .map((category: any) => (
                         <TableRow key={category.id}>
                           <TableCell className="font-medium">{category.name}</TableCell>
                           <TableCell>{category.slug}</TableCell>
