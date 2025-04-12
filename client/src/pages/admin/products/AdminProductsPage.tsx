@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Pencil, Trash2 } from 'lucide-react';
+import { Plus, Pencil, Trash2, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { apiRequest } from '@/lib/queryClient';
@@ -58,6 +58,8 @@ const AdminProductsPage = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [sortField, setSortField] = useState<string>("name");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
 
   // Fetch products
   const { data, isLoading, error } = useQuery<{ products: Product[], total: number }>({
@@ -147,16 +149,144 @@ const AdminProductsPage = () => {
             <TableHeader>
               <TableRow>
                 <TableHead className="w-[80px]">Image</TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead>Price</TableHead>
-                <TableHead>Features</TableHead>
+                <TableHead 
+                  className="cursor-pointer"
+                  onClick={() => {
+                    if (sortField === "name") {
+                      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+                    } else {
+                      setSortField("name");
+                      setSortDirection("asc");
+                    }
+                  }}
+                >
+                  <div className="flex items-center">
+                    Name
+                    {sortField === "name" ? (
+                      sortDirection === "asc" ? (
+                        <ArrowUp className="ml-2 h-4 w-4" />
+                      ) : (
+                        <ArrowDown className="ml-2 h-4 w-4" />
+                      )
+                    ) : (
+                      <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />
+                    )}
+                  </div>
+                </TableHead>
+                <TableHead 
+                  className="cursor-pointer"
+                  onClick={() => {
+                    if (sortField === "category") {
+                      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+                    } else {
+                      setSortField("category");
+                      setSortDirection("asc");
+                    }
+                  }}
+                >
+                  <div className="flex items-center">
+                    Category
+                    {sortField === "category" ? (
+                      sortDirection === "asc" ? (
+                        <ArrowUp className="ml-2 h-4 w-4" />
+                      ) : (
+                        <ArrowDown className="ml-2 h-4 w-4" />
+                      )
+                    ) : (
+                      <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />
+                    )}
+                  </div>
+                </TableHead>
+                <TableHead 
+                  className="cursor-pointer"
+                  onClick={() => {
+                    if (sortField === "price") {
+                      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+                    } else {
+                      setSortField("price");
+                      setSortDirection("asc");
+                    }
+                  }}
+                >
+                  <div className="flex items-center">
+                    Price
+                    {sortField === "price" ? (
+                      sortDirection === "asc" ? (
+                        <ArrowUp className="ml-2 h-4 w-4" />
+                      ) : (
+                        <ArrowDown className="ml-2 h-4 w-4" />
+                      )
+                    ) : (
+                      <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />
+                    )}
+                  </div>
+                </TableHead>
+                <TableHead 
+                  className="cursor-pointer"
+                  onClick={() => {
+                    if (sortField === "features") {
+                      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+                    } else {
+                      setSortField("features");
+                      setSortDirection("asc");
+                    }
+                  }}
+                >
+                  <div className="flex items-center">
+                    Features
+                    {sortField === "features" ? (
+                      sortDirection === "asc" ? (
+                        <ArrowUp className="ml-2 h-4 w-4" />
+                      ) : (
+                        <ArrowDown className="ml-2 h-4 w-4" />
+                      )
+                    ) : (
+                      <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />
+                    )}
+                  </div>
+                </TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {data && data.products && data.products.length > 0 ? (
-                data.products.map((product: Product) => (
+                [...data.products]
+                  .sort((a, b) => {
+                    // Handle sorting based on the current sort field and direction
+                    if (sortField === "name") {
+                      return sortDirection === "asc" 
+                        ? a.name.localeCompare(b.name)
+                        : b.name.localeCompare(a.name);
+                    } else if (sortField === "category") {
+                      return sortDirection === "asc" 
+                        ? a.category.name.localeCompare(b.category.name)
+                        : b.category.name.localeCompare(a.category.name);
+                    } else if (sortField === "price") {
+                      const priceA = parseFloat(a.price);
+                      const priceB = parseFloat(b.price);
+                      return sortDirection === "asc" 
+                        ? priceA - priceB
+                        : priceB - priceA;
+                    } else if (sortField === "features") {
+                      // Count the number of active features for each product
+                      const countFeaturesA = [
+                        a.organic, a.bpaFree, a.phthalateFree, a.parabenFree, 
+                        a.oxybenzoneFree, a.formaldehydeFree, a.sulfatesFree, a.fdcFree
+                      ].filter(Boolean).length;
+                      
+                      const countFeaturesB = [
+                        b.organic, b.bpaFree, b.phthalateFree, b.parabenFree, 
+                        b.oxybenzoneFree, b.formaldehydeFree, b.sulfatesFree, b.fdcFree
+                      ].filter(Boolean).length;
+
+                      return sortDirection === "asc" 
+                        ? countFeaturesA - countFeaturesB
+                        : countFeaturesB - countFeaturesA;
+                    }
+                    // Default sort by name
+                    return a.name.localeCompare(b.name);
+                  })
+                  .map((product: Product) => (
                   <TableRow key={product.id}>
                     <TableCell>
                       <div className="w-16 h-16 rounded overflow-hidden">
