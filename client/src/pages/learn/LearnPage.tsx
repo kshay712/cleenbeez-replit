@@ -26,44 +26,41 @@ const LearnPage = () => {
       description: "Understanding what's really in your products",
       content: (
         <>
-          <p className="mb-4 text-neutral-700">
+          <p className="mb-6 text-neutral-700">
             Reading product labels is essential for making informed decisions about the products you bring into your home. Here's what to look for:
           </p>
-          <Accordion type="single" collapsible className="w-full">
-            <AccordionItem value="item-1">
-              <AccordionTrigger className="text-base font-medium">Ingredients List</AccordionTrigger>
-              <AccordionContent>
-                <ul className="list-disc pl-6 space-y-2 text-neutral-700 break-words">
+          <div className="bg-primary-50/30 rounded-lg p-6 mb-6">
+            <h3 className="text-lg font-medium mb-4 text-primary-700">Key Elements to Check</h3>
+            <div className="grid gap-6 md:grid-cols-3">
+              <div className="border border-primary-200 rounded-md p-4 bg-white/80">
+                <h4 className="font-medium text-primary-800 mb-2">Ingredients List</h4>
+                <ul className="list-disc pl-5 space-y-2 text-neutral-700">
                   <li>Ingredients are listed in descending order by weight</li>
                   <li>Watch out for chemical names that are difficult to pronounce</li>
                   <li>Be aware of "fragrance" or "parfum" which can contain hundreds of undisclosed chemicals</li>
                 </ul>
-              </AccordionContent>
-            </AccordionItem>
-            <AccordionItem value="item-2">
-              <AccordionTrigger className="text-base font-medium">Certifications to Look For</AccordionTrigger>
-              <AccordionContent>
-                <ul className="list-disc pl-6 space-y-2 text-neutral-700 break-words">
+              </div>
+              <div className="border border-primary-200 rounded-md p-4 bg-white/80">
+                <h4 className="font-medium text-primary-800 mb-2">Certifications to Look For</h4>
+                <ul className="list-disc pl-5 space-y-2 text-neutral-700">
                   <li><strong>USDA Organic:</strong> Contains at least 95% organic ingredients</li>
                   <li><strong>EWG Verified:</strong> Free from EWG's chemicals of concern</li>
                   <li><strong>Leaping Bunny:</strong> Cruelty-free and not tested on animals</li>
                   <li><strong>Non-GMO Project:</strong> Products made without genetically modified ingredients</li>
                 </ul>
-              </AccordionContent>
-            </AccordionItem>
-            <AccordionItem value="item-3">
-              <AccordionTrigger className="text-base font-medium">Marketing Claims vs. Reality</AccordionTrigger>
-              <AccordionContent>
+              </div>
+              <div className="border border-primary-200 rounded-md p-4 bg-white/80">
+                <h4 className="font-medium text-primary-800 mb-2">Marketing Claims vs. Reality</h4>
                 <p className="mb-2 text-neutral-700">Be cautious of these unregulated terms:</p>
-                <ul className="list-disc pl-6 space-y-2 text-neutral-700 break-words">
+                <ul className="list-disc pl-5 space-y-1 text-neutral-700">
                   <li><strong>"Natural"</strong> - Has no regulated definition</li>
-                  <li><strong>"Eco-friendly"</strong> - May refer to only one aspect of the product</li>
+                  <li><strong>"Eco-friendly"</strong> - May refer to only one aspect</li>
                   <li><strong>"Pure"</strong> - Doesn't mean free from synthetic ingredients</li>
                   <li><strong>"Gentle"</strong> - Subjective and not regulated</li>
                 </ul>
-              </AccordionContent>
-            </AccordionItem>
-          </Accordion>
+              </div>
+            </div>
+          </div>
         </>
       )
     },
@@ -73,42 +70,34 @@ const LearnPage = () => {
       description: "Common harmful ingredients in everyday products",
       content: (
         <>
-          <p className="mb-4 text-neutral-700">
+          <p className="mb-6 text-neutral-700">
             These are some potentially harmful ingredients commonly found in household and personal care products:
           </p>
-          <div className="grid gap-4 md:grid-cols-2">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base">In Cleaning Products</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ul className="list-disc pl-6 space-y-1 text-sm text-neutral-700 break-words">
-                  <li>Phthalates</li>
-                  <li>Ammonia</li>
-                  <li>Chlorine Bleach</li>
-                  <li>Triclosan</li>
-                  <li>Synthetic Fragrances</li>
-                  <li className="break-normal">Quaternary Ammonium Compounds</li>
-                </ul>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base">In Personal Care</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ul className="list-disc pl-6 space-y-1 text-sm text-neutral-700 break-words">
-                  <li>Parabens</li>
-                  <li>Sulfates (SLS/SLES)</li>
-                  <li>Formaldehyde</li>
-                  <li>Oxybenzone</li>
-                  <li>Mineral Oil</li>
-                  <li>Synthetic Colors (FD&C)</li>
-                </ul>
-              </CardContent>
-            </Card>
+          <div className="grid md:grid-cols-2 gap-6">
+            <div className="bg-red-50/50 p-5 rounded-lg">
+              <h3 className="text-lg font-medium mb-3 text-red-700">In Cleaning Products</h3>
+              <ul className="list-disc pl-5 space-y-1 text-neutral-700">
+                <li>Phthalates</li>
+                <li>Ammonia</li>
+                <li>Chlorine Bleach</li>
+                <li>Triclosan</li>
+                <li>Synthetic Fragrances</li>
+                <li>Quaternary Ammonium Compounds</li>
+              </ul>
+            </div>
+            <div className="bg-orange-50/50 p-5 rounded-lg">
+              <h3 className="text-lg font-medium mb-3 text-orange-700">In Personal Care</h3>
+              <ul className="list-disc pl-5 space-y-1 text-neutral-700">
+                <li>Parabens</li>
+                <li>Sulfates (SLS/SLES)</li>
+                <li>Formaldehyde</li>
+                <li>Oxybenzone</li>
+                <li>Mineral Oil</li>
+                <li>Synthetic Colors (FD&C)</li>
+              </ul>
+            </div>
           </div>
-          <p className="mt-4 text-neutral-700">
+          <p className="mt-6 text-neutral-700">
             For a more comprehensive list and detailed explanations, check out our product guides and resources.
           </p>
         </>
@@ -120,52 +109,46 @@ const LearnPage = () => {
       description: "Simple ways to reduce your environmental impact",
       content: (
         <>
-          <p className="mb-4 text-neutral-700">
+          <p className="mb-6 text-neutral-700">
             Small changes can make a big difference in reducing your environmental footprint.
           </p>
-          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
-            <Card className="bg-green-50">
-              <CardHeader className="pb-2">
-                <Leaf className="h-5 w-5 text-green-600 mb-1" />
-                <CardTitle className="text-base">Reduce Waste</CardTitle>
-              </CardHeader>
-              <CardContent className="text-sm text-neutral-700">
-                <ul className="list-disc pl-6 space-y-1 break-words">
-                  <li>Use reusable shopping bags</li>
-                  <li>Choose products with less packaging</li>
-                  <li>Start composting food scraps</li>
-                  <li>Buy in bulk when possible</li>
-                </ul>
-              </CardContent>
-            </Card>
-            <Card className="bg-blue-50">
-              <CardHeader className="pb-2">
-                <ShieldCheck className="h-5 w-5 text-blue-600 mb-1" />
-                <CardTitle className="text-base">Save Energy</CardTitle>
-              </CardHeader>
-              <CardContent className="text-sm text-neutral-700">
-                <ul className="list-disc pl-6 space-y-1 break-words">
-                  <li>Switch to LED light bulbs</li>
-                  <li>Unplug devices when not in use</li>
-                  <li>Wash clothes in cold water</li>
-                  <li>Use smart power strips</li>
-                </ul>
-              </CardContent>
-            </Card>
-            <Card className="bg-amber-50">
-              <CardHeader className="pb-2">
-                <Search className="h-5 w-5 text-amber-600 mb-1" />
-                <CardTitle className="text-base">Shop Consciously</CardTitle>
-              </CardHeader>
-              <CardContent className="text-sm text-neutral-700">
-                <ul className="list-disc pl-6 space-y-1 break-words">
-                  <li>Buy local when possible</li>
-                  <li>Choose organic when you can</li>
-                  <li>Support eco-friendly brands</li>
-                  <li>Consider secondhand options</li>
-                </ul>
-              </CardContent>
-            </Card>
+          <div className="grid gap-6 md:grid-cols-3">
+            <div className="bg-green-50/50 p-5 rounded-lg flex flex-col">
+              <div className="flex items-center mb-3">
+                <Leaf className="h-5 w-5 text-green-600 mr-2" />
+                <h3 className="text-lg font-medium text-green-700">Reduce Waste</h3>
+              </div>
+              <ul className="list-disc pl-5 space-y-1 text-neutral-700">
+                <li>Use reusable shopping bags</li>
+                <li>Choose products with less packaging</li>
+                <li>Start composting food scraps</li>
+                <li>Buy in bulk when possible</li>
+              </ul>
+            </div>
+            <div className="bg-blue-50/50 p-5 rounded-lg flex flex-col">
+              <div className="flex items-center mb-3">
+                <ShieldCheck className="h-5 w-5 text-blue-600 mr-2" />
+                <h3 className="text-lg font-medium text-blue-700">Save Energy</h3>
+              </div>
+              <ul className="list-disc pl-5 space-y-1 text-neutral-700">
+                <li>Switch to LED light bulbs</li>
+                <li>Unplug devices when not in use</li>
+                <li>Wash clothes in cold water</li>
+                <li>Use smart power strips</li>
+              </ul>
+            </div>
+            <div className="bg-amber-50/50 p-5 rounded-lg flex flex-col">
+              <div className="flex items-center mb-3">
+                <Search className="h-5 w-5 text-amber-600 mr-2" />
+                <h3 className="text-lg font-medium text-amber-700">Shop Consciously</h3>
+              </div>
+              <ul className="list-disc pl-5 space-y-1 text-neutral-700">
+                <li>Buy local when possible</li>
+                <li>Choose organic when you can</li>
+                <li>Support eco-friendly brands</li>
+                <li>Consider secondhand options</li>
+              </ul>
+            </div>
           </div>
         </>
       )
@@ -222,14 +205,14 @@ const LearnPage = () => {
         </TabsList>
         
         <TabsContent value="guides" className="mt-6">
-          <div className="grid gap-6 md:grid-cols-3">
+          <div className="space-y-8">
             {guides.map((guide) => (
-              <Card key={guide.id} className="cursor-pointer hover:shadow-md transition-shadow">
-                <CardHeader>
+              <Card key={guide.id} className="cursor-pointer hover:shadow-md transition-shadow overflow-hidden">
+                <CardHeader className="border-b bg-muted/20">
                   <CardTitle>{guide.title}</CardTitle>
                   <CardDescription>{guide.description}</CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="pt-6">
                   {guide.content}
                 </CardContent>
               </Card>
