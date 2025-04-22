@@ -261,6 +261,7 @@ const AdminBlogPage = () => {
       setPostDialogOpen(false);
       queryClient.invalidateQueries({ queryKey: ['/api/blog/admin'] });
       queryClient.invalidateQueries({ queryKey: ['/api/blog/posts'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/blog/categories'] });
       setEditingPost(null);
     },
     onError: (error) => {
@@ -346,6 +347,7 @@ const AdminBlogPage = () => {
       setPostDialogOpen(false);
       queryClient.invalidateQueries({ queryKey: ['/api/blog/admin'] });
       queryClient.invalidateQueries({ queryKey: ['/api/blog/posts'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/blog/categories'] });
       setEditingPost(null);
     },
     onError: (error) => {
@@ -424,6 +426,8 @@ const AdminBlogPage = () => {
       });
       queryClient.invalidateQueries({ queryKey: ['/api/blog/admin'] });
       queryClient.invalidateQueries({ queryKey: ['/api/blog/posts'] });
+      // Explicitly invalidate categories to refresh counts immediately
+      queryClient.invalidateQueries({ queryKey: ['/api/blog/categories'] });
     },
     onError: (error) => {
       toast({
@@ -472,6 +476,7 @@ const AdminBlogPage = () => {
       queryClient.invalidateQueries({ queryKey: ['/api/blog/admin'] });
       queryClient.invalidateQueries({ queryKey: ['/api/blog/posts'] });
       queryClient.invalidateQueries({ queryKey: ['/api/blog/featured'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/blog/categories'] });
     },
     onError: (error) => {
       toast({
@@ -634,6 +639,7 @@ const AdminBlogPage = () => {
                       });
                       queryClient.invalidateQueries({ queryKey: ['/api/blog/admin'] });
                       queryClient.invalidateQueries({ queryKey: ['/api/blog/posts'] });
+                      queryClient.invalidateQueries({ queryKey: ['/api/blog/categories'] });
                     } catch (error) {
                       console.error('Error fixing dates:', error);
                       toast({
