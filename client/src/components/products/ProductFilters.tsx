@@ -6,7 +6,19 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Separator } from "@/components/ui/separator";
-import { Filter as FilterIcon, RollerCoaster, CircleDashed } from 'lucide-react';
+import { 
+  Filter as FilterIcon, 
+  RollerCoaster, 
+  CircleDashed,
+  Leaf,
+  Droplets,
+  Zap,
+  Heart,
+  ShieldAlert,
+  Flame,
+  Hammer
+} from 'lucide-react';
+import { Badge } from "@/components/ui/badge";
 
 // Category interface to match server response
 interface Category {
@@ -114,50 +126,85 @@ const ProductFilters = ({ filters, onChange }: ProductFiltersProps) => {
     filters.fdcFree || 
     filters.minPrice > 0 || 
     filters.maxPrice < 500;
+    
+  // Count active filters  
+  const activeFiltersCount = (
+    filters.categories.length + 
+    (filters.organic ? 1 : 0) + 
+    (filters.bpaFree ? 1 : 0) + 
+    (filters.phthalateFree ? 1 : 0) + 
+    (filters.parabenFree ? 1 : 0) + 
+    (filters.oxybenzoneFree ? 1 : 0) + 
+    (filters.formaldehydeFree ? 1 : 0) + 
+    (filters.sulfatesFree ? 1 : 0) + 
+    (filters.fdcFree ? 1 : 0) + 
+    ((filters.minPrice > 0 || filters.maxPrice < 500) ? 1 : 0)
+  );
   
+  // Features with better icons for mobile
+  const featureFilters = [
+    { id: 'organic', label: 'Organic', icon: <Leaf className="h-5 w-5 text-green-600" />, checked: filters.organic, color: 'bg-green-100 border-green-200 text-green-800' },
+    { id: 'bpaFree', label: 'BPA-Free', icon: <ShieldAlert className="h-5 w-5 text-blue-600" />, checked: filters.bpaFree, color: 'bg-blue-100 border-blue-200 text-blue-800' },
+    { id: 'phthalateFree', label: 'Phthalate-Free', icon: <Droplets className="h-5 w-5 text-purple-600" />, checked: filters.phthalateFree, color: 'bg-purple-100 border-purple-200 text-purple-800' },
+    { id: 'parabenFree', label: 'Paraben-Free', icon: <Zap className="h-5 w-5 text-indigo-600" />, checked: filters.parabenFree, color: 'bg-indigo-100 border-indigo-200 text-indigo-800' },
+    { id: 'oxybenzoneFree', label: 'Oxybenzone-Free', icon: <Heart className="h-5 w-5 text-red-600" />, checked: filters.oxybenzoneFree, color: 'bg-red-100 border-red-200 text-red-800' },
+    { id: 'formaldehydeFree', label: 'Formaldehyde-Free', icon: <Flame className="h-5 w-5 text-amber-600" />, checked: filters.formaldehydeFree, color: 'bg-amber-100 border-amber-200 text-amber-800' },
+    { id: 'sulfatesFree', label: 'Sulfates-Free', icon: <Droplets className="h-5 w-5 text-teal-600" />, checked: filters.sulfatesFree, color: 'bg-teal-100 border-teal-200 text-teal-800' },
+    { id: 'fdcFree', label: 'FD&C-Free', icon: <Hammer className="h-5 w-5 text-orange-600" />, checked: filters.fdcFree, color: 'bg-orange-100 border-orange-200 text-orange-800' }
+  ];
+
   return (
     <div className="space-y-6">
-      <div>
-        <h3 className="text-lg font-medium text-neutral-900 flex items-center">
-          <FilterIcon className="mr-2 h-5 w-5" />
-          Filters
-        </h3>
-        <p className="text-sm text-neutral-500">
-          Narrow down your results.
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-lg font-medium text-neutral-900 flex items-center">
+            <FilterIcon className="mr-2 h-5 w-5" />
+            Filters
+          </h3>
+          <p className="text-sm text-neutral-500">
+            Narrow down your results
+          </p>
+        </div>
+        
+        {activeFiltersCount > 0 && (
+          <Badge className="bg-primary-100 text-primary-800 border-primary-200 px-2.5 py-1">
+            {activeFiltersCount} active
+          </Badge>
+        )}
       </div>
       
       <Separator />
       
       <Accordion type="multiple" defaultValue={["categories", "price", "features"]}>
         <AccordionItem value="categories">
-          <AccordionTrigger className="font-medium">
+          <AccordionTrigger className="font-medium text-base py-3">
             Categories
           </AccordionTrigger>
           <AccordionContent>
-            <div className="space-y-3 pt-1">
+            <div className="space-y-4 pt-1">
               {categories ? (
                 categories.map(category => (
-                  <div key={category.id} className="flex items-center space-x-2">
+                  <div key={category.id} className="flex items-center space-x-3">
                     <Checkbox 
                       id={`category-${category.slug}`} 
                       checked={filters.categories.includes(category.slug)}
                       onCheckedChange={(checked) => 
                         handleCategoryChange(category.slug, checked as boolean)
                       }
+                      className="h-5 w-5"
                     />
                     <Label 
                       htmlFor={`category-${category.slug}`}
-                      className="text-sm cursor-pointer"
+                      className="text-base cursor-pointer py-1"
                     >
                       {category.name}
                     </Label>
                   </div>
                 ))
               ) : (
-                <div className="flex flex-col gap-2">
+                <div className="flex flex-col gap-3">
                   {[1, 2, 3, 4].map(i => (
-                    <div key={i} className="h-5 bg-neutral-100 rounded animate-pulse"></div>
+                    <div key={i} className="h-6 bg-neutral-100 rounded animate-pulse"></div>
                   ))}
                 </div>
               )}
@@ -166,29 +213,30 @@ const ProductFilters = ({ filters, onChange }: ProductFiltersProps) => {
         </AccordionItem>
         
         <AccordionItem value="price">
-          <AccordionTrigger className="font-medium">
+          <AccordionTrigger className="font-medium text-base py-3">
             Price Range
           </AccordionTrigger>
           <AccordionContent>
-            <div className="space-y-3 pt-1">
+            <div className="space-y-5 pt-2 px-1">
               <Slider
                 min={0}
                 max={500}
                 step={5}
                 value={priceRange}
                 onValueChange={(values) => setPriceRange(values as [number, number])}
-                className="mt-2"
+                className="mt-6"
                 showSecondThumb={true}
               />
               
-              <div className="flex items-center justify-between">
-                <div className="text-xs">
-                  <span className="text-neutral-500">Min: </span>
-                  <span className="font-medium">${priceRange[0]}</span>
+              <div className="flex items-center justify-between mt-4">
+                <div className="px-4 py-2 border border-neutral-200 rounded-md w-24 text-center">
+                  <div className="text-xs text-neutral-500">Min</div>
+                  <div className="font-medium">${priceRange[0]}</div>
                 </div>
-                <div className="text-xs">
-                  <span className="text-neutral-500">Max: </span>
-                  <span className="font-medium">${priceRange[1]}</span>
+                
+                <div className="px-4 py-2 border border-neutral-200 rounded-md w-24 text-center">
+                  <div className="text-xs text-neutral-500">Max</div>
+                  <div className="font-medium">${priceRange[1]}</div>
                 </div>
               </div>
             </div>
@@ -196,124 +244,32 @@ const ProductFilters = ({ filters, onChange }: ProductFiltersProps) => {
         </AccordionItem>
         
         <AccordionItem value="features">
-          <AccordionTrigger className="font-medium">
+          <AccordionTrigger className="font-medium text-base py-3">
             Features
           </AccordionTrigger>
           <AccordionContent>
-            <div className="space-y-3 pt-1">
-              <div className="flex items-center space-x-2">
-                <Checkbox 
-                  id="organic" 
-                  checked={filters.organic}
-                  onCheckedChange={(checked) => handleFeatureChange('organic', checked as boolean)}
-                />
-                <Label 
-                  htmlFor="organic"
-                  className="text-sm cursor-pointer flex items-center"
+            <div className="space-y-4 pt-1">
+              {/* List of feature checkboxes with better tap targets */}
+              {featureFilters.map(feature => (
+                <div 
+                  key={feature.id}
+                  className={`flex items-center p-2 rounded-md border ${feature.checked ? feature.color : 'border-neutral-200'}`}
                 >
-                  <RollerCoaster className="mr-1 h-4 w-4 text-green-600" /> Organic
-                </Label>
-              </div>
-              
-              <div className="flex items-center space-x-2">
-                <Checkbox 
-                  id="bpa-free" 
-                  checked={filters.bpaFree}
-                  onCheckedChange={(checked) => handleFeatureChange('bpaFree', checked as boolean)}
-                />
-                <Label 
-                  htmlFor="bpa-free"
-                  className="text-sm cursor-pointer flex items-center"
-                >
-                  <CircleDashed className="mr-1 h-4 w-4 text-blue-600" /> BPA-Free
-                </Label>
-              </div>
-              
-              <div className="flex items-center space-x-2">
-                <Checkbox 
-                  id="phthalate-free" 
-                  checked={filters.phthalateFree}
-                  onCheckedChange={(checked) => handleFeatureChange('phthalateFree', checked as boolean)}
-                />
-                <Label 
-                  htmlFor="phthalate-free"
-                  className="text-sm cursor-pointer flex items-center"
-                >
-                  <CircleDashed className="mr-1 h-4 w-4 text-purple-600" /> Phthalate-Free
-                </Label>
-              </div>
-              
-              <div className="flex items-center space-x-2">
-                <Checkbox 
-                  id="paraben-free" 
-                  checked={filters.parabenFree}
-                  onCheckedChange={(checked) => handleFeatureChange('parabenFree', checked as boolean)}
-                />
-                <Label 
-                  htmlFor="paraben-free"
-                  className="text-sm cursor-pointer flex items-center"
-                >
-                  <CircleDashed className="mr-1 h-4 w-4 text-red-600" /> Paraben-Free
-                </Label>
-              </div>
-              
-              <div className="flex items-center space-x-2">
-                <Checkbox 
-                  id="oxybenzone-free" 
-                  checked={filters.oxybenzoneFree}
-                  onCheckedChange={(checked) => handleFeatureChange('oxybenzoneFree', checked as boolean)}
-                />
-                <Label 
-                  htmlFor="oxybenzone-free"
-                  className="text-sm cursor-pointer flex items-center"
-                >
-                  <CircleDashed className="mr-1 h-4 w-4 text-yellow-600" /> Oxybenzone-Free
-                </Label>
-              </div>
-              
-              <div className="flex items-center space-x-2">
-                <Checkbox 
-                  id="formaldehyde-free" 
-                  checked={filters.formaldehydeFree}
-                  onCheckedChange={(checked) => handleFeatureChange('formaldehydeFree', checked as boolean)}
-                />
-                <Label 
-                  htmlFor="formaldehyde-free"
-                  className="text-sm cursor-pointer flex items-center"
-                >
-                  <CircleDashed className="mr-1 h-4 w-4 text-pink-600" /> Formaldehyde-Free
-                </Label>
-              </div>
-              
-              <div className="flex items-center space-x-2">
-                <Checkbox 
-                  id="sulfates-free" 
-                  checked={filters.sulfatesFree}
-                  onCheckedChange={(checked) => handleFeatureChange('sulfatesFree', checked as boolean)}
-                />
-                <Label 
-                  htmlFor="sulfates-free"
-                  className="text-sm cursor-pointer flex items-center"
-                >
-                  <CircleDashed className="mr-1 h-4 w-4 text-teal-600" /> Sulfates-Free
-                </Label>
-              </div>
-              
-              <div className="flex items-center space-x-2">
-                <Checkbox 
-                  id="fdc-free" 
-                  checked={filters.fdcFree}
-                  onCheckedChange={(checked) => handleFeatureChange('fdcFree', checked as boolean)}
-                />
-                <Label 
-                  htmlFor="fdc-free"
-                  className="text-sm cursor-pointer flex items-center"
-                >
-                  <CircleDashed className="mr-1 h-4 w-4 text-orange-600" /> FD&C-Free
-                </Label>
-              </div>
-              
-              {/* Removed clear button from here */}
+                  <Checkbox 
+                    id={feature.id} 
+                    checked={feature.checked}
+                    onCheckedChange={(checked) => handleFeatureChange(feature.id, checked as boolean)}
+                    className="h-5 w-5"
+                  />
+                  <Label 
+                    htmlFor={feature.id}
+                    className="text-base cursor-pointer flex items-center ml-3 flex-grow py-1"
+                  >
+                    {feature.icon}
+                    <span className="ml-2">{feature.label}</span>
+                  </Label>
+                </div>
+              ))}
             </div>
           </AccordionContent>
         </AccordionItem>
@@ -324,9 +280,9 @@ const ProductFilters = ({ filters, onChange }: ProductFiltersProps) => {
         <div className="pt-4 mt-4 border-t border-neutral-200">
           <Button 
             variant="default" 
-            size="default" 
+            size="lg" 
             onClick={resetFilters}
-            className="w-full text-sm font-medium flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-600 text-white"
+            className="w-full font-medium flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-600 text-white py-6 rounded-md"
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M19 12H5"></path>
