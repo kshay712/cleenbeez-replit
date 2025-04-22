@@ -1,9 +1,15 @@
 import { useState } from "react";
 import { Link } from "wouter";
-import { Heart, Check, X } from "lucide-react";
+import { Heart, Check, X, ChevronRight, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import CategoryBadge from "@/components/ui/CategoryBadge";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 export interface Product {
   id: number;
@@ -68,13 +74,18 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   // Get active features only
   const activeFeatures = features.filter(f => f.enabled);
 
+  // For mobile we'll only show the first 2 features directly
+  const visibleFeatures = activeFeatures.slice(0, 2);
+  const hiddenFeatures = activeFeatures.slice(2);
+  const hasHiddenFeatures = hiddenFeatures.length > 0;
+  
   return (
     <Link href={`/products/${product.id}`} className="block group">
       <div className="group relative product-card bg-white rounded-lg shadow-sm overflow-hidden transition-all duration-300 hover:shadow-md hover:translate-y-[-4px]">
         {/* Debug panel that shows all feature statuses */}
         {showDebug && (
           <div className="absolute top-0 left-0 right-0 z-10 bg-amber-100 text-amber-800 p-2 text-sm font-medium">
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               <div className="flex items-center gap-1">
                 {product.organic ? <Check className="w-4 h-4 text-green-600" /> : <X className="w-4 h-4 text-red-500" />}
                 <span>Organic</span>
@@ -112,7 +123,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         )}
 
         {/* Product image section */}
-        <div className="w-full bg-neutral-100 aspect-w-16 aspect-h-9 overflow-hidden">
+        <div className="w-full bg-neutral-100 aspect-square sm:aspect-w-16 sm:aspect-h-9 overflow-hidden">
           {!imageLoaded && !imageError && <PlaceholderImage />}
           {!imageError ? (
             <img 
@@ -130,20 +141,47 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           )}
         </div>
         
-        {/* Feature badges section - using our new approach with array mapping */}
-        <div className="absolute top-0 right-0 flex flex-wrap gap-1 justify-end p-2 max-w-full bg-gradient-to-l from-white/90 to-transparent">
-          {activeFeatures.length > 0 && activeFeatures.map((feature, idx) => (
-            <Badge 
-              key={idx} 
-              className={`px-1.5 py-px text-xs font-normal ${feature.className}`}
-            >
-              {feature.name}
-            </Badge>
-          ))}
+        {/* Feature badges section - show directly on desktop, limited with tooltip on mobile */}
+        <div className="absolute top-0 right-0 flex flex-wrap justify-end p-2 max-w-full bg-gradient-to-l from-white/90 to-transparent">
+          <div className="flex flex-wrap gap-1">
+            {/* Always visible features */}
+            {visibleFeatures.map((feature, idx) => (
+              <Badge 
+                key={idx} 
+                className={`px-1.5 py-px text-xs font-normal ${feature.className}`}
+              >
+                {feature.name}
+              </Badge>
+            ))}
+            
+            {/* Extra features shown in tooltip on mobile */}
+            {hasHiddenFeatures && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Badge className="px-1.5 py-px text-xs font-normal bg-primary-100 text-primary-800 cursor-pointer">
+                      <Plus className="h-3 w-3 inline-block mr-0.5" />
+                      {hiddenFeatures.length}
+                    </Badge>
+                  </TooltipTrigger>
+                  <TooltipContent className="flex flex-wrap gap-1 max-w-xs">
+                    {hiddenFeatures.map((feature, idx) => (
+                      <Badge 
+                        key={idx} 
+                        className={`px-1.5 py-px text-xs font-normal ${feature.className}`}
+                      >
+                        {feature.name}
+                      </Badge>
+                    ))}
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
+          </div>
         </div>
         
         {/* Product details section */}
-        <div className="p-4">
+        <div className="p-3 sm:p-4">
           <div className="flex justify-between items-center mb-2">
             <CategoryBadge category={product.category.name} className="px-2 py-1 bg-neutral-100 rounded-full text-xs" />
             <div className="flex items-center">
@@ -151,33 +189,41 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
             </div>
           </div>
           
-          <h3 className="text-lg font-semibold text-neutral-900 mb-2 line-clamp-2 min-h-[3.5rem]">
+          <h3 className="text-base sm:text-lg font-semibold text-neutral-900 mb-2 line-clamp-2">
             {product.name}
           </h3>
           
-          <p className="text-sm text-neutral-600 line-clamp-3 min-h-[4.5rem]">
+          <p className="text-sm text-neutral-600 line-clamp-2 sm:line-clamp-3">
             {product.description}
           </p>
           
           <div className="mt-3 pt-3 border-t border-neutral-100 flex justify-between items-center">
             <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-primary-600 group-hover:text-primary-700">
+              <span className="text-sm font-medium text-primary-600 group-hover:text-primary-700 flex items-center">
                 View details
+                <ChevronRight className="h-4 w-4 ml-0.5" />
               </span>
-              <Badge variant="outline" className="bg-amber-50 border-amber-200">
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="hidden sm:inline-flex bg-amber-50 border-amber-200">
                 {featureCount} features
               </Badge>
+              
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="h-8 w-8 sm:h-10 sm:w-10 rounded-full text-neutral-400 hover:text-primary-500 hover:bg-primary-50"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  // Add to wishlist functionality would go here
+                }}
+              >
+                <Heart className="h-4 w-4 sm:h-5 sm:w-5" />
+                <span className="sr-only">Add to wishlist</span>
+              </Button>
             </div>
-            <Button variant="ghost" size="icon" className="rounded-full text-neutral-400 hover:text-primary-500 hover:bg-primary-50"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                // Add to wishlist functionality would go here
-              }}
-            >
-              <Heart className="h-5 w-5" />
-              <span className="sr-only">Add to wishlist</span>
-            </Button>
           </div>
         </div>
       </div>

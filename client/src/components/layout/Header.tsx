@@ -9,7 +9,11 @@ import {
   FileText,
   BookOpen,
   Users,
-  User
+  User,
+  X,
+  Package,
+  FileText as BlogIcon,
+  GraduationCap
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -19,10 +23,19 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+  SheetClose,
+} from "@/components/ui/sheet";
 
 const Header = () => {
   const [location] = useLocation();
   const { user, isAdmin, isEditor, logout } = useAuth();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleSignOut = async () => {
     try {
@@ -51,6 +64,47 @@ const Header = () => {
     return location === path;
   };
 
+  const NavLinks = ({ mobile = false, onNavClick = () => {} }) => (
+    <>
+      <Link 
+        href="/products" 
+        className={`${mobile ? 'text-base py-3 w-full flex' : 'text-sm md:text-base'} font-medium ${
+          isActive('/products') 
+            ? 'text-amber-600' 
+            : 'text-neutral-700 hover:text-amber-600'
+        }`}
+        onClick={onNavClick}
+      >
+        {mobile && <Package className="mr-2 h-5 w-5" />}
+        Products
+      </Link>
+      <Link 
+        href="/blog" 
+        className={`${mobile ? 'text-base py-3 w-full flex' : 'text-sm md:text-base'} font-medium ${
+          isActive('/blog') 
+            ? 'text-amber-600' 
+            : 'text-neutral-700 hover:text-amber-600'
+        }`}
+        onClick={onNavClick}
+      >
+        {mobile && <BlogIcon className="mr-2 h-5 w-5" />}
+        Blog
+      </Link>
+      <Link 
+        href="/learn" 
+        className={`${mobile ? 'text-base py-3 w-full flex' : 'text-sm md:text-base'} font-medium ${
+          isActive('/learn') 
+            ? 'text-amber-600' 
+            : 'text-neutral-700 hover:text-amber-600'
+        }`}
+        onClick={onNavClick}
+      >
+        {mobile && <GraduationCap className="mr-2 h-5 w-5" />}
+        Learn
+      </Link>
+    </>
+  );
+
   return (
     <header className="bg-white border-b border-neutral-100 fixed w-full top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -65,39 +119,9 @@ const Header = () => {
             </Link>
           </div>
           
-          {/* Right side: Navigation + Admin Menu */}
-          <div className="flex items-center space-x-4 md:space-x-6">
-            {/* Navigation Links */}
-            <Link 
-              href="/products" 
-              className={`text-sm md:text-base font-medium ${
-                isActive('/products') 
-                  ? 'text-amber-600' 
-                  : 'text-neutral-700 hover:text-amber-600'
-              }`}
-            >
-              Products
-            </Link>
-            <Link 
-              href="/blog" 
-              className={`text-sm md:text-base font-medium ${
-                isActive('/blog') 
-                  ? 'text-amber-600' 
-                  : 'text-neutral-700 hover:text-amber-600'
-              }`}
-            >
-              Blog
-            </Link>
-            <Link 
-              href="/learn" 
-              className={`text-sm md:text-base font-medium ${
-                isActive('/learn') 
-                  ? 'text-amber-600' 
-                  : 'text-neutral-700 hover:text-amber-600'
-              }`}
-            >
-              Learn
-            </Link>
+          {/* Desktop Navigation Links */}
+          <div className="hidden md:flex items-center space-x-6">
+            <NavLinks />
             
             {/* Admin dropdown menu */}
             <DropdownMenu>
@@ -105,7 +129,8 @@ const Header = () => {
                 <Button 
                   variant="ghost" 
                   size="icon" 
-                  className="text-neutral-700"
+                  className="text-neutral-700 h-10 w-10"
+                  aria-label="Menu"
                 >
                   <Menu className="h-5 w-5" />
                 </Button>
@@ -171,10 +196,143 @@ const Header = () => {
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
+          
+          {/* Mobile Menu Button */}
+          <div className="flex md:hidden">
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="text-neutral-700 h-10 w-10"
+                  aria-label="Menu"
+                >
+                  <Menu className="h-5 w-5" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-[85vw] sm:w-[385px]">
+                <SheetHeader className="mb-6">
+                  <SheetTitle>
+                    <div className="flex items-center">
+                      <div className="h-8 w-8 bg-amber-500 rounded-full flex items-center justify-center">
+                        <BeeIcon className="h-5 w-5 text-white" />
+                      </div>
+                      <span className="ml-2 text-lg font-bold text-neutral-800">Clean Bee</span>
+                    </div>
+                  </SheetTitle>
+                </SheetHeader>
+                
+                {/* Mobile Navigation */}
+                <div className="flex flex-col py-2">
+                  <SheetClose asChild>
+                    <div className="flex flex-col space-y-1">
+                      <NavLinks mobile onNavClick={() => setMobileMenuOpen(false)} />
+                    </div>
+                  </SheetClose>
+                </div>
+                
+                <div className="border-t border-neutral-200 my-4"></div>
+                
+                {/* User Section */}
+                {!user ? (
+                  <SheetClose asChild>
+                    <Link 
+                      href="/login" 
+                      className="flex items-center py-3 px-2 text-base font-medium text-neutral-700 hover:text-amber-600"
+                    >
+                      <User className="mr-2 h-5 w-5" />
+                      Login
+                    </Link>
+                  </SheetClose>
+                ) : (
+                  <>
+                    <div className="px-2 py-3 border-b border-neutral-200">
+                      <div className="font-medium">{user.username || user.email}</div>
+                      <div className="text-sm text-neutral-500 mt-1">{user.email}</div>
+                    </div>
+                    
+                    <SheetClose asChild>
+                      <Link 
+                        href="/profile" 
+                        className="flex items-center py-3 px-2 text-base font-medium text-neutral-700 hover:text-amber-600"
+                      >
+                        <User className="mr-2 h-5 w-5" />
+                        Profile Settings
+                      </Link>
+                    </SheetClose>
+                    
+                    <button 
+                      onClick={handleSignOut} 
+                      className="flex items-center py-3 px-2 text-base font-medium text-red-600 hover:text-red-700 w-full text-left"
+                    >
+                      <LogOut className="mr-2 h-5 w-5" />
+                      Sign out
+                    </button>
+                  </>
+                )}
+                
+                {/* Admin Section on Mobile */}
+                {(isAdmin || isEditor) && (
+                  <>
+                    <div className="border-t border-neutral-200 my-4"></div>
+                    <div className="px-2 py-2 text-sm font-semibold text-neutral-500">
+                      Admin
+                    </div>
+                    
+                    {(isAdmin || isEditor) && (
+                      <SheetClose asChild>
+                        <Link 
+                          href="/admin/products" 
+                          className="flex items-center py-3 px-2 text-base font-medium text-neutral-700 hover:text-amber-600"
+                        >
+                          <ClipboardList className="mr-2 h-5 w-5" />
+                          Manage Products
+                        </Link>
+                      </SheetClose>
+                    )}
+                    
+                    {(isAdmin || isEditor) && (
+                      <SheetClose asChild>
+                        <Link 
+                          href="/admin/blog" 
+                          className="flex items-center py-3 px-2 text-base font-medium text-neutral-700 hover:text-amber-600"
+                        >
+                          <FileText className="mr-2 h-5 w-5" />
+                          Manage Blog
+                        </Link>
+                      </SheetClose>
+                    )}
+                    
+                    {(isAdmin || isEditor) && (
+                      <SheetClose asChild>
+                        <Link 
+                          href="/admin/learn" 
+                          className="flex items-center py-3 px-2 text-base font-medium text-neutral-700 hover:text-amber-600"
+                        >
+                          <BookOpen className="mr-2 h-5 w-5" />
+                          Manage Learn
+                        </Link>
+                      </SheetClose>
+                    )}
+                    
+                    {isAdmin && (
+                      <SheetClose asChild>
+                        <Link 
+                          href="/admin/users" 
+                          className="flex items-center py-3 px-2 text-base font-medium text-neutral-700 hover:text-amber-600"
+                        >
+                          <Users className="mr-2 h-5 w-5" />
+                          Manage Users
+                        </Link>
+                      </SheetClose>
+                    )}
+                  </>
+                )}
+              </SheetContent>
+            </Sheet>
+          </div>
         </div>
       </div>
-      
-      {/* We don't need a mobile menu anymore since navigation links are always visible in the header */}
     </header>
   );
 };
